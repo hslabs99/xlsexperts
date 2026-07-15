@@ -49,7 +49,6 @@ import {
   type AdminViewMode,
 } from '@/lib/admin-session'
 import type { AdminSession } from '@/lib/admin-users'
-import { ensureDefaultAdminUser } from '@/lib/admin-users-db'
 
 type AdminTab =
   | 'system'
@@ -179,8 +178,6 @@ export default function AdminPage() {
     setSession(existing)
     setViewMode(readAdminViewMode())
     setAuthReady(true)
-    // Seed admin user in the background so first login works even before submit
-    void ensureDefaultAdminUser().catch(() => undefined)
   }, [])
 
   const effectiveRole = useMemo(() => {

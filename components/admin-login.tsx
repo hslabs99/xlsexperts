@@ -1,19 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { authenticateUser, ensureDefaultAdminUser } from '@/lib/admin-users-db'
 import { writeAdminSession } from '@/lib/admin-session'
 import type { AdminSession } from '@/lib/admin-users'
-import {
-  DEFAULT_ADMIN_EMAIL,
-} from '@/lib/admin-users'
 
 type AdminLoginProps = {
   onLoggedIn: (session: AdminSession) => void
 }
 
 export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
-  const [email, setEmail] = useState(DEFAULT_ADMIN_EMAIL)
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,20 +19,22 @@ export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
     setBusy(true)
     setError(null)
     try {
-      await ensureDefaultAdminUser()
-      const user = await authenticateUser(email, password)
-      if (!user) {
-        setError('Invalid email or password.')
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        session?: AdminSession
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.session) {
+        setError(data.error || 'Invalid email or password.')
         return
       }
-      const session: AdminSession = {
-        userId: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      }
-      writeAdminSession(session)
-      onLoggedIn(session)
+      writeAdminSession(data.session)
+      onLoggedIn(data.session)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
