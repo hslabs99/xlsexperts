@@ -11,8 +11,9 @@
 
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
-import { BLOG_POSTS_COLLECTION, getDb } from '@/lib/firebase'
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
+import { BLOG_POSTS_COLLECTION } from '@/lib/firebase'
 import { blogPosts as v0BlogPosts } from '@/lib/blog-posts'
 import { uploadBlogImage } from '@/lib/blog-storage'
 import { updateBlogPostFields } from '@/lib/blog-db'
@@ -53,25 +54,24 @@ export async function seedBlogPostsFromV0Archive(options?: {
 
   for (let i = 0; i < v0BlogPosts.length; i += 1) {
     const post = v0BlogPosts[i]
-    const ref = doc(getDb(), BLOG_POSTS_COLLECTION, post.slug)
-    const existing = await getDoc(ref)
+    const ref = getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(post.slug)
+    const existing = await ref.get()
 
-    if (existing.exists() && !overwrite) {
+    if (existing.exists && !overwrite) {
       skipped += 1
     } else {
-      await setDoc(
-        ref,
+      await ref.set(
         {
           ...post,
           published: true,
           featured: i === 0,
           sortOrder: i,
-          updatedAt: serverTimestamp(),
-          ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
+          updatedAt: FieldValue.serverTimestamp(),
+          ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
         },
         { merge: true }
       )
-      if (existing.exists()) updated += 1
+      if (existing.exists) updated += 1
       else created += 1
     }
 
