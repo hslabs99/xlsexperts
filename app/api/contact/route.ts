@@ -13,6 +13,7 @@ import {
   getBusinessEmail,
   sendEnquiryNotificationEmail,
 } from '@/lib/email/enquiry-notify'
+import { withTimeout } from '@/lib/with-timeout'
 import type { ContactPayload } from '@/lib/types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -57,17 +58,21 @@ export async function POST(request: Request) {
 
   let enquiryId: string | null = null
   try {
-    enquiryId = await createEnquiry({
-      type: 'standard',
-      name: body.name,
-      company: body.company,
-      email: body.email,
-      phone: body.phone,
-      message: body.message,
-      services: body.services,
-      hear: body.hear,
-      emailNotified: false,
-    })
+    enquiryId = await withTimeout(
+      createEnquiry({
+        type: 'standard',
+        name: body.name,
+        company: body.company,
+        email: body.email,
+        phone: body.phone,
+        message: body.message,
+        services: body.services,
+        hear: body.hear,
+        emailNotified: false,
+      }),
+      8_000,
+      'createEnquiry'
+    )
   } catch (error) {
     console.error(
       '[contact] Failed to save enquiry to Firestore',
@@ -88,16 +93,24 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await sendEnquiryNotificationEmail({
-      kind: 'standard',
-      ctx: buildStandardMergeContext(body),
-      category: 'contact-enquiry',
-      referenceId: enquiryId ? `contact-${enquiryId}` : `contact-${Date.now()}`,
-    })
+    const result = await withTimeout(
+      sendEnquiryNotificationEmail({
+        kind: 'standard',
+        ctx: buildStandardMergeContext(body),
+        category: 'contact-enquiry',
+        referenceId: enquiryId ? `contact-${enquiryId}` : `contact-${Date.now()}`,
+      }),
+      15_000,
+      'sendEnquiryNotificationEmail'
+    )
 
     if (enquiryId && result.accepted) {
       try {
-        await updateEnquiryEmailNotified(enquiryId, true)
+        await withTimeout(
+          updateEnquiryEmailNotified(enquiryId, true),
+          5_000,
+          'updateEnquiryEmailNotified'
+        )
       } catch {
         console.error('[contact] Enquiry saved but failed to mark emailNotified')
       }

@@ -1,5 +1,9 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app'
-import { getFirestore, type Firestore } from 'firebase/firestore'
+import {
+  getFirestore,
+  initializeFirestore,
+  type Firestore,
+} from 'firebase/firestore'
 import { getStorage, type FirebaseStorage } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -11,6 +15,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
+let firestoreInitialized = false
+
 export function getFirebaseApp(): FirebaseApp {
   if (getApps().length > 0) {
     return getApp()
@@ -19,7 +25,20 @@ export function getFirebaseApp(): FirebaseApp {
 }
 
 export function getDb(): Firestore {
-  return getFirestore(getFirebaseApp())
+  const app = getFirebaseApp()
+  // Serverless (Cloud Run / App Hosting): prefer long-polling over WebChannel
+  // so Firestore writes don't hang forever on stuck streaming connections.
+  if (typeof window === 'undefined' && !firestoreInitialized) {
+    try {
+      initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+      })
+    } catch {
+      // Already initialized in this isolate — fall through to getFirestore.
+    }
+    firestoreInitialized = true
+  }
+  return getFirestore(app)
 }
 
 export function getFirebaseStorage(): FirebaseStorage {

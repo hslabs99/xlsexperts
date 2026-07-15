@@ -50,6 +50,7 @@ export function Contact() {
   )
   const [bookingStatusIndex, setBookingStatusIndex] = useState(0)
   const [enquirySubmitting, setEnquirySubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Form field state
   const [name, setName] = useState('')
@@ -106,15 +107,33 @@ export function Contact() {
     const errs = validate(false)
     if (Object.keys(errs).length) { setErrors(errs); return }
     setErrors({})
+    setSubmitError(null)
     setEnquirySubmitting(true)
+    const controller = new AbortController()
+    const abortTimer = window.setTimeout(() => controller.abort(), 25_000)
     try {
-      await fetch('/api/contact', {
+      const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({ name, company, email, phone, message, services: selected, hear }),
       })
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean
+        error?: string
+      }
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || 'Could not send enquiry. Please try again.')
+      }
       setStep('done')
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setSubmitError('Sending timed out. Please try again in a moment.')
+      } else {
+        setSubmitError(err instanceof Error ? err.message : 'Could not send enquiry.')
+      }
     } finally {
+      window.clearTimeout(abortTimer)
       setEnquirySubmitting(false)
     }
   }
@@ -505,6 +524,11 @@ export function Contact() {
                 {/* Dual CTA */}
                 <div className="flex flex-col gap-3 border-t border-gray-100 pt-2">
                   <p className="text-xs font-bold uppercase tracking-widest text-gray-600">How would you like to proceed?</p>
+                  {submitError && (
+                    <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                      {submitError}
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="submit"

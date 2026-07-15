@@ -14,6 +14,7 @@ import {
 import { getDiscoveryClientPresentationTemplate } from '@/lib/email-presentation-templates'
 import { fetchActiveEmailTemplate } from '@/lib/email-templates-db'
 import { sendEmail } from '@/lib/email/sendgrid'
+import { withTimeout } from '@/lib/with-timeout'
 import type { BookingPayload, ContactPayload } from '@/lib/types'
 
 function concernsHtml(services: string[] | undefined): string {
@@ -224,7 +225,17 @@ export async function loadEnquiryTemplate(
   if (kind === 'discovery') {
     return getDiscoveryClientPresentationTemplate()
   }
-  const stored = await fetchActiveEmailTemplate(kind)
+  const stored = await withTimeout(
+    fetchActiveEmailTemplate(kind),
+    6_000,
+    `fetchActiveEmailTemplate(${kind})`
+  ).catch((error) => {
+    console.error(
+      '[email] Template load failed; using built-in fallback',
+      error instanceof Error ? error.message : undefined
+    )
+    return null
+  })
   return stored ?? (await fallbackTemplate(kind))
 }
 
