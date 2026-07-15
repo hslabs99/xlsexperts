@@ -24,6 +24,7 @@ import {
   EMAIL_INSERT_BLOCKS,
   type EmailInsertBlock,
 } from '@/lib/email-insert-blocks'
+import { AdminDialog } from '@/components/admin-dialog'
 
 const SAMPLE_CTX: EnquiryMergeContext = {
   from: 'XLS Experts',
@@ -108,6 +109,7 @@ export function AdminEmailTemplatesPanel() {
   const [selectedId, setSelectedId] = useState<string | 'new' | null>(null)
   const [form, setForm] = useState<TemplateForm>(emptyForm())
   const [showHtmlSource, setShowHtmlSource] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -217,7 +219,11 @@ export function AdminEmailTemplatesPanel() {
 
   async function handleDelete() {
     if (!selectedId || selectedId === 'new') return
-    if (!window.confirm('Delete this email template?')) return
+    setConfirmDelete(true)
+  }
+
+  async function confirmDeleteTemplate() {
+    if (!selectedId || selectedId === 'new') return
     setBusy(true)
     setError(null)
     try {
@@ -230,6 +236,7 @@ export function AdminEmailTemplatesPanel() {
         throw new Error(data.error || 'Delete failed')
       }
       setMessage('Template deleted.')
+      setConfirmDelete(false)
       setSelectedId(null)
       setForm(emptyForm())
       await load()
@@ -777,6 +784,21 @@ export function AdminEmailTemplatesPanel() {
           </form>
         </div>
       </div>
+
+      <AdminDialog
+        open={confirmDelete}
+        title="Delete email template?"
+        mode="confirm"
+        tone="danger"
+        confirmLabel="Delete template"
+        busy={busy}
+        onClose={() => {
+          if (!busy) setConfirmDelete(false)
+        }}
+        onConfirm={confirmDeleteTemplate}
+      >
+        <p>Delete this email template? This cannot be undone.</p>
+      </AdminDialog>
     </div>
   )
 }

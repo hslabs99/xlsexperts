@@ -13,6 +13,7 @@ import {
   CONTACT_HEAR_OPTIONS,
   CONTACT_SERVICE_OPTIONS,
 } from '@/lib/contact-options'
+import { AdminDialog } from '@/components/admin-dialog'
 
 function formatEnquiryCreatedAt(value: unknown): string {
   if (typeof value === 'string') {
@@ -418,6 +419,7 @@ export function AdminEnquiriesPanel() {
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [deleteEnquiryId, setDeleteEnquiryId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -548,15 +550,9 @@ export function AdminEnquiriesPanel() {
     }
   }
 
-  async function handleDelete(id: string) {
-    const password = window.prompt(
-      'Enter delete password to permanently remove this enquiry from Firebase:'
-    )
-    if (password === null) return
-    if (password.trim() !== '2166') {
-      window.alert('Incorrect password. Enquiry was not deleted.')
-      return
-    }
+  async function confirmDeleteEnquiry() {
+    if (!deleteEnquiryId) return
+    const id = deleteEnquiryId
     setBusy(true)
     setError(null)
     try {
@@ -570,6 +566,7 @@ export function AdminEnquiriesPanel() {
       }
       setRows((prev) => prev.filter((r) => r.id !== id))
       if (selectedId === id) setSelectedId(null)
+      setDeleteEnquiryId(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete enquiry')
     } finally {
@@ -903,9 +900,30 @@ export function AdminEnquiriesPanel() {
           busy={busy}
           onClose={() => setSelectedId(null)}
           onStatusChange={(status) => void handleStatusChange(selected.id, status)}
-          onDelete={() => void handleDelete(selected.id)}
+          onDelete={() => setDeleteEnquiryId(selected.id)}
         />
       )}
+
+      <AdminDialog
+        open={deleteEnquiryId != null}
+        title="Delete enquiry?"
+        mode="confirm"
+        tone="danger"
+        confirmLabel="Delete permanently"
+        busy={busy}
+        requireText="2166"
+        requireTextLabel="Delete password"
+        requireTextPlaceholder="Enter delete password"
+        onClose={() => {
+          if (!busy) setDeleteEnquiryId(null)
+        }}
+        onConfirm={confirmDeleteEnquiry}
+      >
+        <p>
+          Permanently remove this enquiry from Firebase. Enter the delete
+          password to continue.
+        </p>
+      </AdminDialog>
     </div>
   )
 }

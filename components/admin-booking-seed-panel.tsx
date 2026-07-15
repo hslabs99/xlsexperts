@@ -1,37 +1,55 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { AdminDialog } from '@/components/admin-dialog'
 import {
   buildSeedTimeWindows,
   countPlannedSeedSlots,
   createEmptySeedEnabled,
   createMorningSeedEnabled,
   defaultSeedTemplateConfig,
+  formatDateKey,
+  formatDisplayDate,
   SEED_SLOT_MINUTES,
   SEED_WEEKDAYS,
   seedCellKey,
+  type BookingSlot,
   type SeedTemplateConfig,
   type SeedWeekday,
 } from '@/lib/booking-slots'
 
-const STORAGE_KEY = 'xls-booking-seed-template-v3'
+const STORAGE_KEY = 'xls-booking-seed-template-v4'
+
+/** Horizon options: from today forward. Default is 2 weeks. */
+const SEED_WEEK_OPTIONS = [1, 2, 3] as const
+
+function clampWeeks(weeks: number): number {
+  if (SEED_WEEK_OPTIONS.includes(weeks as (typeof SEED_WEEK_OPTIONS)[number])) {
+    return weeks
+  }
+  return 2
+}
 
 function loadStoredConfig(): SeedTemplateConfig {
   if (typeof window === 'undefined') return defaultSeedTemplateConfig()
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw =
+      window.localStorage.getItem(STORAGE_KEY) ||
+      window.localStorage.getItem('xls-booking-seed-template-v3')
     if (!raw) return defaultSeedTemplateConfig()
     const parsed = JSON.parse(raw) as Partial<SeedTemplateConfig>
-    const weeks =
-      typeof parsed.weeks === 'number' && parsed.weeks >= 1 && parsed.weeks <= 8
-        ? Math.floor(parsed.weeks)
-        : 2
+    const weeks = clampWeeks(
+      typeof parsed.weeks === 'number' ? Math.floor(parsed.weeks) : 2
+    )
     const base = createEmptySeedEnabled()
     const enabled =
       parsed.enabled && typeof parsed.enabled === 'object'
-        ? { ...base, ...Object.fromEntries(
-            Object.entries(parsed.enabled).filter(([k]) => k in base)
-          ) }
+        ? {
+            ...base,
+            ...Object.fromEntries(
+              Object.entries(parsed.enabled).filter(([k]) => k in base)
+            ),
+          }
         : base
     return {
       appointmentMinutes: SEED_SLOT_MINUTES,
@@ -51,16 +69,36 @@ function persistConfig(config: SeedTemplateConfig) {
   }
 }
 
+/** Booked slots whose date falls in [today, today+14 days] (calendar days). */
+export function bookedSlotsInNextTwoWeeks(
+  slots: BookingSlot[],
+  from: Date = new Date()
+): BookingSlot[] {
+  const start = formatDateKey(from)
+  const endDate = new Date(from)
+  endDate.setHours(0, 0, 0, 0)
+  endDate.setDate(endDate.getDate() + 14)
+  const end = formatDateKey(endDate)
+  return slots
+    .filter(
+      (s) => s.status === 'booked' && s.date >= start && s.date <= end
+    )
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date)
+      return a.time.localeCompare(b.time)
+    })
+}
+
 type Props = {
   busy?: boolean
-  slotCount?: number
+  slots?: BookingSlot[]
   onSeed: (config: SeedTemplateConfig) => Promise<void>
   onClearAll: () => Promise<void>
 }
 
 export function AdminBookingSeedPanel({
   busy,
-  slotCount = 0,
+  slots = [],
   onSeed,
   onClearAll,
 }: Props) {
@@ -68,6 +106,8 @@ export function AdminBookingSeedPanel({
     defaultSeedTemplateConfig()
   )
   const [hydrated, setHydrated] = useState(false)
+  const [clearOpen, setClearOpen] = useState(false)
+  const [clearing, setClearing] = useState(false)
 
   useEffect(() => {
     setConfig(loadStoredConfig())
@@ -75,6 +115,7 @@ export function AdminBookingSeedPanel({
   }, [])
 
   const windows = useMemo(() => buildSeedTimeWindows(), [])
+  const slotCount = slots.length
 
   const plannedCount = useMemo(
     () => countPlannedSeedSlots(config),
@@ -84,6 +125,11 @@ export function AdminBookingSeedPanel({
   const enabledCount = useMemo(
     () => Object.values(config.enabled).filter(Boolean).length,
     [config.enabled]
+  )
+
+  const upcomingBookings = useMemo(
+    () => bookedSlotsInNextTwoWeeks(slots),
+    [slots]
   )
 
   function update(next: SeedTemplateConfig) {
@@ -132,19 +178,14 @@ export function AdminBookingSeedPanel({
     })
   }
 
-  async function handleClearAll() {
-    const ok = window.confirm(
-      `Delete ALL ${slotCount} booking slot${slotCount === 1 ? '' : 's'}?\n\n` +
-        'This is a global reset — available, unavailable, and booked slots are removed. This cannot be undone.'
-    )
-    if (!ok) return
-    const typed = window.prompt(
-      'Type CLEAR to confirm emptying every booking slot.'
-    )
-    if (typed?.trim().toUpperCase() !== 'CLEAR') {
-      return
+  async function confirmClearAll() {
+    setClearing(true)
+    try {
+      await onClearAll()
+      setClearOpen(false)
+    } finally {
+      setClearing(false)
     }
-    await onClearAll()
   }
 
   return (
@@ -157,7 +198,8 @@ export function AdminBookingSeedPanel({
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
             20 half-hour rows from 8:00 AM–6:00 PM. Turn a whole row on/off,
             then fine-tune individual Mon–Fri cells. Seed creates one booking
-            slot for every enabled cell across the weeks you choose.
+            slot for every enabled cell from today through the weeks you choose
+            (default 2).
           </p>
         </div>
         <p className="text-xs text-ink-muted">
@@ -177,22 +219,23 @@ export function AdminBookingSeedPanel({
           </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-ink">Weeks to seed</span>
+          <span className="font-medium text-ink">Weeks to seed from today</span>
           <select
             value={config.weeks}
             onChange={(e) =>
-              update({ ...config, weeks: Number(e.target.value) })
+              update({ ...config, weeks: clampWeeks(Number(e.target.value)) })
             }
             className="rounded-md border border-border px-3 py-2"
           >
-            {[1, 2, 3, 4, 6, 8].map((n) => (
+            {SEED_WEEK_OPTIONS.map((n) => (
               <option key={n} value={n}>
-                Next {n} week{n === 1 ? '' : 's'}
+                Today + {n} week{n === 1 ? '' : 's'}
+                {n === 2 ? ' (default)' : ''}
               </option>
             ))}
           </select>
           <span className="text-xs text-ink-muted">
-            Applies this weekly pattern forward
+            Applies this Mon–Fri pattern from today through the period you pick
           </span>
         </label>
       </div>
@@ -222,7 +265,7 @@ export function AdminBookingSeedPanel({
         <button
           type="button"
           disabled={busy || slotCount === 0}
-          onClick={() => void handleClearAll()}
+          onClick={() => setClearOpen(true)}
           className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Empty all booking slots
@@ -322,7 +365,7 @@ export function AdminBookingSeedPanel({
         >
           {busy
             ? 'Working…'
-            : `Seed ${config.weeks} week${config.weeks === 1 ? '' : 's'} (~${plannedCount} slots)`}
+            : `Seed today + ${config.weeks} week${config.weeks === 1 ? '' : 's'} (~${plannedCount} slots)`}
         </button>
         {enabledCount === 0 ? (
           <p className="text-xs text-amber-700">
@@ -335,6 +378,49 @@ export function AdminBookingSeedPanel({
           </p>
         )}
       </div>
+
+      <AdminDialog
+        open={clearOpen}
+        title="Empty all booking slots?"
+        mode="confirm"
+        tone="danger"
+        confirmLabel="Delete all slots"
+        cancelLabel="Keep slots"
+        busy={clearing}
+        onClose={() => {
+          if (!clearing) setClearOpen(false)
+        }}
+        onConfirm={confirmClearAll}
+      >
+        <p>
+          This deletes all {slotCount} booking slot
+          {slotCount === 1 ? '' : 's'} (available, unavailable, and booked).
+          This cannot be undone.
+        </p>
+        {upcomingBookings.length > 0 ? (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-950">
+            <p className="font-semibold">
+              Warning: {upcomingBookings.length} booked discovery call
+              {upcomingBookings.length === 1 ? '' : 's'} in the next 2 weeks
+              will also be deleted.
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+              {upcomingBookings.slice(0, 8).map((s) => (
+                <li key={s.id}>
+                  {formatDisplayDate(s.date)} · {s.time}
+                  {s.booking?.name ? ` — ${s.booking.name}` : ''}
+                  {s.booking?.company ? ` (${s.booking.company})` : ''}
+                </li>
+              ))}
+              {upcomingBookings.length > 8 ? (
+                <li>…and {upcomingBookings.length - 8} more</li>
+              ) : null}
+            </ul>
+          </div>
+        ) : (
+          <p>No booked calls found in the next 2 weeks.</p>
+        )}
+      </AdminDialog>
     </div>
   )
 }

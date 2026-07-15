@@ -8,6 +8,7 @@ import {
   type AdminUser,
   type AdminUserRole,
 } from '@/lib/admin-users'
+import { AdminDialog } from '@/components/admin-dialog'
 
 type AdminUsersPanelProps = {
   currentUserId: string
@@ -50,6 +51,8 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
 
   const [form, setForm] = useState<UserFormState>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [alertMessage, setAlertMessage] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
 
   const isEditing = editingId !== null
 
@@ -162,16 +165,21 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
     }
   }
 
-  async function handleDelete(user: AdminUser) {
+  function requestDelete(user: AdminUser) {
     if (user.id === currentUserId) {
-      window.alert('You cannot delete the account you are signed in as.')
+      setAlertMessage('You cannot delete the account you are signed in as.')
       return
     }
     if (user.email === DEFAULT_ADMIN_EMAIL) {
-      window.alert('The seeded admin account cannot be deleted.')
+      setAlertMessage('The seeded admin account cannot be deleted.')
       return
     }
-    if (!window.confirm(`Delete user ${user.email}?`)) return
+    setDeleteTarget(user)
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    const user = deleteTarget
     setBusy(true)
     setError(null)
     try {
@@ -188,6 +196,7 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
         setEditingId(null)
         setForm(emptyForm())
       }
+      setDeleteTarget(null)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete user')
@@ -404,7 +413,7 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
                           <button
                             type="button"
                             disabled={busy || isCurrent}
-                            onClick={() => void handleDelete(user)}
+                            onClick={() => requestDelete(user)}
                             className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -420,6 +429,33 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
           </div>
         )}
       </div>
+
+      <AdminDialog
+        open={alertMessage != null}
+        title="Cannot delete user"
+        mode="alert"
+        onClose={() => setAlertMessage(null)}
+      >
+        <p>{alertMessage}</p>
+      </AdminDialog>
+
+      <AdminDialog
+        open={deleteTarget != null}
+        title="Delete user?"
+        mode="confirm"
+        tone="danger"
+        confirmLabel="Delete user"
+        busy={busy}
+        onClose={() => {
+          if (!busy) setDeleteTarget(null)
+        }}
+        onConfirm={confirmDelete}
+      >
+        <p>
+          Delete user <strong>{deleteTarget?.email}</strong>? This cannot be
+          undone.
+        </p>
+      </AdminDialog>
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
   importCaseStudySiteImageToStorage,
   uploadCaseStudyImage,
 } from '@/lib/case-studies-storage'
+import { AdminDialog } from '@/components/admin-dialog'
 import {
   AdminCaseStudiesPreviewShell,
   type CaseStudyPreviewKind,
@@ -60,6 +61,7 @@ export function AdminCaseStudiesPanel() {
   const [search, setSearch] = useState('')
   const [tagsText, setTagsText] = useState('')
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [previewKind, setPreviewKind] = useState<CaseStudyPreviewKind>('card')
   const [previewSlug, setPreviewSlug] = useState('')
   const [previewReturn, setPreviewReturn] = useState<'list' | 'edit'>('list')
@@ -213,7 +215,11 @@ export function AdminCaseStudiesPanel() {
 
   async function handleDelete() {
     if (!form.slug || isNew) return
-    if (!window.confirm(`Delete “${form.title}”?`)) return
+    setConfirmDelete(true)
+  }
+
+  async function confirmDeleteCaseStudy() {
+    if (!form.slug || isNew) return
     setBusy(true)
     setError(null)
     try {
@@ -226,6 +232,7 @@ export function AdminCaseStudiesPanel() {
         throw new Error(data.error || 'Delete failed')
       }
       setMessage('Case study deleted.')
+      setConfirmDelete(false)
       await load()
       setMode('list')
     } catch (err) {
@@ -754,6 +761,23 @@ export function AdminCaseStudiesPanel() {
           </div>
         </form>
       )}
+
+      <AdminDialog
+        open={confirmDelete}
+        title="Delete case study?"
+        mode="confirm"
+        tone="danger"
+        confirmLabel="Delete"
+        busy={busy}
+        onClose={() => {
+          if (!busy) setConfirmDelete(false)
+        }}
+        onConfirm={confirmDeleteCaseStudy}
+      >
+        <p>
+          Delete “{form.title || form.slug}”? This cannot be undone.
+        </p>
+      </AdminDialog>
     </div>
   )
 }

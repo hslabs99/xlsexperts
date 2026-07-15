@@ -6,6 +6,7 @@ import { Plus, Trash2, Upload, Eye } from 'lucide-react'
 import type { BlogPostRecord } from '@/lib/blog-shared'
 // Image uploads remain browser Firebase Storage (not moved to API yet).
 import { uploadBlogImage } from '@/lib/blog-storage'
+import { AdminDialog } from '@/components/admin-dialog'
 import {
   AdminBlogPreviewShell,
   type BlogPreviewKind,
@@ -71,6 +72,12 @@ export function AdminBlogPanel() {
   const [previewKind, setPreviewKind] = useState<BlogPreviewKind>('list')
   const [previewReturn, setPreviewReturn] = useState<'list' | 'edit'>('edit')
   const [form, setForm] = useState<BlogPostRecord>(emptyPost())
+  const [deleteSlug, setDeleteSlug] = useState<string | null>(null)
+  const [imageWarn, setImageWarn] = useState<{
+    file: File
+    headline: string
+    detail: string
+  } | null>(null)
   const [isNew, setIsNew] = useState(false)
   const [search, setSearch] = useState('')
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
@@ -188,8 +195,9 @@ export function AdminBlogPanel() {
     }
   }
 
-  async function handleDelete(slug: string) {
-    if (!window.confirm(`Delete blog post “${slug}” from Firebase?`)) return
+  async function confirmDelete() {
+    if (!deleteSlug) return
+    const slug = deleteSlug
     setBusy(true)
     setError(null)
     try {
@@ -206,6 +214,7 @@ export function AdminBlogPanel() {
         setMode('list')
         setForm(emptyPost())
       }
+      setDeleteSlug(null)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed')
@@ -214,30 +223,7 @@ export function AdminBlogPanel() {
     }
   }
 
-  async function handleImageFile(file: File | null) {
-    if (!file) return
-    setPendingImageFile(file)
-    const info = await infoFromFile(file)
-    const advice = assessBlogImage(info)
-
-    if (advice.level === 'too_large') {
-      const proceed = window.confirm(
-        `${advice.headline}\n\n${advice.detail}\n\nUpload anyway? We recommend compressing first.`
-      )
-      if (!proceed) {
-        setPendingImageFile(null)
-        return
-      }
-    } else if (advice.level === 'large') {
-      const proceed = window.confirm(
-        `${advice.headline}\n\n${advice.detail}\n\nUpload anyway?`
-      )
-      if (!proceed) {
-        setPendingImageFile(null)
-        return
-      }
-    }
-
+  async function uploadPendingImage(file: File) {
     const slug = form.slug.trim() || slugify(form.title) || 'untitled'
     setBusy(true)
     setError(null)
@@ -251,8 +237,27 @@ export function AdminBlogPanel() {
       setError(err instanceof Error ? err.message : 'Image upload failed')
     } finally {
       setPendingImageFile(null)
+      setImageWarn(null)
       setBusy(false)
     }
+  }
+
+  async function handleImageFile(file: File | null) {
+    if (!file) return
+    setPendingImageFile(file)
+    const info = await infoFromFile(file)
+    const advice = assessBlogImage(info)
+
+    if (advice.level === 'too_large' || advice.level === 'large') {
+      setImageWarn({
+        file,
+        headline: advice.headline,
+        detail: advice.detail,
+      })
+      return
+    }
+
+    await uploadPendingImage(file)
   }
 
   function updateSection(index: number, patch: Partial<BlogSection>) {
@@ -727,7 +732,7 @@ export function AdminBlogPanel() {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void handleDelete(form.slug)}
+              onClick={() => setDeleteSlug(form.slug)}
               className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
             >
               <Trash2 className="h-4 w-4" />
@@ -871,7 +876,7 @@ export function AdminBlogPanel() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => void handleDelete(post.slug)}
+                          onClick={() => setDeleteSlug(post.slug)}
                           className="rounded border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700"
                         >
                           Delete
@@ -885,6 +890,45 @@ export function AdminBlogPanel() {
           </table>
         </div>
       </div>
+
+      <AdminDialog
+        open={deleteSlug != null}
+        title="Delete blog post?"
+        mode="confirm"
+        tone="danger"
+        confirmLabel="Delete post"
+        busy={busy}
+        onClose={() => {
+          if (!busy) setDeleteSlug(null)
+        }}
+        onConfirm={confirmDelete}
+      >
+        <p>
+          Delete blog post “{deleteSlug}” from Firebase? This cannot be undone.
+        </p>
+      </AdminDialog>
+
+      <AdminDialog
+        open={imageWarn != null}
+        title={imageWarn?.headline || 'Large image'}
+        mode="confirm"
+        confirmLabel="Upload anyway"
+        cancelLabel="Cancel"
+        busy={busy}
+        onClose={() => {
+          if (!busy) {
+            setImageWarn(null)
+            setPendingImageFile(null)
+          }
+        }}
+        onConfirm={async () => {
+          if (!imageWarn) return
+          await uploadPendingImage(imageWarn.file)
+        }}
+      >
+        <p>{imageWarn?.detail}</p>
+        <p>We recommend compressing first when you can.</p>
+      </AdminDialog>
     </div>
   )
 }

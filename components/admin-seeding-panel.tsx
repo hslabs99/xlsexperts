@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
+import { AdminDialog } from '@/components/admin-dialog'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   formatStorageError,
@@ -9,7 +10,12 @@ import {
 } from '@/lib/case-studies-storage'
 import { importSiteImageToStorage } from '@/lib/blog-storage'
 import type { BlogPostRecord } from '@/lib/blog-shared'
-import type { SeedTemplateConfig } from '@/lib/booking-slots'
+import type { BookingSlot, SeedTemplateConfig } from '@/lib/booking-slots'
+
+type PendingConfirm =
+  | { kind: 'blog-overwrite' }
+  | { kind: 'blog-seed-images' }
+  | null
 
 /**
  * Admin-only one-time / maintenance seed tools.
@@ -20,14 +26,18 @@ export function AdminSeedingPanel() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [slotCount, setSlotCount] = useState(0)
+  const [slots, setSlots] = useState<BookingSlot[]>([])
+  const [pending, setPending] = useState<PendingConfirm>(null)
 
-  const loadSlotCount = useCallback(async () => {
+  const loadSlots = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/booking-slots')
-      const data = (await res.json()) as { ok?: boolean; items?: unknown[] }
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: BookingSlot[]
+      }
       if (res.ok && data.ok && Array.isArray(data.items)) {
-        setSlotCount(data.items.length)
+        setSlots(data.items)
       }
     } catch {
       // non-fatal — seed panel still works
@@ -35,8 +45,8 @@ export function AdminSeedingPanel() {
   }, [])
 
   useEffect(() => {
-    void loadSlotCount()
-  }, [loadSlotCount])
+    void loadSlots()
+  }, [loadSlots])
 
   async function seedBlogs(overwrite: boolean, uploadImages = false) {
     setBusy(true)
@@ -340,7 +350,7 @@ export function AdminSeedingPanel() {
       setMessage(
         `Booking slots → seeded ${data.created ?? 0}; skipped ${data.skipped ?? 0} (${data.planned ?? 0} planned).`
       )
-      await loadSlotCount()
+      await loadSlots()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Booking seed failed')
     } finally {
@@ -372,13 +382,25 @@ export function AdminSeedingPanel() {
           ? 'Booking slots were already empty.'
           : `Global reset: deleted ${deleted} booking slot${deleted === 1 ? '' : 's'}.`
       )
-      await loadSlotCount()
+      await loadSlots()
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Could not empty booking slots'
       )
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function runPendingConfirm() {
+    if (pending?.kind === 'blog-overwrite') {
+      setPending(null)
+      await seedBlogs(true)
+      return
+    }
+    if (pending?.kind === 'blog-seed-images') {
+      setPending(null)
+      await seedBlogs(false, true)
     }
   }
 
@@ -425,15 +447,7 @@ export function AdminSeedingPanel() {
           <button
             type="button"
             disabled={busy}
-            onClick={() => {
-              if (
-                window.confirm(
-                  'Overwrite existing Firebase posts with the frozen v0 archive copies? Local archive files are not deleted.'
-                )
-              ) {
-                void seedBlogs(true)
-              }
-            }}
+            onClick={() => setPending({ kind: 'blog-overwrite' })}
             className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
           >
             Re-seed (overwrite)
@@ -441,15 +455,7 @@ export function AdminSeedingPanel() {
           <button
             type="button"
             disabled={busy}
-            onClick={() => {
-              if (
-                window.confirm(
-                  'Upload hero images from public/images into Firebase Storage and update post URLs?'
-                )
-              ) {
-                void seedBlogs(false, true)
-              }
-            }}
+            onClick={() => setPending({ kind: 'blog-seed-images' })}
             className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
           >
             Seed + push images
@@ -530,10 +536,41 @@ export function AdminSeedingPanel() {
 
       <AdminBookingSeedPanel
         busy={busy}
-        slotCount={slotCount}
+        slots={slots}
         onSeed={seedBookingSlots}
         onClearAll={clearAllBookingSlots}
       />
+
+      <AdminDialog
+        open={pending != null}
+        title={
+          pending?.kind === 'blog-overwrite'
+            ? 'Overwrite blog posts?'
+            : 'Seed blog and push images?'
+        }
+        mode="confirm"
+        tone={pending?.kind === 'blog-overwrite' ? 'danger' : 'default'}
+        confirmLabel={
+          pending?.kind === 'blog-overwrite' ? 'Overwrite' : 'Seed + push'
+        }
+        busy={busy}
+        onClose={() => {
+          if (!busy) setPending(null)
+        }}
+        onConfirm={runPendingConfirm}
+      >
+        {pending?.kind === 'blog-overwrite' ? (
+          <p>
+            Overwrite existing Firebase posts with the frozen v0 archive
+            copies? Local archive files are not deleted.
+          </p>
+        ) : (
+          <p>
+            Upload hero images from public/images into Firebase Storage and
+            update post URLs?
+          </p>
+        )}
+      </AdminDialog>
     </div>
   )
 }
