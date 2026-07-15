@@ -60,14 +60,20 @@ export async function findUserByEmail(
 
 /**
  * Plain-text password check against Firestore users.
- * Ensures default admin exists on first login attempt.
+ *
+ * Looks up the email first (one indexed query). Only boots the default admin
+ * when that lookup finds nothing — avoids a full collection scan on every login.
  */
 export async function authenticateUser(
   email: string,
   password: string
 ): Promise<AdminUser | null> {
-  await ensureDefaultAdminUser()
-  const user = await findUserByEmail(email)
+  let user = await findUserByEmail(email)
+  if (!user) {
+    // Empty / unseeded `users` collection — create the default admin once.
+    await ensureDefaultAdminUser()
+    user = await findUserByEmail(email)
+  }
   if (!user || !user.active) return null
   if (user.password !== password) return null
   return user

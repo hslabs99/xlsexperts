@@ -18,10 +18,13 @@ export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
     e.preventDefault()
     setBusy(true)
     setError(null)
+    const controller = new AbortController()
+    const abortTimer = window.setTimeout(() => controller.abort(), 15_000)
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({ email, password }),
       })
       const data = (await res.json()) as {
@@ -36,8 +39,13 @@ export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
       writeAdminSession(data.session)
       onLoggedIn(data.session)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Sign-in timed out. Please try again.')
+      } else {
+        setError(err instanceof Error ? err.message : 'Login failed')
+      }
     } finally {
+      window.clearTimeout(abortTimer)
       setBusy(false)
     }
   }

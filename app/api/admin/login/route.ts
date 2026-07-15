@@ -3,10 +3,13 @@ import { authenticateUser } from '@/lib/admin-users-db'
 import type { AdminSession } from '@/lib/admin-users'
 import { withTimeout } from '@/lib/with-timeout'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 /**
  * POST /api/admin/login
- * Authenticates against Firestore on the server (avoids flaky browser Firestore
- * on App Hosting) and returns a session payload for sessionStorage.
+ * Authenticates against Firestore on the server and returns a session payload
+ * for sessionStorage. Does not use the browser Firebase SDK.
  */
 export async function POST(request: Request) {
   let body: { email?: string; password?: string }
@@ -26,10 +29,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    // authenticateUser also ensures the default admin exists when the collection is empty.
     const user = await withTimeout(
       authenticateUser(email, password),
-      12_000,
+      10_000,
       'authenticateUser'
     )
     if (!user) {
@@ -56,7 +58,9 @@ export async function POST(request: Request) {
       {
         ok: false,
         error:
-          error instanceof Error ? error.message : 'Login failed. Please try again.',
+          error instanceof Error
+            ? error.message
+            : 'Login failed. Please try again.',
       },
       { status: 500 }
     )
