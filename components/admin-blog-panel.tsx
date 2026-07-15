@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Plus, Trash2, Upload, Eye } from 'lucide-react'
 import type { BlogPostRecord } from '@/lib/blog-shared'
 // Image uploads remain browser Firebase Storage (not moved to API yet).
-import { importSiteImageToStorage, uploadBlogImage } from '@/lib/blog-storage'
+import { uploadBlogImage } from '@/lib/blog-storage'
 import {
   AdminBlogPreviewShell,
   type BlogPreviewKind,
@@ -149,93 +149,6 @@ export function AdminBlogPanel() {
       ...form,
       slug: form.slug.trim() || slugify(form.title) || 'untitled',
       title: form.title.trim() || 'Untitled post',
-    }
-  }
-
-  async function handleImport(overwrite: boolean, uploadImages = false) {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/seed-blogs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ overwrite, uploadImages }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        error?: string
-        created?: number
-        updated?: number
-        skipped?: number
-        archiveCount?: number
-        imagesUploaded?: number
-        imagesFailed?: number
-      }
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Import failed')
-      }
-      setMessage(
-        `Seeded v0 archive (${data.archiveCount} posts) → Firebase: ${data.created} created, ${data.updated} updated, ${data.skipped} skipped` +
-          (uploadImages
-            ? `; images ${data.imagesUploaded} uploaded, ${data.imagesFailed} failed.`
-            : '.')
-      )
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleImportImages() {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/blogs')
-      const data = (await res.json()) as {
-        ok?: boolean
-        items?: BlogPostRecord[]
-        error?: string
-      }
-      if (!res.ok || !data.ok || !data.items) {
-        throw new Error(data.error || 'Failed to load blog posts')
-      }
-      let uploaded = 0
-      let failed = 0
-      for (const post of data.items) {
-        if (!post.image.startsWith('/')) continue
-        // Remains browser Storage SDK upload.
-        const url = await importSiteImageToStorage(post.slug, post.image)
-        if (!url) {
-          failed += 1
-          continue
-        }
-        const patchRes = await fetch('/api/admin/blogs', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug: post.slug, image: url }),
-        })
-        const patchData = (await patchRes.json()) as {
-          ok?: boolean
-          error?: string
-        }
-        if (!patchRes.ok || !patchData.ok) {
-          failed += 1
-          continue
-        }
-        uploaded += 1
-      }
-      setMessage(
-        `Image Storage upload finished: ${uploaded} uploaded, ${failed} failed/skipped.`
-      )
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Image import failed')
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -833,61 +746,11 @@ export function AdminBlogPanel() {
           <div>
             <h2 className="text-lg font-semibold text-ink">Blog posts</h2>
             <p className="mt-1 text-sm text-ink-muted">
-              Live: Firebase <code className="text-xs">blogPosts</code>. Seed
-              source: frozen v0 archive in{' '}
-              <code className="text-xs">lib/blog-posts.ts</code> (never deleted).
-              Public layout unchanged.
+              Live posts in Firebase <code className="text-xs">blogPosts</code>.
+              Create, edit, and publish articles for the public blog.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleImport(false)}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-            >
-              Seed from v0 archive
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    'Overwrite existing Firebase posts with the frozen v0 archive copies? Local archive files are not deleted.'
-                  )
-                ) {
-                  void handleImport(true)
-                }
-              }}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-            >
-              Re-seed (overwrite)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    'Upload hero images from public/images into Firebase Storage and update post URLs?'
-                  )
-                ) {
-                  void handleImport(false, true)
-                }
-              }}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-            >
-              Seed + push images
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleImportImages()}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-            >
-              Push images to Storage
-            </button>
             <button
               type="button"
               disabled={busy}
@@ -947,7 +810,7 @@ export function AdminBlogPanel() {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-6 text-ink-muted">
-                    No posts in Firebase yet. Click “Seed from v0 archive”.
+                    No posts in Firebase yet. Add a new post to get started.
                   </td>
                 </tr>
               ) : (

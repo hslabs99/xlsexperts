@@ -10,11 +10,9 @@ import {
 } from '@/lib/case-studies-shared'
 // Image uploads remain browser Firebase Storage (not moved to API yet).
 import {
-  formatStorageError,
   importCaseStudySiteImageToStorage,
   uploadCaseStudyImage,
 } from '@/lib/case-studies-storage'
-import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   AdminCaseStudiesPreviewShell,
   type CaseStudyPreviewKind,
@@ -268,181 +266,6 @@ export function AdminCaseStudiesPanel() {
     }
   }
 
-  async function handleSeed(uploadImages: boolean) {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/seed-case-studies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          overwrite: true,
-          uploadImages,
-          publishHome: true,
-        }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        error?: string
-        created?: number
-        updated?: number
-        skipped?: number
-        imagesUploaded?: number
-        imagesFailed?: number
-        homePublished?: boolean
-        lastImageError?: string
-        hint?: string
-      }
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Seed failed')
-      }
-      const summary = `Seeded archive → created ${data.created ?? 0}, updated ${data.updated ?? 0}, skipped ${data.skipped ?? 0}. Images uploaded ${data.imagesUploaded ?? 0}, failed ${data.imagesFailed ?? 0}.${data.lastImageError ? ` Last image error: ${data.lastImageError}` : ''} Homepage snapshot: ${data.homePublished ? 'yes' : 'no'}.`
-      if (data.hint) {
-        setMessage(`${summary} — ${data.hint}`)
-      } else {
-        setMessage(summary)
-      }
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Seed failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  /**
-   * Browser-side Storage push: fetches /images/cs-*.png from this origin and
-   * uploads via the client SDK (often clearer than the Node API route).
-   */
-  async function handlePublishEmailThumbs() {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/publish-email-case-study-thumbs', {
-        method: 'POST',
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        error?: string
-        uploaded?: number
-        failed?: number
-        lastError?: string
-        hint?: string
-      }
-      if (!res.ok || data.ok === false) {
-        throw new Error(
-          data.error ||
-            data.lastError ||
-            'Failed to publish email thumbs to Storage'
-        )
-      }
-      setMessage(
-        `Email thumbs → uploaded ${data.uploaded ?? 0}, failed ${data.failed ?? 0}.${data.lastError ? ` Last error: ${data.lastError}` : ''}${data.hint ? ` — ${data.hint}` : ''} Stored in Site Content email-case-study-thumbs (Firebase Storage paths email/case-studies/*.jpg).`
-      )
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Email thumbs publish failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleBrowserImagePush() {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    let uploaded = 0
-    let failed = 0
-    let lastErr: string | undefined
-    try {
-      for (const item of CASE_STUDIES_ARCHIVE) {
-        try {
-          const res = await fetch(item.localImage)
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status} for ${item.localImage}`)
-          }
-          const blob = await res.blob()
-          const bytes = new Uint8Array(await blob.arrayBuffer())
-          // Remains browser Storage SDK upload.
-          const url = await uploadCaseStudyImage(
-            item.slug,
-            bytes,
-            'hero.png',
-            blob.type || 'image/png'
-          )
-          if (rows.some((r) => r.slug === item.slug)) {
-            const patchRes = await fetch('/api/admin/case-studies', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ slug: item.slug, image: url }),
-            })
-            const patchData = (await patchRes.json()) as {
-              ok?: boolean
-              error?: string
-            }
-            if (!patchRes.ok || !patchData.ok) {
-              throw new Error(patchData.error || 'Failed to update image URL')
-            }
-          } else {
-            const createRes = await fetch('/api/admin/case-studies', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                slug: item.slug,
-                client: item.client,
-                sector: item.sector,
-                title: item.title,
-                image: url,
-                problem: item.problem,
-                solution: item.solution,
-                outcome: item.outcome,
-                tags: item.tags,
-                published: true,
-                showOnHome: false,
-                homeOrder: 9999,
-                sortOrder: 9999,
-              }),
-            })
-            const createData = (await createRes.json()) as {
-              ok?: boolean
-              error?: string
-            }
-            if (!createRes.ok || !createData.ok) {
-              throw new Error(createData.error || 'Failed to save case study')
-            }
-          }
-          uploaded += 1
-        } catch (err) {
-          failed += 1
-          lastErr = formatStorageError(err)
-        }
-      }
-      const publishRes = await fetch('/api/admin/case-studies', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'publish-home' }),
-      })
-      const publishData = (await publishRes.json()) as {
-        ok?: boolean
-        error?: string
-      }
-      if (!publishRes.ok || !publishData.ok) {
-        throw new Error(
-          publishData.error || 'Failed to republish homepage snapshot'
-        )
-      }
-      setMessage(
-        `Browser image push → uploaded ${uploaded}, failed ${failed}.${lastErr ? ` Last error: ${lastErr}` : ''} Homepage snapshot republished. If every upload failed, open Firebase Console → Storage → Rules and allow writes to case-studies/{allPaths=**} (or allow read, write: if true while developing).`
-      )
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Image push failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   async function handleImportLocalImage() {
     if (!form.slug.trim() || !form.image.startsWith('/')) {
       setError('Set a slug and a local /images/… path first.')
@@ -494,42 +317,6 @@ export function AdminCaseStudiesPanel() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleSeed(false)}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-              title="Writes Firestore + homepage snapshot. Keeps /images/cs-*.png paths."
-            >
-              Seed from archive
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleSeed(true)}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-              title="Also uploads compressed JPEGs to Storage via the API route"
-            >
-              Seed + upload images (API)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleBrowserImagePush()}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-              title="Uploads /images/cs-*.png from this browser into Storage"
-            >
-              Push images from browser
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handlePublishEmailThumbs()}
-              className="rounded-md border border-brand/40 bg-white px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand-light disabled:opacity-60"
-              title="Compress 6 heroes → Storage email/case-studies/*.jpg for discovery emails"
-            >
-              Publish email thumbs (Storage)
-            </button>
             <button
               type="button"
               disabled={busy}
@@ -618,8 +405,7 @@ export function AdminCaseStudiesPanel() {
             <p className="mt-4 text-sm text-ink-muted">Loading…</p>
           ) : filtered.length === 0 ? (
             <p className="mt-4 text-sm text-ink-muted">
-              No case studies yet. Seed from the archive to import the existing
-              twelve.
+              No case studies yet. Add a new case study to get started.
             </p>
           ) : (
             <div className="mt-4 overflow-x-auto">

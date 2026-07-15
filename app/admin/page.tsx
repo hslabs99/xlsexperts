@@ -10,7 +10,6 @@ import {
   parseTimeToMinutes,
   type BookingSlot,
   type BookingSlotStatus,
-  type SeedTemplateConfig,
 } from '@/lib/booking-slots'
 import { AdminEmailPanel } from '@/components/admin-email-panel'
 import { AdminEnquiriesPanel } from '@/components/admin-enquiries-panel'
@@ -19,7 +18,7 @@ import { AdminLogin } from '@/components/admin-login'
 import { AdminUsersPanel } from '@/components/admin-users-panel'
 import { AdminBlogPanel } from '@/components/admin-blog-panel'
 import { AdminCaseStudiesPanel } from '@/components/admin-case-studies-panel'
-import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
+import { AdminSeedingPanel } from '@/components/admin-seeding-panel'
 import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
 import {
   clearAdminSession,
@@ -40,6 +39,7 @@ type AdminTab =
   | 'case-studies'
   | 'marketing'
   | 'email'
+  | 'seeding'
   | 'settings'
 
 const TABS: { id: AdminTab; label: string }[] = [
@@ -50,6 +50,7 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: 'case-studies', label: 'Case Studies' },
   { id: 'marketing', label: 'Marketing' },
   { id: 'email', label: 'Email' },
+  { id: 'seeding', label: 'Seeding' },
   { id: 'settings', label: 'Settings' },
 ]
 
@@ -234,67 +235,6 @@ export default function AdminPage() {
       })
       .slice(0, 3)
   }, [slots])
-
-  async function handleSeed(config: SeedTemplateConfig) {
-    setBusy(true)
-    setMessage(null)
-    setError(null)
-    try {
-      const res = await fetch('/api/admin/booking-slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'seed', config }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        created?: number
-        skipped?: number
-        planned?: number
-        error?: string
-      }
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Seed failed')
-      setMessage(
-        `Seeded ${data.created ?? 0} slot(s); skipped ${data.skipped ?? 0} existing (${data.planned ?? 0} planned from template).`
-      )
-      await loadSlots()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Seed failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleClearAllSlots() {
-    setBusy(true)
-    setMessage(null)
-    setError(null)
-    try {
-      const res = await fetch('/api/admin/booking-slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clear-all' }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        deleted?: number
-        error?: string
-      }
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Could not empty booking slots')
-      }
-      const deleted = data.deleted ?? 0
-      setMessage(
-        deleted === 0
-          ? 'Booking slots were already empty.'
-          : `Global reset: deleted ${deleted} booking slot${deleted === 1 ? '' : 's'}.`
-      )
-      await loadSlots()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not empty booking slots')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -651,13 +591,6 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <AdminBookingSeedPanel
-              busy={busy}
-              slotCount={slots.length}
-              onSeed={handleSeed}
-              onClearAll={handleClearAllSlots}
-            />
-
             {(message || error) && (
               <div
                 className={`rounded-md border p-3 text-sm ${
@@ -770,7 +703,8 @@ export default function AdminPage() {
                 <p className="mt-4 text-sm text-ink-muted">Loading…</p>
               ) : dates.length === 0 ? (
                 <p className="mt-4 text-sm text-ink-muted">
-                  No slots yet. Configure the seed grid above or add one below.
+                  No slots yet. Use Add slot below, or open the Seeding tab
+                  (admin only) to import from a template.
                 </p>
               ) : (
                 <div className="mt-6 space-y-6">
@@ -930,6 +864,14 @@ export default function AdminPage() {
           roleCanAccessTab(effectiveRole, 'email') && (
           <div className="mt-8" role="tabpanel">
             <AdminEmailPanel />
+          </div>
+        )}
+
+        {tab === 'seeding' &&
+          effectiveRole &&
+          roleCanAccessTab(effectiveRole, 'seeding') && (
+          <div className="mt-8" role="tabpanel">
+            <AdminSeedingPanel />
           </div>
         )}
 

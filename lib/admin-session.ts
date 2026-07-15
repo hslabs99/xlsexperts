@@ -62,6 +62,8 @@ export function roleCanAccessTab(
   role: AdminUserRole,
   tab: string
 ): boolean {
+  // Seeding is admin-only (also hidden when an admin “views as marketing”).
+  if (tab === 'seeding') return role === 'admin'
   if (role === 'admin') return true
   // Marketing: Inquiries, Blog, Case studies, and Marketing (tags)
   return (

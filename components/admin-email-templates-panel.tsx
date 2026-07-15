@@ -163,35 +163,6 @@ export function AdminEmailTemplatesPanel() {
     setError(null)
   }
 
-  async function handleSeed() {
-    setBusy(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/admin/email-templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'seed' }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        created?: number
-        skipped?: number
-        error?: string
-      }
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Seed failed')
-      }
-      setMessage(
-        `Seeded ${data.created ?? 0} template(s); skipped ${data.skipped ?? 0} existing kind(s).`
-      )
-      await load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Seed failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -323,7 +294,7 @@ export function AdminEmailTemplatesPanel() {
         })
         .catch(() => {
           setDiscoveryHtml(
-            '<p style="padding:24px;font-family:sans-serif;color:#6b7280;">Could not load discovery preview. Publish email thumbs from Admin → Case Studies first.</p>'
+            '<p style="padding:24px;font-family:sans-serif;color:#6b7280;">Could not load discovery preview. Publish email thumbs from Admin → Seeding first.</p>'
           )
         })
     })
@@ -361,14 +332,6 @@ export function AdminEmailTemplatesPanel() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleSeed()}
-              className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-            >
-              Seed defaults
-            </button>
             <button
               type="button"
               disabled={busy}
@@ -434,7 +397,7 @@ export function AdminEmailTemplatesPanel() {
               <p className="mt-3 text-sm text-ink-muted">Loading…</p>
             ) : templates.length === 0 ? (
               <p className="mt-3 text-sm text-ink-muted">
-                No templates yet. Seed defaults or create one.
+                No templates yet. Create a new standard template to get started.
               </p>
             ) : (
               <ul className="mt-3 space-y-1">
