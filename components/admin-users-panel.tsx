@@ -3,13 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import {
-  createUser,
-  deleteUser,
-  ensureDefaultAdminUser,
-  fetchAllUsers,
-  updateUser,
-} from '@/lib/admin-users-db'
-import {
   ADMIN_USER_ROLES,
   DEFAULT_ADMIN_EMAIL,
   type AdminUser,
@@ -64,8 +57,16 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
     setLoading(true)
     setError(null)
     try {
-      await ensureDefaultAdminUser()
-      setUsers(await fetchAllUsers())
+      const res = await fetch('/api/admin/users')
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: AdminUser[]
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.items) {
+        throw new Error(data.error || 'Failed to load users')
+      }
+      setUsers(data.items)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users')
     } finally {
@@ -99,7 +100,9 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
     try {
       if (!form.name.trim()) throw new Error('Name is required.')
       if (!form.email.trim()) throw new Error('Email is required.')
-      if (!form.password.trim()) throw new Error('Password is required.')
+      if (!isEditing || form.password.trim()) {
+        if (!form.password.trim()) throw new Error('Password is required.')
+      }
 
       if (isEditing && editingId) {
         if (editingId === currentUserId && form.role !== 'admin') {
@@ -108,24 +111,44 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
         if (editingId === currentUserId && !form.active) {
           throw new Error('You cannot deactivate the account you are signed in as.')
         }
-        await updateUser(editingId, {
+        const payload: Record<string, unknown> = {
+          id: editingId,
           name: form.name,
           email: form.email,
-          password: form.password,
           role: form.role,
           active: form.active,
+        }
+        if (form.password.trim()) {
+          payload.password = form.password
+        }
+        const res = await fetch('/api/admin/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         })
+        const data = (await res.json()) as { ok?: boolean; error?: string }
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Could not update user')
+        }
         setMessage(`Updated ${form.email.trim().toLowerCase()}.`)
         setEditingId(null)
         setForm(emptyForm())
       } else {
-        await createUser({
-          email: form.email,
-          password: form.password,
-          name: form.name,
-          role: form.role,
-          active: form.active,
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: form.email,
+            password: form.password,
+            name: form.name,
+            role: form.role,
+            active: form.active,
+          }),
         })
+        const data = (await res.json()) as { ok?: boolean; error?: string }
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Could not create user')
+        }
         setMessage(
           `Created ${form.role} user ${form.email.trim().toLowerCase()}.`
         )
@@ -152,7 +175,14 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
     setBusy(true)
     setError(null)
     try {
-      await deleteUser(user.id)
+      const res = await fetch(
+        `/api/admin/users?id=${encodeURIComponent(user.id)}`,
+        { method: 'DELETE' }
+      )
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not delete user')
+      }
       setMessage(`Deleted ${user.email}.`)
       if (editingId === user.id) {
         setEditingId(null)
@@ -237,13 +267,14 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
             <span className="font-medium text-ink">Password</span>
             <input
               type="text"
-              required
+              required={!isEditing}
               value={form.password}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, password: e.target.value }))
               }
               className="rounded-md border border-border px-3 py-2 font-mono text-sm"
               autoComplete="off"
+              placeholder={isEditing ? 'Leave blank to keep current' : undefined}
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">

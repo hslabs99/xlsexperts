@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { fetchBookingSlots } from '@/lib/booking-slots-db'
+import { withTimeout } from '@/lib/with-timeout'
 
 /**
  * Business-local “today” so Cloud Run UTC (or visitor browsers abroad)
@@ -22,10 +23,14 @@ function todayInAuckland(): string {
 export async function GET() {
   try {
     const fromDate = todayInAuckland()
-    const items = await fetchBookingSlots({
-      status: 'available',
-      fromDate,
-    })
+    const items = await withTimeout(
+      fetchBookingSlots({
+        status: 'available',
+        fromDate,
+      }),
+      12_000,
+      'fetchBookingSlots'
+    )
     return NextResponse.json({
       ok: true,
       fromDate,

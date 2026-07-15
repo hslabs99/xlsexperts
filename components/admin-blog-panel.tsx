@@ -3,13 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Plus, Trash2, Upload, Eye } from 'lucide-react'
-import {
-  deleteBlogPost,
-  fetchAllBlogPostRecords,
-  saveBlogPost,
-  updateBlogPostFields,
-  type BlogPostRecord,
-} from '@/lib/blog-db'
+import type { BlogPostRecord } from '@/lib/blog-db'
+// Image uploads remain browser Firebase Storage (not moved to API yet).
 import { importSiteImageToStorage, uploadBlogImage } from '@/lib/blog-storage'
 import {
   AdminBlogPreviewShell,
@@ -84,7 +79,16 @@ export function AdminBlogPanel() {
     setLoading(true)
     setError(null)
     try {
-      setRows(await fetchAllBlogPostRecords())
+      const res = await fetch('/api/admin/blogs')
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: BlogPostRecord[]
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.items) {
+        throw new Error(data.error || 'Failed to load blog posts')
+      }
+      setRows(data.items)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load blog posts')
     } finally {
@@ -190,17 +194,38 @@ export function AdminBlogPanel() {
     setError(null)
     setMessage(null)
     try {
-      const posts = await fetchAllBlogPostRecords()
+      const res = await fetch('/api/admin/blogs')
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: BlogPostRecord[]
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.items) {
+        throw new Error(data.error || 'Failed to load blog posts')
+      }
       let uploaded = 0
       let failed = 0
-      for (const post of posts) {
+      for (const post of data.items) {
         if (!post.image.startsWith('/')) continue
+        // Remains browser Storage SDK upload.
         const url = await importSiteImageToStorage(post.slug, post.image)
         if (!url) {
           failed += 1
           continue
         }
-        await updateBlogPostFields(post.slug, { image: url })
+        const patchRes = await fetch('/api/admin/blogs', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: post.slug, image: url }),
+        })
+        const patchData = (await patchRes.json()) as {
+          ok?: boolean
+          error?: string
+        }
+        if (!patchRes.ok || !patchData.ok) {
+          failed += 1
+          continue
+        }
         uploaded += 1
       }
       setMessage(
@@ -225,11 +250,19 @@ export function AdminBlogPanel() {
       if (!form.title.trim()) throw new Error('Title is required.')
       if (!form.excerpt.trim()) throw new Error('Excerpt is required.')
 
-      await saveBlogPost({
-        ...form,
-        slug,
-        sections: form.sections,
+      const res = await fetch('/api/admin/blogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          slug,
+          sections: form.sections,
+        }),
       })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Save failed')
+      }
       setMessage(`Saved “${form.title.trim()}” to Firebase.`)
       setIsNew(false)
       setForm((p) => ({ ...p, slug }))
@@ -247,7 +280,14 @@ export function AdminBlogPanel() {
     setBusy(true)
     setError(null)
     try {
-      await deleteBlogPost(slug)
+      const res = await fetch(
+        `/api/admin/blogs?slug=${encodeURIComponent(slug)}`,
+        { method: 'DELETE' }
+      )
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Delete failed')
+      }
       setMessage(`Deleted ${slug}.`)
       if (form.slug === slug) {
         setMode('list')

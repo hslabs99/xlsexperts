@@ -1,24 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  query,
-  serverTimestamp,
-} from 'firebase/firestore'
 import { Check, Plus, Trash2, X } from 'lucide-react'
-import {
-  clearBookingAndReopen,
-  createBookingSlot,
-  deleteAllBookingSlots,
-  deleteBookingSlot,
-  fetchAllBookingSlots,
-  seedBookingSlots,
-  setBookingSlotStatus,
-} from '@/lib/booking-slots-db'
 import {
   SEED_TIME_OPTIONS,
   formatDateKey,
@@ -29,7 +12,6 @@ import {
   type BookingSlotStatus,
   type SeedTemplateConfig,
 } from '@/lib/booking-slots'
-import { BOOKING_SLOTS_COLLECTION, getDb } from '@/lib/firebase'
 import { AdminEmailPanel } from '@/components/admin-email-panel'
 import { AdminEnquiriesPanel } from '@/components/admin-enquiries-panel'
 import { AdminConfirmationContentPanel } from '@/components/admin-confirmation-content-panel'
@@ -78,13 +60,20 @@ type TestResult = {
 }
 
 function formatBookedAt(value: BookingSlot['booking']): string {
-  const bookedAt = value?.bookedAt
-  if (!bookedAt || typeof bookedAt.toDate !== 'function') return '—'
-  try {
-    return bookedAt.toDate().toLocaleString('en-NZ')
-  } catch {
-    return '—'
+  const bookedAt = value?.bookedAt as unknown
+  if (!bookedAt) return '—'
+  if (typeof bookedAt === 'string') {
+    const t = Date.parse(bookedAt)
+    return Number.isFinite(t) ? new Date(t).toLocaleString('en-NZ') : '—'
   }
+  if (typeof bookedAt === 'object' && bookedAt !== null && 'toDate' in bookedAt) {
+    try {
+      return (bookedAt as { toDate: () => Date }).toDate().toLocaleString('en-NZ')
+    } catch {
+      return '—'
+    }
+  }
+  return '—'
 }
 
 function statusLabel(status: BookingSlotStatus): string {
@@ -206,8 +195,16 @@ export default function AdminPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchAllBookingSlots()
-      setSlots(data)
+      const res = await fetch('/api/admin/booking-slots')
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: BookingSlot[]
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to load slots')
+      }
+      setSlots(data.items ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load slots')
     } finally {
@@ -243,9 +240,21 @@ export default function AdminPage() {
     setMessage(null)
     setError(null)
     try {
-      const result = await seedBookingSlots(config)
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'seed', config }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        created?: number
+        skipped?: number
+        planned?: number
+        error?: string
+      }
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Seed failed')
       setMessage(
-        `Seeded ${result.created} slot(s); skipped ${result.skipped} existing (${result.planned} planned from template).`
+        `Seeded ${data.created ?? 0} slot(s); skipped ${data.skipped ?? 0} existing (${data.planned ?? 0} planned from template).`
       )
       await loadSlots()
     } catch (err) {
@@ -260,7 +269,20 @@ export default function AdminPage() {
     setMessage(null)
     setError(null)
     try {
-      const deleted = await deleteAllBookingSlots()
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clear-all' }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        deleted?: number
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not empty booking slots')
+      }
+      const deleted = data.deleted ?? 0
       setMessage(
         deleted === 0
           ? 'Booking slots were already empty.'
@@ -280,13 +302,22 @@ export default function AdminPage() {
     setMessage(null)
     setError(null)
     try {
-      await createBookingSlot({
-        date: newDate,
-        time: newTime,
-        type: newType.trim() || 'discovery',
-        status: 'available',
-        durationMinutes: newDuration,
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          slot: {
+            date: newDate,
+            time: newTime,
+            type: newType.trim() || 'discovery',
+            status: 'available',
+            durationMinutes: newDuration,
+          },
+        }),
       })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Could not add slot')
       setMessage(`Added ${newDate} ${newTime}`)
       await loadSlots()
     } catch (err) {
@@ -300,7 +331,11 @@ export default function AdminPage() {
     setBusy(true)
     setError(null)
     try {
-      await deleteBookingSlot(id)
+      const res = await fetch(`/api/admin/booking-slots?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Could not remove slot')
       setSlots((prev) => prev.filter((s) => s.id !== id))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove slot')
@@ -313,7 +348,13 @@ export default function AdminPage() {
     setBusy(true)
     setError(null)
     try {
-      await clearBookingAndReopen(slot.id)
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: slot.id, action: 'reopen' }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Could not update slot')
       setSlots((prev) =>
         prev.map((s) =>
           s.id === slot.id ? { ...s, status: 'available', booking: null } : s
@@ -330,7 +371,13 @@ export default function AdminPage() {
     setBusy(true)
     setError(null)
     try {
-      await setBookingSlotStatus(slot.id, 'unavailable')
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: slot.id, action: 'unavailable' }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Could not update slot')
       setSlots((prev) =>
         prev.map((s) =>
           s.id === slot.id ? { ...s, status: 'unavailable', booking: null } : s
@@ -359,36 +406,59 @@ export default function AdminPage() {
     setTestLoading(true)
     setTestResult(null)
     try {
-      const db = getDb()
-      const slotsRef = collection(db, BOOKING_SLOTS_COLLECTION)
-      const docRef = await addDoc(slotsRef, {
-        date: formatDateKey(new Date()),
-        time: '12:00 PM',
-        type: 'system-test',
-        status: 'available',
-        durationMinutes: 15,
-        createdAt: serverTimestamp(),
-        source: 'admin-test',
+      const createRes = await fetch('/api/admin/booking-slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          slot: {
+            date: formatDateKey(new Date()),
+            time: '12:00 PM',
+            type: 'system-test',
+            status: 'available',
+            durationMinutes: 15,
+          },
+        }),
       })
-      const snap = await getDocs(query(slotsRef, limit(5)))
-      const sample = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      const created = (await createRes.json()) as {
+        ok?: boolean
+        id?: string
+        error?: string
+      }
+      if (!createRes.ok || !created.ok || !created.id) {
+        throw new Error(created.error || 'Write test failed')
+      }
+
+      const listRes = await fetch('/api/admin/booking-slots')
+      const listed = (await listRes.json()) as {
+        ok?: boolean
+        items?: BookingSlot[]
+        error?: string
+      }
+      if (!listRes.ok || !listed.ok) {
+        throw new Error(listed.error || 'Read test failed')
+      }
+
       setTestResult({
         ok: true,
-        message: `Connected. Wrote test doc ${docRef.id} to "${BOOKING_SLOTS_COLLECTION}" (${snap.size} doc(s) readable).`,
-        details: JSON.stringify(sample, null, 2),
+        message: `Connected. Wrote test slot ${created.id} via server API (${listed.items?.length ?? 0} slot(s) readable).`,
+        details: JSON.stringify(
+          (listed.items ?? []).slice(0, 5).map((s) => ({
+            id: s.id,
+            date: s.date,
+            time: s.time,
+            status: s.status,
+          })),
+          null,
+          2
+        ),
       })
       await loadSlots()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      const needsRules =
-        msg.includes('permission') ||
-        msg.includes('PERMISSION_DENIED') ||
-        msg.includes('Missing or insufficient permissions')
       setTestResult({
         ok: false,
-        message: needsRules
-          ? 'Firestore blocked the write. Check Firestore rules, then try again.'
-          : 'Firebase connection failed.',
+        message: 'Firebase connection failed via server API.',
         details: msg,
       })
     } finally {
@@ -496,9 +566,9 @@ export default function AdminPage() {
               <p className="mt-1 text-sm text-ink-muted">
                 Writes a sample document to{' '}
                 <code className="rounded bg-brand-light px-1.5 py-0.5 text-brand-dark">
-                  {BOOKING_SLOTS_COLLECTION}
+                  Booking Slots
                 </code>{' '}
-                to verify connectivity.
+                via the server API to verify connectivity.
               </p>
               <button
                 type="button"

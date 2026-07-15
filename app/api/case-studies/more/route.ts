@@ -3,6 +3,7 @@ import {
   MORE_CASE_STUDIES_PAGE_SIZE,
   fetchMoreCaseStudies,
 } from '@/lib/case-studies-db'
+import { withTimeout } from '@/lib/with-timeout'
 
 /**
  * GET /api/case-studies/more?exclude=slug1,slug2&limit=4
@@ -22,7 +23,11 @@ export async function GET(request: Request) {
         ? Math.min(Math.floor(limitParam), 12)
         : MORE_CASE_STUDIES_PAGE_SIZE
 
-    const result = await fetchMoreCaseStudies({ excludeSlugs, limit })
+    const result = await withTimeout(
+      fetchMoreCaseStudies({ excludeSlugs, limit }),
+      12_000,
+      'fetchMoreCaseStudies'
+    )
     return NextResponse.json({ ok: true, ...result })
   } catch (error) {
     return NextResponse.json(

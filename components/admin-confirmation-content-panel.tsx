@@ -3,10 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import {
-  fetchConfirmationContent,
-  saveConfirmationContent,
-} from '@/lib/confirmation-content-db'
-import {
   DEFAULT_CONFIRMATION_CONTENT,
   type ConfirmationContent,
   type ConfirmationStep,
@@ -23,7 +19,16 @@ export function AdminConfirmationContentPanel() {
     setLoading(true)
     setError(null)
     try {
-      setForm(await fetchConfirmationContent())
+      const res = await fetch('/api/admin/confirmation-content')
+      const data = (await res.json()) as {
+        ok?: boolean
+        content?: ConfirmationContent
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.content) {
+        throw new Error(data.error || 'Failed to load confirmation copy')
+      }
+      setForm(data.content)
     } catch (err) {
       setError(
         err instanceof Error
@@ -79,7 +84,15 @@ export function AdminConfirmationContentPanel() {
       if (form.whatHappensNext.some((s) => !s.text.trim())) {
         throw new Error('Each “What happens next” step needs text.')
       }
-      await saveConfirmationContent(form)
+      const res = await fetch('/api/admin/confirmation-content', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Save failed')
+      }
       setMessage('Confirmation copy saved to Firebase (Site Content).')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')

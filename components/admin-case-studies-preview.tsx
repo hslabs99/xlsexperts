@@ -8,12 +8,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Eye } from 'lucide-react'
-import {
-  fetchCaseStudyRecordBySlug,
-  fetchHomeCaseStudiesSnapshot,
-  toPublicCaseStudy,
-  type CaseStudyRecord,
-} from '@/lib/case-studies-db'
+import type { CaseStudyRecord } from '@/lib/case-studies-db'
 import type { CaseStudy } from '@/lib/types'
 
 const overlays = [
@@ -193,15 +188,55 @@ export function AdminCaseStudiesPreviewShell({
       setLoading(true)
       setError(null)
       try {
-        const [record, home] = await Promise.all([
-          slug ? fetchCaseStudyRecordBySlug(slug) : Promise.resolve(null),
-          fetchHomeCaseStudiesSnapshot(),
-        ])
+        const listRes = await fetch('/api/admin/case-studies')
+        const listData = (await listRes.json()) as {
+          ok?: boolean
+          items?: CaseStudyRecord[]
+          error?: string
+        }
+        if (!listRes.ok || !listData.ok) {
+          throw new Error(listData.error || 'Failed to load case studies')
+        }
+        const items = listData.items ?? []
+        const record = slug
+          ? items.find((r) => r.slug === slug) ?? null
+          : null
+
+        const home = items
+          .filter((r) => r.published && r.showOnHome)
+          .sort(
+            (a, b) =>
+              (a.homeOrder ?? 9999) - (b.homeOrder ?? 9999) ||
+              (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999)
+          )
+          .slice(0, 4)
+          .map((r) => ({
+            slug: r.slug,
+            client: r.client,
+            sector: r.sector,
+            title: r.title,
+            image: r.image,
+            problem: r.problem,
+            solution: r.solution,
+            outcome: r.outcome,
+            tags: r.tags,
+          }))
+
         if (cancelled) return
         setHomeItems(home)
         if (record) {
           setRecordMeta(record)
-          setCard(toPublicCaseStudy(record))
+          setCard({
+            slug: record.slug,
+            client: record.client,
+            sector: record.sector,
+            title: record.title,
+            image: record.image,
+            problem: record.problem,
+            solution: record.solution,
+            outcome: record.outcome,
+            tags: record.tags,
+          })
           return
         }
         setCard(null)

@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { fetchSiteTags, saveSiteTags } from '@/lib/site-tags-db'
 import {
   DEFAULT_SITE_TAGS,
   validateSiteTags,
@@ -19,7 +18,16 @@ export function AdminSiteTagsPanel() {
     setLoading(true)
     setError(null)
     try {
-      setForm(await fetchSiteTags())
+      const res = await fetch('/api/admin/site-tags')
+      const data = (await res.json()) as {
+        ok?: boolean
+        tags?: SiteTagsContent
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.tags) {
+        throw new Error(data.error || 'Failed to load analytics tags')
+      }
+      setForm(data.tags)
     } catch (err) {
       setError(
         err instanceof Error
@@ -43,7 +51,15 @@ export function AdminSiteTagsPanel() {
     try {
       const validationError = validateSiteTags(form)
       if (validationError) throw new Error(validationError)
-      await saveSiteTags(form)
+      const res = await fetch('/api/admin/site-tags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Save failed')
+      }
       setMessage(
         form.enabled
           ? 'Analytics tags saved and enabled on the public site.'

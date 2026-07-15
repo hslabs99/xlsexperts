@@ -3,12 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, Trash2, X } from 'lucide-react'
 import {
-  deleteEnquiry,
-  fetchAllEnquiries,
-  formatEnquiryCreatedAt,
-  updateEnquiryStatus,
-} from '@/lib/enquiries-db'
-import {
   ENQUIRY_STATUSES,
   ENQUIRY_TYPES,
   type EnquiryRecord,
@@ -19,6 +13,26 @@ import {
   CONTACT_HEAR_OPTIONS,
   CONTACT_SERVICE_OPTIONS,
 } from '@/lib/contact-options'
+
+function formatEnquiryCreatedAt(value: unknown): string {
+  if (typeof value === 'string') {
+    const t = Date.parse(value)
+    return Number.isFinite(t) ? new Date(t).toLocaleString('en-NZ') : '—'
+  }
+  if (
+    value &&
+    typeof value === 'object' &&
+    'toDate' in value &&
+    typeof (value as { toDate: () => Date }).toDate === 'function'
+  ) {
+    try {
+      return (value as { toDate: () => Date }).toDate().toLocaleString('en-NZ')
+    } catch {
+      return '—'
+    }
+  }
+  return '—'
+}
 
 type SortKey =
   | 'createdAt'
@@ -61,6 +75,10 @@ const EMPTY_FILTERS: ColumnFilters = {
 }
 
 function createdAtMs(value: unknown): number {
+  if (typeof value === 'string') {
+    const t = Date.parse(value)
+    return Number.isFinite(t) ? t : 0
+  }
   if (
     value &&
     typeof value === 'object' &&
@@ -405,7 +423,16 @@ export function AdminEnquiriesPanel() {
     setLoading(true)
     setError(null)
     try {
-      setRows(await fetchAllEnquiries())
+      const res = await fetch('/api/admin/enquiries')
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: EnquiryRecord[]
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.items) {
+        throw new Error(data.error || 'Failed to load enquiries')
+      }
+      setRows(data.items)
     } catch (err) {
       setError(
         err instanceof Error
@@ -502,7 +529,15 @@ export function AdminEnquiriesPanel() {
     setBusy(true)
     setError(null)
     try {
-      await updateEnquiryStatus(id, status)
+      const res = await fetch('/api/admin/enquiries', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not update status')
+      }
       setRows((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status } : r))
       )
@@ -525,7 +560,14 @@ export function AdminEnquiriesPanel() {
     setBusy(true)
     setError(null)
     try {
-      await deleteEnquiry(id)
+      const res = await fetch(
+        `/api/admin/enquiries?id=${encodeURIComponent(id)}`,
+        { method: 'DELETE' }
+      )
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not delete enquiry')
+      }
       setRows((prev) => prev.filter((r) => r.id !== id))
       if (selectedId === id) setSelectedId(null)
     } catch (err) {

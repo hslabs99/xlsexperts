@@ -8,7 +8,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Script from 'next/script'
-import { fetchSiteTags } from '@/lib/site-tags-db'
 import {
   DEFAULT_SITE_TAGS,
   type SiteTagsContent,
@@ -62,9 +61,10 @@ export function SiteTags() {
 
   useEffect(() => {
     let cancelled = false
-    void fetchSiteTags()
-      .then((data) => {
-        if (!cancelled) setTags(data)
+    void fetch('/api/site-tags')
+      .then(async (res) => {
+        const data = (await res.json()) as { ok?: boolean; tags?: SiteTagsContent }
+        if (!cancelled) setTags(data.ok && data.tags ? data.tags : DEFAULT_SITE_TAGS)
       })
       .catch(() => {
         if (!cancelled) setTags(DEFAULT_SITE_TAGS)

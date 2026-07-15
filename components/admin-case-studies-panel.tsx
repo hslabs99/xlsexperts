@@ -5,14 +5,10 @@ import Image from 'next/image'
 import { Plus, Trash2, Upload, Home, Eye } from 'lucide-react'
 import {
   HOME_CASE_STUDIES_LIMIT,
-  deleteCaseStudy,
-  fetchAllCaseStudyRecords,
-  publishHomeCaseStudiesSnapshot,
-  saveCaseStudy,
   selectHomeCaseStudies,
-  updateCaseStudyFields,
   type CaseStudyRecord,
 } from '@/lib/case-studies-db'
+// Image uploads remain browser Firebase Storage (not moved to API yet).
 import {
   formatStorageError,
   importCaseStudySiteImageToStorage,
@@ -74,7 +70,16 @@ export function AdminCaseStudiesPanel() {
     setLoading(true)
     setError(null)
     try {
-      setRows(await fetchAllCaseStudyRecords())
+      const res = await fetch('/api/admin/case-studies')
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: CaseStudyRecord[]
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.items) {
+        throw new Error(data.error || 'Failed to load case studies')
+      }
+      setRows(data.items)
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load case studies'
@@ -158,6 +163,7 @@ export function AdminCaseStudiesPanel() {
 
       let image = form.image.trim()
       if (pendingImageFile) {
+        // Remains browser Storage SDK upload.
         image = await uploadCaseStudyImage(slug, pendingImageFile)
       }
 
@@ -187,7 +193,15 @@ export function AdminCaseStudiesPanel() {
           : 9999,
       }
 
-      await saveCaseStudy(payload)
+      const res = await fetch('/api/admin/case-studies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Save failed')
+      }
       setMessage('Case study saved.')
       setPendingImageFile(null)
       await load()
@@ -205,7 +219,14 @@ export function AdminCaseStudiesPanel() {
     setBusy(true)
     setError(null)
     try {
-      await deleteCaseStudy(form.slug)
+      const res = await fetch(
+        `/api/admin/case-studies?slug=${encodeURIComponent(form.slug)}`,
+        { method: 'DELETE' }
+      )
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Delete failed')
+      }
       setMessage('Case study deleted.')
       await load()
       setMode('list')
@@ -221,9 +242,22 @@ export function AdminCaseStudiesPanel() {
     setError(null)
     setMessage(null)
     try {
-      const snap = await publishHomeCaseStudiesSnapshot(rows)
+      const res = await fetch('/api/admin/case-studies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'publish-home' }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: unknown[]
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to publish homepage snapshot')
+      }
+      const count = data.items?.length ?? 0
       setMessage(
-        `Homepage snapshot published (${snap.items.length} card${snap.items.length === 1 ? '' : 's'}). Public site reads this document only — no live collection query on first paint.`
+        `Homepage snapshot published (${count} card${count === 1 ? '' : 's'}). Public site reads this document only — no live collection query on first paint.`
       )
     } catch (err) {
       setError(
@@ -330,8 +364,7 @@ export function AdminCaseStudiesPanel() {
           }
           const blob = await res.blob()
           const bytes = new Uint8Array(await blob.arrayBuffer())
-          // Keep under Storage pain thresholds; browser canvas resize is heavy —
-          // upload JPEG-converted only if we can do a quick type; else raw PNG.
+          // Remains browser Storage SDK upload.
           const url = await uploadCaseStudyImage(
             item.slug,
             bytes,
@@ -339,23 +372,45 @@ export function AdminCaseStudiesPanel() {
             blob.type || 'image/png'
           )
           if (rows.some((r) => r.slug === item.slug)) {
-            await updateCaseStudyFields(item.slug, { image: url })
-          } else {
-            await saveCaseStudy({
-              slug: item.slug,
-              client: item.client,
-              sector: item.sector,
-              title: item.title,
-              image: url,
-              problem: item.problem,
-              solution: item.solution,
-              outcome: item.outcome,
-              tags: item.tags,
-              published: true,
-              showOnHome: false,
-              homeOrder: 9999,
-              sortOrder: 9999,
+            const patchRes = await fetch('/api/admin/case-studies', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ slug: item.slug, image: url }),
             })
+            const patchData = (await patchRes.json()) as {
+              ok?: boolean
+              error?: string
+            }
+            if (!patchRes.ok || !patchData.ok) {
+              throw new Error(patchData.error || 'Failed to update image URL')
+            }
+          } else {
+            const createRes = await fetch('/api/admin/case-studies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                slug: item.slug,
+                client: item.client,
+                sector: item.sector,
+                title: item.title,
+                image: url,
+                problem: item.problem,
+                solution: item.solution,
+                outcome: item.outcome,
+                tags: item.tags,
+                published: true,
+                showOnHome: false,
+                homeOrder: 9999,
+                sortOrder: 9999,
+              }),
+            })
+            const createData = (await createRes.json()) as {
+              ok?: boolean
+              error?: string
+            }
+            if (!createRes.ok || !createData.ok) {
+              throw new Error(createData.error || 'Failed to save case study')
+            }
           }
           uploaded += 1
         } catch (err) {
@@ -363,7 +418,20 @@ export function AdminCaseStudiesPanel() {
           lastErr = formatStorageError(err)
         }
       }
-      await publishHomeCaseStudiesSnapshot()
+      const publishRes = await fetch('/api/admin/case-studies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'publish-home' }),
+      })
+      const publishData = (await publishRes.json()) as {
+        ok?: boolean
+        error?: string
+      }
+      if (!publishRes.ok || !publishData.ok) {
+        throw new Error(
+          publishData.error || 'Failed to republish homepage snapshot'
+        )
+      }
       setMessage(
         `Browser image push → uploaded ${uploaded}, failed ${failed}.${lastErr ? ` Last error: ${lastErr}` : ''} Homepage snapshot republished. If every upload failed, open Firebase Console → Storage → Rules and allow writes to case-studies/{allPaths=**} (or allow read, write: if true while developing).`
       )

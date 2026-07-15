@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
-import {
-  authenticateUser,
-  ensureDefaultAdminUser,
-} from '@/lib/admin-users-db'
+import { authenticateUser } from '@/lib/admin-users-db'
 import type { AdminSession } from '@/lib/admin-users'
+import { withTimeout } from '@/lib/with-timeout'
 
 /**
  * POST /api/admin/login
@@ -28,8 +26,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    await ensureDefaultAdminUser()
-    const user = await authenticateUser(email, password)
+    // authenticateUser also ensures the default admin exists when the collection is empty.
+    const user = await withTimeout(
+      authenticateUser(email, password),
+      12_000,
+      'authenticateUser'
+    )
     if (!user) {
       return NextResponse.json(
         { ok: false, error: 'Invalid email or password.' },

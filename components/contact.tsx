@@ -9,7 +9,6 @@ import {
   Phone,
 } from 'lucide-react'
 import { BookingCalendar } from '@/components/booking-calendar'
-import { fetchConfirmationContent } from '@/lib/confirmation-content-db'
 import {
   DEFAULT_CONFIRMATION_CONTENT,
   type ConfirmationContent,
@@ -65,10 +64,14 @@ export function Contact() {
     let cancelled = false
     void (async () => {
       try {
-        const content = await fetchConfirmationContent()
-        if (!cancelled) setConfirmation(content)
+        const res = await fetch('/api/confirmation-content')
+        const data = (await res.json()) as {
+          ok?: boolean
+          content?: ConfirmationContent
+        }
+        if (!cancelled && data.ok && data.content) setConfirmation(data.content)
       } catch {
-        // Keep defaults if Firebase is unavailable
+        // Keep defaults if API/Firestore is unavailable
       }
     })()
     return () => {

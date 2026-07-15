@@ -4,13 +4,6 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { EmailHtmlEditor } from '@/components/email-html-editor'
 import {
-  createEmailTemplate,
-  deleteEmailTemplate,
-  fetchEmailTemplates,
-  seedDefaultEmailTemplates,
-  updateEmailTemplate,
-} from '@/lib/email-templates-db'
-import {
   DEFAULT_EMAIL_BODY_FONT_FAMILY,
   DEFAULT_EMAIL_BODY_FONT_SIZE,
   EMAIL_FONT_FAMILIES,
@@ -120,8 +113,16 @@ export function AdminEmailTemplatesPanel() {
     setLoading(true)
     setError(null)
     try {
-      const rows = await fetchEmailTemplates()
-      setTemplates(rows)
+      const res = await fetch('/api/admin/email-templates')
+      const data = (await res.json()) as {
+        ok?: boolean
+        items?: EmailTemplate[]
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.items) {
+        throw new Error(data.error || 'Failed to load templates')
+      }
+      setTemplates(data.items)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load templates')
     } finally {
@@ -166,9 +167,22 @@ export function AdminEmailTemplatesPanel() {
     setBusy(true)
     setError(null)
     try {
-      const result = await seedDefaultEmailTemplates()
+      const res = await fetch('/api/admin/email-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'seed' }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        created?: number
+        skipped?: number
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Seed failed')
+      }
       setMessage(
-        `Seeded ${result.created} template(s); skipped ${result.skipped} existing kind(s).`
+        `Seeded ${data.created ?? 0} template(s); skipped ${data.skipped ?? 0} existing kind(s).`
       )
       await load()
     } catch (err) {
@@ -192,13 +206,33 @@ export function AdminEmailTemplatesPanel() {
         htmlBody: normalizeEmailHtml(form.htmlBody),
       }
       if (selectedId === 'new' || !selectedId) {
-        const id = await createEmailTemplate(payload)
+        const res = await fetch('/api/admin/email-templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = (await res.json()) as {
+          ok?: boolean
+          id?: string
+          error?: string
+        }
+        if (!res.ok || !data.ok || !data.id) {
+          throw new Error(data.error || 'Save failed')
+        }
         setMessage('Template created.')
         await load()
-        setSelectedId(id)
+        setSelectedId(data.id)
         setForm((p) => ({ ...p, htmlBody: payload.htmlBody }))
       } else {
-        await updateEmailTemplate(selectedId, payload)
+        const res = await fetch('/api/admin/email-templates', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: selectedId, ...payload }),
+        })
+        const data = (await res.json()) as { ok?: boolean; error?: string }
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Save failed')
+        }
         setMessage('Template saved. Standard enquiries will use these settings when Active.')
         await load()
         setForm((p) => ({ ...p, htmlBody: payload.htmlBody }))
@@ -216,7 +250,14 @@ export function AdminEmailTemplatesPanel() {
     setBusy(true)
     setError(null)
     try {
-      await deleteEmailTemplate(selectedId)
+      const res = await fetch(
+        `/api/admin/email-templates?id=${encodeURIComponent(selectedId)}`,
+        { method: 'DELETE' }
+      )
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Delete failed')
+      }
       setMessage('Template deleted.')
       setSelectedId(null)
       setForm(emptyForm())
