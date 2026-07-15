@@ -19,6 +19,7 @@ import { AdminUsersPanel } from '@/components/admin-users-panel'
 import { AdminBlogPanel } from '@/components/admin-blog-panel'
 import { AdminCaseStudiesPanel } from '@/components/admin-case-studies-panel'
 import { AdminSeedingPanel } from '@/components/admin-seeding-panel'
+import { AdminBookingCalendar } from '@/components/admin-booking-calendar'
 import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
 import {
   clearAdminSession,
@@ -579,6 +580,8 @@ export default function AdminPage() {
                 </ol>
               )}
             </div>
+
+            <AdminBookingCalendar slots={slots} loading={loading} />
 
             <div className="flex flex-wrap gap-3">
               <button
