@@ -9,7 +9,6 @@ import {
   Phone,
 } from 'lucide-react'
 import { BookingCalendar } from '@/components/booking-calendar'
-import { markBookingSlotBooked } from '@/lib/booking-slots-db'
 import { fetchConfirmationContent } from '@/lib/confirmation-content-db'
 import {
   DEFAULT_CONFIRMATION_CONTENT,
@@ -162,20 +161,6 @@ export function Contact() {
           slotId: payload.slotId,
         }),
       })
-      try {
-        await markBookingSlotBooked(payload.slotId, {
-          name,
-          company,
-          email,
-          phone,
-          message,
-          services: selected,
-          hear,
-          method: payload.method,
-        })
-      } catch {
-        // Booking still recorded via API; admin can flip status if Firestore update fails
-      }
     } finally {
       setStep('done')
     }

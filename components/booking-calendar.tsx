@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, CheckSquare, Loader2 } from 'lucide-react'
 import { MEET_OPTIONS } from '@/lib/booking-config'
-import { fetchBookingSlots } from '@/lib/booking-slots-db'
 import {
   formatDateKey,
   formatDayLabel,
@@ -18,6 +17,20 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
+/** NZ business calendar day (YYYY-MM-DD), not the visitor’s local TZ. */
+function aucklandToday(): Date {
+  const key = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Pacific/Auckland',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+  const [y, m, d] = key.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
 interface BookingCalendarProps {
   onConfirm: (payload: {
     day: string
@@ -30,13 +43,11 @@ interface BookingCalendarProps {
 }
 
 export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
-  const today = useMemo(() => {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    return d
-  }, [])
+  const today = useMemo(() => aucklandToday(), [])
 
-  const [weekMonday, setWeekMonday] = useState<Date>(() => getMondayOfWeek(new Date()))
+  const [weekMonday, setWeekMonday] = useState<Date>(() =>
+    getMondayOfWeek(aucklandToday())
+  )
   const [slots, setSlots] = useState<BookingSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,11 +62,16 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
       setLoading(true)
       setError(null)
       try {
-        const available = await fetchBookingSlots({
-          status: 'available',
-          fromDate: formatDateKey(today),
-        })
-        if (!cancelled) setSlots(available)
+        const res = await fetch('/api/booking/slots')
+        const data = (await res.json()) as {
+          ok?: boolean
+          items?: BookingSlot[]
+          error?: string
+        }
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Could not load booking slots.')
+        }
+        if (!cancelled) setSlots(data.items ?? [])
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Could not load booking slots.')
@@ -64,11 +80,11 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
         if (!cancelled) setLoading(false)
       }
     }
-    load()
+    void load()
     return () => {
       cancelled = true
     }
-  }, [today])
+  }, [])
 
   const byDate = useMemo(() => groupSlotsByDate(slots), [slots])
   const weekDays = getWeekDays(weekMonday)

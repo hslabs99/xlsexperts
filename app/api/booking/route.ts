@@ -6,6 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { markBookingSlotBooked } from '@/lib/booking-slots-db'
 import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
 import { isEmailError } from '@/lib/email/errors'
 import {
@@ -65,6 +66,25 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Could not save booking enquiry. Please try again.' },
       { status: 500 }
+    )
+  }
+
+  try {
+    await markBookingSlotBooked(body.slotId.trim(), {
+      name: body.name,
+      company: body.company ?? '',
+      email: body.email,
+      phone: body.phone,
+      message: body.message ?? '',
+      services: body.services ?? [],
+      hear: body.hear ?? '',
+      method: body.method,
+    })
+  } catch (error) {
+    // Enquiry is already saved; admin can flip the slot if this write fails.
+    console.error(
+      '[booking] Enquiry saved but failed to mark slot booked',
+      error instanceof Error ? error.message : undefined
     )
   }
 
