@@ -7,7 +7,7 @@ import {
   HOME_CASE_STUDIES_LIMIT,
   selectHomeCaseStudies,
   type CaseStudyRecord,
-} from '@/lib/case-studies-db'
+} from '@/lib/case-studies-shared'
 // Image uploads remain browser Firebase Storage (not moved to API yet).
 import {
   formatStorageError,

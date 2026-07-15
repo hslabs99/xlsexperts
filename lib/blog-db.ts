@@ -3,21 +3,10 @@ import 'server-only'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { BLOG_POSTS_COLLECTION } from '@/lib/firebase'
-import type { BlogPost, BlogSection, BlogListItem } from '@/lib/types'
+import type { BlogListItem, BlogPost, BlogSection } from '@/lib/types'
+import type { BlogPostInput, BlogPostRecord } from '@/lib/blog-shared'
 
-export type BlogPostRecord = BlogPost & {
-  published: boolean
-  featured: boolean
-  sortOrder: number
-  createdAt: unknown
-  updatedAt: unknown
-}
-
-export type BlogPostInput = BlogPost & {
-  published?: boolean
-  featured?: boolean
-  sortOrder?: number
-}
+export type { BlogPostInput, BlogPostRecord } from '@/lib/blog-shared'
 
 function mapSections(raw: unknown): BlogSection[] {
   if (!Array.isArray(raw)) return []

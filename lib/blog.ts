@@ -6,6 +6,8 @@
  * never used to serve the public site.
  */
 
+import 'server-only'
+
 import type { BlogListItem, BlogPost } from '@/lib/types'
 import {
   fetchPublishedBlogList,

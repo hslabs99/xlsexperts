@@ -9,37 +9,30 @@ import {
   SITE_CONTENT_COLLECTION,
 } from '@/lib/firebase'
 import type { CaseStudy } from '@/lib/types'
+import {
+  HOME_CASE_STUDIES_LIMIT,
+  MORE_CASE_STUDIES_PAGE_SIZE,
+  selectHomeCaseStudies,
+  toPublicCaseStudy,
+  type CaseStudiesHomeSnapshot,
+  type CaseStudyInput,
+  type CaseStudyRecord,
+} from '@/lib/case-studies-shared'
+
+export {
+  HOME_CASE_STUDIES_LIMIT,
+  MORE_CASE_STUDIES_PAGE_SIZE,
+  selectHomeCaseStudies,
+  toPublicCaseStudy,
+  type CaseStudiesHomeSnapshot,
+  type CaseStudyInput,
+  type CaseStudyRecord,
+} from '@/lib/case-studies-shared'
 
 function archivePublicCaseStudies(): CaseStudy[] {
   return CASE_STUDIES_ARCHIVE.map(
     ({ localImage: _local, ...publicFields }) => publicFields
   )
-}
-
-export const HOME_CASE_STUDIES_LIMIT = 4
-export const MORE_CASE_STUDIES_PAGE_SIZE = 4
-
-export type CaseStudyRecord = CaseStudy & {
-  published: boolean
-  /** Included when admin publishes the homepage snapshot */
-  showOnHome: boolean
-  homeOrder: number
-  sortOrder: number
-  createdAt: unknown
-  updatedAt: unknown
-}
-
-export type CaseStudyInput = CaseStudy & {
-  published?: boolean
-  showOnHome?: boolean
-  homeOrder?: number
-  sortOrder?: number
-}
-
-export type CaseStudiesHomeSnapshot = {
-  items: CaseStudy[]
-  slugs: string[]
-  updatedAt: unknown
 }
 
 function mapTags(raw: unknown): string[] {
@@ -64,20 +57,6 @@ function mapRecord(id: string, data: Record<string, unknown>): CaseStudyRecord {
     sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 9999,
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
-  }
-}
-
-export function toPublicCaseStudy(record: CaseStudyRecord): CaseStudy {
-  return {
-    slug: record.slug,
-    client: record.client,
-    sector: record.sector,
-    title: record.title,
-    image: record.image,
-    problem: record.problem,
-    solution: record.solution,
-    outcome: record.outcome,
-    tags: record.tags,
   }
 }
 
@@ -157,17 +136,6 @@ export async function updateCaseStudyFields(
 
 export async function deleteCaseStudy(slug: string): Promise<void> {
   await getAdminDb().collection(CASE_STUDIES_COLLECTION).doc(slug).delete()
-}
-
-/** Build the public home list from current showOnHome flags (max 4). */
-export function selectHomeCaseStudies(
-  records: CaseStudyRecord[]
-): CaseStudy[] {
-  return [...records]
-    .filter((r) => r.published && r.showOnHome)
-    .sort((a, b) => a.homeOrder - b.homeOrder || a.sortOrder - b.sortOrder)
-    .slice(0, HOME_CASE_STUDIES_LIMIT)
-    .map(toPublicCaseStudy)
 }
 
 /**

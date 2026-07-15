@@ -5,7 +5,7 @@ import 'server-only'
  * Never import this module from a Client Component.
  */
 
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { FieldValue } from 'firebase-admin/firestore'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import { compressLocalCaseStudyImage } from '@/lib/case-studies-seed'
 import {
@@ -17,7 +17,8 @@ import {
   EMAIL_CASE_STUDY_THUMB_LIMIT,
 } from '@/lib/email-case-study-thumbs'
 import type { EmailCaseStudyThumb } from '@/lib/email-insert-blocks'
-import { SITE_CONTENT_COLLECTION, getDb } from '@/lib/firebase'
+import { getAdminDb } from '@/lib/firebase-admin'
+import { SITE_CONTENT_COLLECTION } from '@/lib/firebase'
 
 export type PublishEmailThumbsResult = {
   uploaded: number
@@ -61,16 +62,18 @@ export async function publishEmailCaseStudyThumbsToStorage(): Promise<PublishEma
   }
 
   if (items.length > 0) {
-    await setDoc(
-      doc(getDb(), SITE_CONTENT_COLLECTION, EMAIL_CASE_STUDY_THUMBS_DOC_ID),
-      {
-        items,
-        slugs: items.map((i) => i.slug),
-        storagePrefix: 'email/case-studies/',
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    )
+    await getAdminDb()
+      .collection(SITE_CONTENT_COLLECTION)
+      .doc(EMAIL_CASE_STUDY_THUMBS_DOC_ID)
+      .set(
+        {
+          items,
+          slugs: items.map((i) => i.slug),
+          storagePrefix: 'email/case-studies/',
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
   }
 
   return { uploaded, failed, items, lastError }

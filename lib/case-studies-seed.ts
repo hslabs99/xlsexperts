@@ -12,7 +12,7 @@ import 'server-only'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { FieldValue } from 'firebase-admin/firestore'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   HOME_CASE_STUDIES_LIMIT,
@@ -23,7 +23,8 @@ import {
   formatStorageError,
   uploadCaseStudyImage,
 } from '@/lib/case-studies-storage'
-import { CASE_STUDIES_COLLECTION, getDb } from '@/lib/firebase'
+import { getAdminDb } from '@/lib/firebase-admin'
+import { CASE_STUDIES_COLLECTION } from '@/lib/firebase'
 
 export type CaseStudySeedResult = {
   archiveCount: number
@@ -91,14 +92,13 @@ export async function seedCaseStudiesFromArchive(options?: {
 
   for (let i = 0; i < CASE_STUDIES_ARCHIVE.length; i += 1) {
     const item = CASE_STUDIES_ARCHIVE[i]
-    const ref = doc(getDb(), CASE_STUDIES_COLLECTION, item.slug)
-    const existing = await getDoc(ref)
+    const ref = getAdminDb().collection(CASE_STUDIES_COLLECTION).doc(item.slug)
+    const existing = await ref.get()
 
-    if (existing.exists() && !overwrite) {
+    if (existing.exists && !overwrite) {
       skipped += 1
     } else {
-      await setDoc(
-        ref,
+      await ref.set(
         {
           slug: item.slug,
           client: item.client,
@@ -114,12 +114,12 @@ export async function seedCaseStudiesFromArchive(options?: {
           showOnHome: i < HOME_CASE_STUDIES_LIMIT,
           homeOrder: i < HOME_CASE_STUDIES_LIMIT ? i : 9999,
           sortOrder: i,
-          updatedAt: serverTimestamp(),
-          ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
+          updatedAt: FieldValue.serverTimestamp(),
+          ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
         },
         { merge: true }
       )
-      if (existing.exists()) updated += 1
+      if (existing.exists) updated += 1
       else created += 1
     }
 

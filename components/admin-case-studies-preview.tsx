@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Eye } from 'lucide-react'
-import type { CaseStudyRecord } from '@/lib/case-studies-db'
+import type { CaseStudyRecord } from '@/lib/case-studies-shared'
 import type { CaseStudy } from '@/lib/types'
 
 const overlays = [

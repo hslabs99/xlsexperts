@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Plus, Trash2, Upload, Eye } from 'lucide-react'
-import type { BlogPostRecord } from '@/lib/blog-db'
+import type { BlogPostRecord } from '@/lib/blog-shared'
 // Image uploads remain browser Firebase Storage (not moved to API yet).
 import { importSiteImageToStorage, uploadBlogImage } from '@/lib/blog-storage'
 import {

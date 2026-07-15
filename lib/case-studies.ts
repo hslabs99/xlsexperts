@@ -3,6 +3,8 @@
  * Prefer the published Site Content snapshot (one read) for first paint.
  */
 
+import 'server-only'
+
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   HOME_CASE_STUDIES_LIMIT,
