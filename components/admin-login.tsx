@@ -12,25 +12,34 @@ type FirebaseDebugReport = {
   ok?: boolean
   checkedAt?: string
   summary?: {
-    firestoreReachable?: boolean
-    nextPublicFirebaseEnvComplete?: boolean
-    appHostingCloudIdentityPresent?: boolean
+    firebaseKeysLocated?: boolean
+    firebaseApiKeyLocated?: boolean
+    datastoreAccessLocated?: boolean
+    accessVia?: string
+    projectId?: string | null
     note?: string
-    adminNote?: string
+    rule?: string
   }
   env?: {
     projectId?: string | null
-    nextPublic?: { name: string; set: boolean; length: number }[]
+    firebaseKeys?: { name: string; set: boolean; length: number }[]
     appHostingHints?: { name: string; set: boolean; length: number }[]
   }
   adminInit?: { ok: boolean; error?: string }
-  firestore?: {
-    ok: boolean
+  access?: {
+    located: boolean
+    via: string
     error?: string
     elapsedMs?: number
     users?: number
     blogPosts?: number
     bookingSlots?: number
+  }
+  restProbe?: {
+    attempted: boolean
+    ok: boolean
+    status?: number
+    error?: string
   }
   error?: string
 }
@@ -98,6 +107,9 @@ export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
     }
   }
 
+  const keysOk = Boolean(debug?.summary?.firebaseKeysLocated)
+  const accessOk = Boolean(debug?.summary?.datastoreAccessLocated)
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface-raised px-4 py-10">
       <div className="flex w-full max-w-lg flex-col gap-4">
@@ -160,9 +172,9 @@ export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
                 Firebase connection debug
               </h2>
               <p className="mt-1 text-xs text-ink-muted">
-                Checks App Hosting env visibility and whether the Admin SDK can
-                read Firestore (users / blogs / booking slots). No secrets are
-                shown.
+                First locates your Firebase keys in App Hosting Environment,
+                then confirms datastore access. Without the key there is no
+                access. Secret values are never shown.
               </p>
             </div>
             <button
@@ -177,61 +189,96 @@ export function AdminLogin({ onLoggedIn }: AdminLoginProps) {
 
           {debug && (
             <div className="mt-4 space-y-3 text-xs">
-              <p
-                className={`rounded-md border px-3 py-2 font-medium ${
-                  debug.ok
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                    : 'border-red-200 bg-red-50 text-red-800'
-                }`}
-              >
-                {debug.ok
-                  ? `Firestore reachable${debug.firestore?.elapsedMs != null ? ` (${debug.firestore.elapsedMs}ms)` : ''}`
-                  : debug.error ||
-                    debug.firestore?.error ||
-                    debug.adminInit?.error ||
-                    'Firestore not reachable'}
-              </p>
+              <div className="grid gap-2">
+                <p
+                  className={`rounded-md border px-3 py-2 font-medium ${
+                    keysOk
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                      : 'border-red-200 bg-red-50 text-red-800'
+                  }`}
+                >
+                  {keysOk
+                    ? 'Firebase keys located in environment'
+                    : 'Firebase keys NOT located — without the key you cannot access the datastore'}
+                </p>
+                <p
+                  className={`rounded-md border px-3 py-2 font-medium ${
+                    accessOk
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                      : 'border-red-200 bg-red-50 text-red-800'
+                  }`}
+                >
+                  {accessOk
+                    ? `Datastore access located${
+                        debug.access?.elapsedMs != null
+                          ? ` (${debug.access.elapsedMs}ms)`
+                          : ''
+                      } via ${debug.summary?.accessVia || 'firebase-admin'}`
+                    : debug.error ||
+                      debug.access?.error ||
+                      debug.adminInit?.error ||
+                      'Datastore access NOT located'}
+                </p>
+              </div>
 
               {debug.summary && (
                 <ul className="space-y-1 text-ink-muted">
                   <li>
-                    NEXT_PUBLIC Firebase env complete:{' '}
+                    API key present:{' '}
                     <strong>
-                      {debug.summary.nextPublicFirebaseEnvComplete ? 'yes' : 'no'}
+                      {debug.summary.firebaseApiKeyLocated ? 'yes' : 'no'}
                     </strong>
                   </li>
                   <li>
-                    App Hosting cloud identity present:{' '}
+                    Full NEXT_PUBLIC_FIREBASE_* set:{' '}
                     <strong>
-                      {debug.summary.appHostingCloudIdentityPresent ? 'yes' : 'no'}
+                      {debug.summary.firebaseKeysLocated ? 'yes' : 'no'}
                     </strong>
                   </li>
-                  <li>Project id: {debug.env?.projectId || '(none detected)'}</li>
+                  <li>
+                    Project id: {debug.summary.projectId || '(none)'}
+                  </li>
+                  {debug.summary.rule ? (
+                    <li className="font-medium text-ink">{debug.summary.rule}</li>
+                  ) : null}
                   {debug.summary.note ? <li>{debug.summary.note}</li> : null}
                 </ul>
               )}
 
-              {debug.firestore?.ok && (
+              {accessOk && debug.access && (
                 <p className="text-ink-muted">
-                  Sample counts (max 5 each): users={debug.firestore.users ?? 0},
-                  blogs={debug.firestore.blogPosts ?? 0}, booking slots=
-                  {debug.firestore.bookingSlots ?? 0}
+                  Sample reads (max 5 each): users={debug.access.users ?? 0},
+                  blogs={debug.access.blogPosts ?? 0}, booking slots=
+                  {debug.access.bookingSlots ?? 0}
                 </p>
               )}
 
-              {debug.env?.nextPublic && (
+              {debug.restProbe?.attempted && (
+                <p className="text-ink-muted">
+                  API-key REST probe:{' '}
+                  <strong>
+                    {debug.restProbe.ok
+                      ? `reached Firestore (HTTP ${debug.restProbe.status ?? '—'})`
+                      : debug.restProbe.error || 'failed'}
+                  </strong>
+                </p>
+              )}
+
+              {debug.env?.firebaseKeys && (
                 <details className="rounded-md border border-border bg-white p-3">
                   <summary className="cursor-pointer font-semibold text-ink">
-                    Env flags (set / not set)
+                    Key flags (set / not set — values hidden)
                   </summary>
                   <ul className="mt-2 space-y-1 text-ink-muted">
                     {[
-                      ...(debug.env.nextPublic ?? []),
+                      ...(debug.env.firebaseKeys ?? []),
                       ...(debug.env.appHostingHints ?? []),
                     ].map((row) => (
                       <li key={row.name}>
                         {row.name}:{' '}
-                        <strong>{row.set ? `set (${row.length} chars)` : 'missing'}</strong>
+                        <strong>
+                          {row.set ? `located (${row.length} chars)` : 'missing'}
+                        </strong>
                       </li>
                     ))}
                   </ul>
