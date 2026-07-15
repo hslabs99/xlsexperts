@@ -1,14 +1,16 @@
 /**
- * Client + server safe: read email case-study thumb URLs from Firestore.
+ * Server-only: read email case-study thumb URLs from Firestore.
  * Publishing (sharp / Storage upload) lives in email-case-study-thumbs-publish.ts
  * so the browser never bundles Node-only tools.
  */
 
-import { doc, getDoc } from 'firebase/firestore'
+import 'server-only'
+
+import { getAdminDb } from '@/lib/firebase-admin'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import { fetchAllCaseStudyRecords } from '@/lib/case-studies-db'
 import type { EmailCaseStudyThumb } from '@/lib/email-insert-blocks'
-import { SITE_CONTENT_COLLECTION, getDb } from '@/lib/firebase'
+import { SITE_CONTENT_COLLECTION } from '@/lib/firebase'
 
 export const EMAIL_CASE_STUDY_THUMBS_DOC_ID = 'email-case-study-thumbs'
 export const EMAIL_CASE_STUDY_THUMB_LIMIT = 6
@@ -41,11 +43,12 @@ export async function fetchEmailCaseStudyThumbs(): Promise<
   EmailCaseStudyThumb[]
 > {
   try {
-    const snap = await getDoc(
-      doc(getDb(), SITE_CONTENT_COLLECTION, EMAIL_CASE_STUDY_THUMBS_DOC_ID)
-    )
-    if (snap.exists()) {
-      const data = snap.data() as { items?: unknown }
+    const snap = await getAdminDb()
+      .collection(SITE_CONTENT_COLLECTION)
+      .doc(EMAIL_CASE_STUDY_THUMBS_DOC_ID)
+      .get()
+    if (snap.exists) {
+      const data = snap.data() as Record<string, unknown>
       if (Array.isArray(data.items)) {
         const fromDoc = data.items
           .map(mapThumb)

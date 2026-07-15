@@ -1,19 +1,8 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-  type DocumentData,
-  type UpdateData,
-} from 'firebase/firestore'
-import { EMAIL_TEMPLATES_COLLECTION, getDb } from '@/lib/firebase'
+import 'server-only'
+
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
+import { EMAIL_TEMPLATES_COLLECTION } from '@/lib/firebase'
 import {
   DEFAULT_STANDARD_TEMPLATE,
   DEFAULT_EMAIL_BODY_FONT_FAMILY,
@@ -27,8 +16,8 @@ import {
 } from '@/lib/email-templates'
 import { discoveryPresentationAsTemplateInput } from '@/lib/email-presentation-templates'
 
-function mapTemplate(id: string, data: DocumentData): EmailTemplate {
-  const kind = EMAIL_TEMPLATE_KINDS.includes(data.kind)
+function mapTemplate(id: string, data: Record<string, unknown>): EmailTemplate {
+  const kind = EMAIL_TEMPLATE_KINDS.includes(data.kind as EmailTemplateKind)
     ? (data.kind as EmailTemplateKind)
     : 'standard'
 
@@ -53,18 +42,24 @@ function mapTemplate(id: string, data: DocumentData): EmailTemplate {
 }
 
 export async function fetchEmailTemplates(): Promise<EmailTemplate[]> {
-  const snap = await getDocs(
-    query(collection(getDb(), EMAIL_TEMPLATES_COLLECTION), orderBy('name', 'asc'))
+  const snap = await getAdminDb()
+    .collection(EMAIL_TEMPLATES_COLLECTION)
+    .orderBy('name', 'asc')
+    .get()
+  return snap.docs.map((d) =>
+    mapTemplate(d.id, d.data() as Record<string, unknown>)
   )
-  return snap.docs.map((d) => mapTemplate(d.id, d.data()))
 }
 
 export async function fetchEmailTemplateById(
   id: string
 ): Promise<EmailTemplate | null> {
-  const snap = await getDoc(doc(getDb(), EMAIL_TEMPLATES_COLLECTION, id))
-  if (!snap.exists()) return null
-  return mapTemplate(snap.id, snap.data())
+  const snap = await getAdminDb()
+    .collection(EMAIL_TEMPLATES_COLLECTION)
+    .doc(id)
+    .get()
+  if (!snap.exists) return null
+  return mapTemplate(snap.id, snap.data() as Record<string, unknown>)
 }
 
 /**
@@ -73,13 +68,13 @@ export async function fetchEmailTemplateById(
 export async function fetchActiveEmailTemplate(
   kind: EmailTemplateKind
 ): Promise<EmailTemplate | null> {
-  const snap = await getDocs(
-    query(
-      collection(getDb(), EMAIL_TEMPLATES_COLLECTION),
-      where('kind', '==', kind)
-    )
+  const snap = await getAdminDb()
+    .collection(EMAIL_TEMPLATES_COLLECTION)
+    .where('kind', '==', kind)
+    .get()
+  const templates = snap.docs.map((d) =>
+    mapTemplate(d.id, d.data() as Record<string, unknown>)
   )
-  const templates = snap.docs.map((d) => mapTemplate(d.id, d.data()))
   if (templates.length === 0) return null
 
   const active = templates.filter((t) => t.active)
@@ -94,7 +89,7 @@ export async function createEmailTemplate(
     input.recipients ??
     normalizeRecipients(undefined, input.kind)
 
-  const ref = await addDoc(collection(getDb(), EMAIL_TEMPLATES_COLLECTION), {
+  const ref = await getAdminDb().collection(EMAIL_TEMPLATES_COLLECTION).add({
     kind: input.kind,
     name: input.name.trim(),
     subject: input.subject,
@@ -106,8 +101,8 @@ export async function createEmailTemplate(
       input.bodyFontSize ?? DEFAULT_EMAIL_BODY_FONT_SIZE
     ),
     active: input.active !== false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   })
   return ref.id
 }
@@ -116,8 +111,8 @@ export async function updateEmailTemplate(
   id: string,
   input: Partial<EmailTemplateInput>
 ): Promise<void> {
-  const payload: UpdateData<DocumentData> = {
-    updatedAt: serverTimestamp(),
+  const payload: Record<string, unknown> = {
+    updatedAt: FieldValue.serverTimestamp(),
   }
   if (input.kind !== undefined) payload.kind = input.kind
   if (input.name !== undefined) payload.name = input.name.trim()
@@ -131,11 +126,11 @@ export async function updateEmailTemplate(
     payload.bodyFontSize = normalizeEmailFontSize(input.bodyFontSize)
   if (input.active !== undefined) payload.active = input.active
 
-  await updateDoc(doc(getDb(), EMAIL_TEMPLATES_COLLECTION, id), payload)
+  await getAdminDb().collection(EMAIL_TEMPLATES_COLLECTION).doc(id).update(payload)
 }
 
 export async function deleteEmailTemplate(id: string): Promise<void> {
-  await deleteDoc(doc(getDb(), EMAIL_TEMPLATES_COLLECTION, id))
+  await getAdminDb().collection(EMAIL_TEMPLATES_COLLECTION).doc(id).delete()
 }
 
 /**

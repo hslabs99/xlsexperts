@@ -1,17 +1,8 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  type DocumentData,
-  type UpdateData,
-} from 'firebase/firestore'
-import { ENQUIRIES_COLLECTION, getDb } from '@/lib/firebase'
+import 'server-only'
+
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
+import { ENQUIRIES_COLLECTION } from '@/lib/firebase'
 import {
   ENQUIRY_STATUSES,
   ENQUIRY_TYPES,
@@ -21,11 +12,13 @@ import {
   type EnquiryType,
 } from '@/lib/enquiries'
 
-function mapEnquiry(id: string, data: DocumentData): EnquiryRecord {
-  const type: EnquiryType = ENQUIRY_TYPES.includes(data.type)
+function mapEnquiry(id: string, data: Record<string, unknown>): EnquiryRecord {
+  const type: EnquiryType = ENQUIRY_TYPES.includes(data.type as EnquiryType)
     ? (data.type as EnquiryType)
     : 'standard'
-  const status: EnquiryStatus = ENQUIRY_STATUSES.includes(data.status)
+  const status: EnquiryStatus = ENQUIRY_STATUSES.includes(
+    data.status as EnquiryStatus
+  )
     ? (data.status as EnquiryStatus)
     : 'new'
 
@@ -53,7 +46,7 @@ function mapEnquiry(id: string, data: DocumentData): EnquiryRecord {
 
 /** Persist a new enquiry in live Firestore (`enquiries`). */
 export async function createEnquiry(input: EnquiryInput): Promise<string> {
-  const ref = await addDoc(collection(getDb(), ENQUIRIES_COLLECTION), {
+  const ref = await getAdminDb().collection(ENQUIRIES_COLLECTION).add({
     type: input.type,
     status: input.status ?? 'new',
     name: input.name.trim(),
@@ -69,41 +62,44 @@ export async function createEnquiry(input: EnquiryInput): Promise<string> {
     method: input.method?.trim() || '',
     slotId: input.slotId?.trim() || '',
     emailNotified: Boolean(input.emailNotified),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   })
   return ref.id
 }
 
 export async function fetchAllEnquiries(): Promise<EnquiryRecord[]> {
-  const snap = await getDocs(
-    query(collection(getDb(), ENQUIRIES_COLLECTION), orderBy('createdAt', 'desc'))
+  const snap = await getAdminDb()
+    .collection(ENQUIRIES_COLLECTION)
+    .orderBy('createdAt', 'desc')
+    .get()
+  return snap.docs.map((d) =>
+    mapEnquiry(d.id, d.data() as Record<string, unknown>)
   )
-  return snap.docs.map((d) => mapEnquiry(d.id, d.data()))
 }
 
 export async function updateEnquiryStatus(
   id: string,
   status: EnquiryStatus
 ): Promise<void> {
-  await updateDoc(doc(getDb(), ENQUIRIES_COLLECTION, id), {
+  await getAdminDb().collection(ENQUIRIES_COLLECTION).doc(id).update({
     status,
-    updatedAt: serverTimestamp(),
-  } satisfies UpdateData<DocumentData>)
+    updatedAt: FieldValue.serverTimestamp(),
+  })
 }
 
 export async function updateEnquiryEmailNotified(
   id: string,
   emailNotified: boolean
 ): Promise<void> {
-  await updateDoc(doc(getDb(), ENQUIRIES_COLLECTION, id), {
+  await getAdminDb().collection(ENQUIRIES_COLLECTION).doc(id).update({
     emailNotified,
-    updatedAt: serverTimestamp(),
-  } satisfies UpdateData<DocumentData>)
+    updatedAt: FieldValue.serverTimestamp(),
+  })
 }
 
 export async function deleteEnquiry(id: string): Promise<void> {
-  await deleteDoc(doc(getDb(), ENQUIRIES_COLLECTION, id))
+  await getAdminDb().collection(ENQUIRIES_COLLECTION).doc(id).delete()
 }
 
 export function formatEnquiryCreatedAt(value: unknown): string {

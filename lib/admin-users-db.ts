@@ -1,17 +1,8 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-  type DocumentData,
-  type UpdateData,
-} from 'firebase/firestore'
-import { USERS_COLLECTION, getDb } from '@/lib/firebase'
+import 'server-only'
+
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
+import { USERS_COLLECTION } from '@/lib/firebase'
 import {
   ADMIN_USER_ROLES,
   DEFAULT_ADMIN_EMAIL,
@@ -22,9 +13,10 @@ import {
   type AdminUserRole,
 } from '@/lib/admin-users'
 
-function mapUser(id: string, data: DocumentData): AdminUser {
-  const role: AdminUserRole = ADMIN_USER_ROLES.includes(data.role)
-    ? (data.role as AdminUserRole)
+function mapUser(id: string, data: Record<string, unknown>): AdminUser {
+  const roleRaw = data.role
+  const role: AdminUserRole = ADMIN_USER_ROLES.includes(roleRaw as AdminUserRole)
+    ? (roleRaw as AdminUserRole)
     : 'marketing'
 
   return {
@@ -40,9 +32,9 @@ function mapUser(id: string, data: DocumentData): AdminUser {
 }
 
 export async function fetchAllUsers(): Promise<AdminUser[]> {
-  const snap = await getDocs(collection(getDb(), USERS_COLLECTION))
+  const snap = await getAdminDb().collection(USERS_COLLECTION).get()
   return snap.docs
-    .map((d) => mapUser(d.id, d.data()))
+    .map((d) => mapUser(d.id, d.data() as Record<string, unknown>))
     .sort((a, b) => a.email.localeCompare(b.email))
 }
 
@@ -50,19 +42,20 @@ export async function findUserByEmail(
   email: string
 ): Promise<AdminUser | null> {
   const normalized = email.trim().toLowerCase()
-  const snap = await getDocs(
-    query(collection(getDb(), USERS_COLLECTION), where('email', '==', normalized))
-  )
+  const snap = await getAdminDb()
+    .collection(USERS_COLLECTION)
+    .where('email', '==', normalized)
+    .limit(1)
+    .get()
   if (snap.empty) return null
   const d = snap.docs[0]
-  return mapUser(d.id, d.data())
+  return mapUser(d.id, d.data() as Record<string, unknown>)
 }
 
 /**
- * Plain-text password check against Firestore users.
- *
- * Looks up the email first (one indexed query). Only boots the default admin
- * when that lookup finds nothing — avoids a full collection scan on every login.
+ * Look up one user by email and check the password.
+ * No collection-wide scan. Bootstraps the default admin only if the email
+ * is missing (empty `users` collection).
  */
 export async function authenticateUser(
   email: string,
@@ -70,7 +63,6 @@ export async function authenticateUser(
 ): Promise<AdminUser | null> {
   let user = await findUserByEmail(email)
   if (!user) {
-    // Empty / unseeded `users` collection — create the default admin once.
     await ensureDefaultAdminUser()
     user = await findUserByEmail(email)
   }
@@ -89,14 +81,14 @@ export async function createUser(input: AdminUserInput): Promise<string> {
     throw new Error('Password is required.')
   }
 
-  const ref = await addDoc(collection(getDb(), USERS_COLLECTION), {
+  const ref = await getAdminDb().collection(USERS_COLLECTION).add({
     email,
     password: input.password,
     name: input.name.trim() || email,
     role: input.role,
     active: input.active !== false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   })
   return ref.id
 }
@@ -113,8 +105,8 @@ export async function updateUser(
     }
   }
 
-  const payload: UpdateData<DocumentData> = {
-    updatedAt: serverTimestamp(),
+  const payload: Record<string, unknown> = {
+    updatedAt: FieldValue.serverTimestamp(),
   }
   if (input.email !== undefined) {
     payload.email = input.email.trim().toLowerCase()
@@ -126,11 +118,11 @@ export async function updateUser(
   if (input.role !== undefined) payload.role = input.role
   if (input.active !== undefined) payload.active = input.active
 
-  await updateDoc(doc(getDb(), USERS_COLLECTION, id), payload)
+  await getAdminDb().collection(USERS_COLLECTION).doc(id).update(payload)
 }
 
 export async function deleteUser(id: string): Promise<void> {
-  await deleteDoc(doc(getDb(), USERS_COLLECTION, id))
+  await getAdminDb().collection(USERS_COLLECTION).doc(id).delete()
 }
 
 /** Create the seeded admin account if the users collection has no admin yet. */

@@ -1,8 +1,10 @@
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import 'server-only'
+
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
 import {
   SITE_CONTENT_COLLECTION,
   SITE_TAGS_DOC_ID,
-  getDb,
 } from '@/lib/firebase'
 import {
   DEFAULT_SITE_TAGS,
@@ -11,21 +13,24 @@ import {
 } from '@/lib/site-tags'
 
 export async function fetchSiteTags(): Promise<SiteTagsContent> {
-  const ref = doc(getDb(), SITE_CONTENT_COLLECTION, SITE_TAGS_DOC_ID)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return DEFAULT_SITE_TAGS
-  return normalizeSiteTags(snap.data())
+  const snap = await getAdminDb()
+    .collection(SITE_CONTENT_COLLECTION)
+    .doc(SITE_TAGS_DOC_ID)
+    .get()
+  if (!snap.exists) return DEFAULT_SITE_TAGS
+  return normalizeSiteTags(snap.data() as Record<string, unknown>)
 }
 
 export async function saveSiteTags(content: SiteTagsContent): Promise<void> {
   const normalized = normalizeSiteTags(content)
-  const ref = doc(getDb(), SITE_CONTENT_COLLECTION, SITE_TAGS_DOC_ID)
-  await setDoc(
-    ref,
-    {
-      ...normalized,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  )
+  await getAdminDb()
+    .collection(SITE_CONTENT_COLLECTION)
+    .doc(SITE_TAGS_DOC_ID)
+    .set(
+      {
+        ...normalized,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
 }

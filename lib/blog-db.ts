@@ -1,18 +1,8 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  type DocumentData,
-  type UpdateData,
-} from 'firebase/firestore'
-import { BLOG_POSTS_COLLECTION, getDb } from '@/lib/firebase'
+import 'server-only'
+
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
+import { BLOG_POSTS_COLLECTION } from '@/lib/firebase'
 import type { BlogPost, BlogSection, BlogListItem } from '@/lib/types'
 
 export type BlogPostRecord = BlogPost & {
@@ -62,7 +52,7 @@ function mapSections(raw: unknown): BlogSection[] {
   })
 }
 
-function mapPost(id: string, data: DocumentData): BlogPostRecord {
+function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
   return {
     slug: String(data.slug ?? id),
     title: String(data.title ?? ''),
@@ -109,10 +99,13 @@ export function toBlogListItem(record: BlogPostRecord): BlogListItem {
 }
 
 export async function fetchAllBlogPostRecords(): Promise<BlogPostRecord[]> {
-  const snap = await getDocs(
-    query(collection(getDb(), BLOG_POSTS_COLLECTION), orderBy('sortOrder', 'asc'))
+  const snap = await getAdminDb()
+    .collection(BLOG_POSTS_COLLECTION)
+    .orderBy('sortOrder', 'asc')
+    .get()
+  return snap.docs.map((d) =>
+    mapPost(d.id, d.data() as Record<string, unknown>)
   )
-  return snap.docs.map((d) => mapPost(d.id, d.data()))
 }
 
 function sortPublishedRecords(records: BlogPostRecord[]): BlogPostRecord[] {
@@ -126,22 +119,24 @@ function sortPublishedRecords(records: BlogPostRecord[]): BlogPostRecord[] {
 
 export async function fetchPublishedBlogPosts(): Promise<BlogPost[]> {
   // Single-field order avoids a composite index; publish filter applied in memory.
-  const snap = await getDocs(
-    query(collection(getDb(), BLOG_POSTS_COLLECTION), orderBy('sortOrder', 'asc'))
-  )
+  const snap = await getAdminDb()
+    .collection(BLOG_POSTS_COLLECTION)
+    .orderBy('sortOrder', 'asc')
+    .get()
   const records = sortPublishedRecords(
-    snap.docs.map((d) => mapPost(d.id, d.data()))
+    snap.docs.map((d) => mapPost(d.id, d.data() as Record<string, unknown>))
   )
   return records.map(toPublicBlogPost)
 }
 
 /** Published posts without section bodies — for /blog index filtering. */
 export async function fetchPublishedBlogList(): Promise<BlogListItem[]> {
-  const snap = await getDocs(
-    query(collection(getDb(), BLOG_POSTS_COLLECTION), orderBy('sortOrder', 'asc'))
-  )
+  const snap = await getAdminDb()
+    .collection(BLOG_POSTS_COLLECTION)
+    .orderBy('sortOrder', 'asc')
+    .get()
   const records = sortPublishedRecords(
-    snap.docs.map((d) => mapPost(d.id, d.data()))
+    snap.docs.map((d) => mapPost(d.id, d.data() as Record<string, unknown>))
   )
   return records.map(toBlogListItem)
 }
@@ -149,9 +144,12 @@ export async function fetchPublishedBlogList(): Promise<BlogListItem[]> {
 export async function fetchBlogPostRecordBySlug(
   slug: string
 ): Promise<BlogPostRecord | null> {
-  const snap = await getDoc(doc(getDb(), BLOG_POSTS_COLLECTION, slug))
-  if (!snap.exists()) return null
-  return mapPost(snap.id, snap.data())
+  const snap = await getAdminDb()
+    .collection(BLOG_POSTS_COLLECTION)
+    .doc(slug)
+    .get()
+  if (!snap.exists) return null
+  return mapPost(snap.id, snap.data() as Record<string, unknown>)
 }
 
 export async function fetchPublishedBlogPostBySlug(
@@ -166,8 +164,8 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
   const slug = input.slug.trim()
   if (!slug) throw new Error('Slug is required.')
 
-  const ref = doc(getDb(), BLOG_POSTS_COLLECTION, slug)
-  const existing = await getDoc(ref)
+  const ref = getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(slug)
+  const existing = await ref.get()
 
   const payload = {
     slug,
@@ -182,22 +180,27 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
     published: input.published !== false,
     featured: Boolean(input.featured),
     sortOrder:
-      typeof input.sortOrder === 'number' ? input.sortOrder : existing.exists()
-        ? Number(existing.data()?.sortOrder ?? 9999)
-        : 9999,
-    updatedAt: serverTimestamp(),
-    ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
+      typeof input.sortOrder === 'number'
+        ? input.sortOrder
+        : existing.exists
+          ? Number(
+              (existing.data() as Record<string, unknown> | undefined)
+                ?.sortOrder ?? 9999
+            )
+          : 9999,
+    updatedAt: FieldValue.serverTimestamp(),
+    ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
   }
 
-  await setDoc(ref, payload, { merge: true })
+  await ref.set(payload, { merge: true })
 }
 
 export async function updateBlogPostFields(
   slug: string,
   patch: Partial<BlogPostInput>
 ): Promise<void> {
-  const payload: UpdateData<DocumentData> = {
-    updatedAt: serverTimestamp(),
+  const payload: Record<string, unknown> = {
+    updatedAt: FieldValue.serverTimestamp(),
   }
   if (patch.title !== undefined) payload.title = patch.title.trim()
   if (patch.author !== undefined) payload.author = patch.author.trim()
@@ -211,9 +214,9 @@ export async function updateBlogPostFields(
   if (patch.featured !== undefined) payload.featured = patch.featured
   if (patch.sortOrder !== undefined) payload.sortOrder = patch.sortOrder
 
-  await updateDoc(doc(getDb(), BLOG_POSTS_COLLECTION, slug), payload)
+  await getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(slug).update(payload)
 }
 
 export async function deleteBlogPost(slug: string): Promise<void> {
-  await deleteDoc(doc(getDb(), BLOG_POSTS_COLLECTION, slug))
+  await getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(slug).delete()
 }

@@ -1,23 +1,12 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  type DocumentData,
-  type UpdateData,
-} from 'firebase/firestore'
+import 'server-only'
+
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   CASE_STUDIES_COLLECTION,
   CASE_STUDIES_HOME_DOC_ID,
   SITE_CONTENT_COLLECTION,
-  getDb,
 } from '@/lib/firebase'
 import type { CaseStudy } from '@/lib/types'
 
@@ -58,7 +47,7 @@ function mapTags(raw: unknown): string[] {
   return raw.map(String).map((t) => t.trim()).filter(Boolean)
 }
 
-function mapRecord(id: string, data: DocumentData): CaseStudyRecord {
+function mapRecord(id: string, data: Record<string, unknown>): CaseStudyRecord {
   return {
     slug: String(data.slug ?? id),
     client: String(data.client ?? ''),
@@ -93,27 +82,32 @@ export function toPublicCaseStudy(record: CaseStudyRecord): CaseStudy {
 }
 
 export async function fetchAllCaseStudyRecords(): Promise<CaseStudyRecord[]> {
-  const snap = await getDocs(
-    query(collection(getDb(), CASE_STUDIES_COLLECTION), orderBy('sortOrder', 'asc'))
+  const snap = await getAdminDb()
+    .collection(CASE_STUDIES_COLLECTION)
+    .orderBy('sortOrder', 'asc')
+    .get()
+  return snap.docs.map((d) =>
+    mapRecord(d.id, d.data() as Record<string, unknown>)
   )
-  return snap.docs.map((d) => mapRecord(d.id, d.data()))
 }
 
 export async function fetchCaseStudyRecordBySlug(
   slug: string
 ): Promise<CaseStudyRecord | null> {
-  const snap = await getDoc(doc(getDb(), CASE_STUDIES_COLLECTION, slug))
-  if (!snap.exists()) return null
-  return mapRecord(snap.id, snap.data())
+  const snap = await getAdminDb()
+    .collection(CASE_STUDIES_COLLECTION)
+    .doc(slug)
+    .get()
+  if (!snap.exists) return null
+  return mapRecord(snap.id, snap.data() as Record<string, unknown>)
 }
 
 export async function saveCaseStudy(input: CaseStudyInput): Promise<void> {
   const slug = input.slug.trim()
   if (!slug) throw new Error('Slug is required')
-  const ref = doc(getDb(), CASE_STUDIES_COLLECTION, slug)
-  const existing = await getDoc(ref)
-  await setDoc(
-    ref,
+  const ref = getAdminDb().collection(CASE_STUDIES_COLLECTION).doc(slug)
+  const existing = await ref.get()
+  await ref.set(
     {
       slug,
       client: input.client.trim(),
@@ -130,8 +124,8 @@ export async function saveCaseStudy(input: CaseStudyInput): Promise<void> {
         typeof input.homeOrder === 'number' ? input.homeOrder : 9999,
       sortOrder:
         typeof input.sortOrder === 'number' ? input.sortOrder : 9999,
-      updatedAt: serverTimestamp(),
-      ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
     },
     { merge: true }
   )
@@ -141,8 +135,8 @@ export async function updateCaseStudyFields(
   slug: string,
   fields: Partial<CaseStudyInput>
 ): Promise<void> {
-  const payload: UpdateData<DocumentData> = {
-    updatedAt: serverTimestamp(),
+  const payload: Record<string, unknown> = {
+    updatedAt: FieldValue.serverTimestamp(),
   }
   if (fields.client !== undefined) payload.client = fields.client.trim()
   if (fields.sector !== undefined) payload.sector = fields.sector.trim()
@@ -158,11 +152,11 @@ export async function updateCaseStudyFields(
   if (fields.homeOrder !== undefined) payload.homeOrder = fields.homeOrder
   if (fields.sortOrder !== undefined) payload.sortOrder = fields.sortOrder
 
-  await updateDoc(doc(getDb(), CASE_STUDIES_COLLECTION, slug), payload)
+  await getAdminDb().collection(CASE_STUDIES_COLLECTION).doc(slug).update(payload)
 }
 
 export async function deleteCaseStudy(slug: string): Promise<void> {
-  await deleteDoc(doc(getDb(), CASE_STUDIES_COLLECTION, slug))
+  await getAdminDb().collection(CASE_STUDIES_COLLECTION).doc(slug).delete()
 }
 
 /** Build the public home list from current showOnHome flags (max 4). */
@@ -186,25 +180,25 @@ export async function publishHomeCaseStudiesSnapshot(
 ): Promise<CaseStudiesHomeSnapshot> {
   const all = records ?? (await fetchAllCaseStudyRecords())
   const items = selectHomeCaseStudies(all)
-  const payload: CaseStudiesHomeSnapshot = {
+  const payload = {
     items,
     slugs: items.map((i) => i.slug),
-    updatedAt: serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   }
-  await setDoc(
-    doc(getDb(), SITE_CONTENT_COLLECTION, CASE_STUDIES_HOME_DOC_ID),
-    payload,
-    { merge: true }
-  )
+  await getAdminDb()
+    .collection(SITE_CONTENT_COLLECTION)
+    .doc(CASE_STUDIES_HOME_DOC_ID)
+    .set(payload, { merge: true })
   return { items, slugs: payload.slugs, updatedAt: null }
 }
 
 export async function fetchHomeCaseStudiesSnapshot(): Promise<CaseStudy[]> {
-  const snap = await getDoc(
-    doc(getDb(), SITE_CONTENT_COLLECTION, CASE_STUDIES_HOME_DOC_ID)
-  )
-  if (!snap.exists()) return []
-  const data = snap.data() as DocumentData
+  const snap = await getAdminDb()
+    .collection(SITE_CONTENT_COLLECTION)
+    .doc(CASE_STUDIES_HOME_DOC_ID)
+    .get()
+  if (!snap.exists) return []
+  const data = snap.data() as Record<string, unknown>
   if (!Array.isArray(data.items)) return []
   return data.items
     .map((raw) => {

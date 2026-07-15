@@ -1,8 +1,10 @@
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
+import 'server-only'
+
+import { FieldValue } from 'firebase-admin/firestore'
+import { getAdminDb } from '@/lib/firebase-admin'
 import {
   CONFIRMATION_CONTENT_DOC_ID,
   SITE_CONTENT_COLLECTION,
-  getDb,
 } from '@/lib/firebase'
 import {
   DEFAULT_CONFIRMATION_CONTENT,
@@ -15,14 +17,12 @@ import {
  * Returns built-in defaults if the document does not exist yet.
  */
 export async function fetchConfirmationContent(): Promise<ConfirmationContent> {
-  const ref = doc(
-    getDb(),
-    SITE_CONTENT_COLLECTION,
-    CONFIRMATION_CONTENT_DOC_ID
-  )
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return DEFAULT_CONFIRMATION_CONTENT
-  return normalizeConfirmationContent(snap.data())
+  const snap = await getAdminDb()
+    .collection(SITE_CONTENT_COLLECTION)
+    .doc(CONFIRMATION_CONTENT_DOC_ID)
+    .get()
+  if (!snap.exists) return DEFAULT_CONFIRMATION_CONTENT
+  return normalizeConfirmationContent(snap.data() as Record<string, unknown>)
 }
 
 /** Create or overwrite confirmation copy in live Firestore. */
@@ -30,17 +30,14 @@ export async function saveConfirmationContent(
   content: ConfirmationContent
 ): Promise<void> {
   const normalized = normalizeConfirmationContent(content)
-  const ref = doc(
-    getDb(),
-    SITE_CONTENT_COLLECTION,
-    CONFIRMATION_CONTENT_DOC_ID
-  )
-  await setDoc(
-    ref,
-    {
-      ...normalized,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  )
+  await getAdminDb()
+    .collection(SITE_CONTENT_COLLECTION)
+    .doc(CONFIRMATION_CONTENT_DOC_ID)
+    .set(
+      {
+        ...normalized,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
 }
