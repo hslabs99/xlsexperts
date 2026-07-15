@@ -1,5 +1,6 @@
 import { CaseStudies } from '@/components/case-studies'
 import { getHomeCaseStudies } from '@/lib/case-studies'
+import { fetchMoreCaseStudies } from '@/lib/case-studies-db'
 
 /**
  * Server wrapper: loads the pre-rendered homepage snapshot (one Firestore read)
@@ -8,10 +9,16 @@ import { getHomeCaseStudies } from '@/lib/case-studies'
  */
 export async function CaseStudiesSection() {
   const initialItems = await getHomeCaseStudies()
+  const excludeSlugs = initialItems.map((item) => item.slug).filter(Boolean)
+  // Probe whether anything remains (Firestore or archive fallback) beyond first paint.
+  const { items: peek } = await fetchMoreCaseStudies({
+    excludeSlugs,
+    limit: 1,
+  })
   return (
     <CaseStudies
       initialItems={initialItems}
-      initialHasMore={initialItems.length >= 4}
+      initialHasMore={peek.length > 0}
     />
   )
 }

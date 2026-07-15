@@ -12,6 +12,7 @@ import {
   type DocumentData,
   type UpdateData,
 } from 'firebase/firestore'
+import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   CASE_STUDIES_COLLECTION,
   CASE_STUDIES_HOME_DOC_ID,
@@ -19,6 +20,12 @@ import {
   getDb,
 } from '@/lib/firebase'
 import type { CaseStudy } from '@/lib/types'
+
+function archivePublicCaseStudies(): CaseStudy[] {
+  return CASE_STUDIES_ARCHIVE.map(
+    ({ localImage: _local, ...publicFields }) => publicFields
+  )
+}
 
 export const HOME_CASE_STUDIES_LIMIT = 4
 export const MORE_CASE_STUDIES_PAGE_SIZE = 4
@@ -225,6 +232,10 @@ export async function fetchHomeCaseStudiesSnapshot(): Promise<CaseStudy[]> {
 /**
  * Next page of published case studies for the homepage “More” control.
  * Excludes already-visible slugs; ordered by sortOrder.
+ *
+ * When Firestore has no published case studies yet (common on a fresh
+ * deploy before Admin → Seed), fall back to the frozen archive so “Show
+ * more” still works — same source as the homepage first-paint fallback.
  */
 export async function fetchMoreCaseStudies(options: {
   excludeSlugs: string[]
@@ -234,12 +245,35 @@ export async function fetchMoreCaseStudies(options: {
   const exclude = new Set(
     options.excludeSlugs.map((s) => s.trim().toLowerCase()).filter(Boolean)
   )
-  const published = (await fetchAllCaseStudyRecords()).filter(
-    (r) => r.published && !exclude.has(r.slug.toLowerCase())
-  )
-  const page = published.slice(0, limit).map(toPublicCaseStudy)
+
+  let remaining: CaseStudy[] = []
+  let usedFirestore = false
+
+  try {
+    const publishedRecords = (await fetchAllCaseStudyRecords()).filter(
+      (r) => r.published
+    )
+    if (publishedRecords.length > 0) {
+      usedFirestore = true
+      remaining = publishedRecords
+        .filter((r) => !exclude.has(r.slug.toLowerCase()))
+        .map(toPublicCaseStudy)
+    }
+  } catch (error) {
+    console.error(
+      '[case-studies] Failed to load more from Firestore',
+      error instanceof Error ? error.message : undefined
+    )
+  }
+
+  if (!usedFirestore) {
+    remaining = archivePublicCaseStudies().filter(
+      (item) => !exclude.has(item.slug.toLowerCase())
+    )
+  }
+
   return {
-    items: page,
-    hasMore: published.length > limit,
+    items: remaining.slice(0, limit),
+    hasMore: remaining.length > limit,
   }
 }
