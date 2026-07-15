@@ -1,0 +1,245 @@
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  type DocumentData,
+  type UpdateData,
+} from 'firebase/firestore'
+import {
+  CASE_STUDIES_COLLECTION,
+  CASE_STUDIES_HOME_DOC_ID,
+  SITE_CONTENT_COLLECTION,
+  getDb,
+} from '@/lib/firebase'
+import type { CaseStudy } from '@/lib/types'
+
+export const HOME_CASE_STUDIES_LIMIT = 4
+export const MORE_CASE_STUDIES_PAGE_SIZE = 4
+
+export type CaseStudyRecord = CaseStudy & {
+  published: boolean
+  /** Included when admin publishes the homepage snapshot */
+  showOnHome: boolean
+  homeOrder: number
+  sortOrder: number
+  createdAt: unknown
+  updatedAt: unknown
+}
+
+export type CaseStudyInput = CaseStudy & {
+  published?: boolean
+  showOnHome?: boolean
+  homeOrder?: number
+  sortOrder?: number
+}
+
+export type CaseStudiesHomeSnapshot = {
+  items: CaseStudy[]
+  slugs: string[]
+  updatedAt: unknown
+}
+
+function mapTags(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map(String).map((t) => t.trim()).filter(Boolean)
+}
+
+function mapRecord(id: string, data: DocumentData): CaseStudyRecord {
+  return {
+    slug: String(data.slug ?? id),
+    client: String(data.client ?? ''),
+    sector: String(data.sector ?? ''),
+    title: String(data.title ?? ''),
+    image: String(data.image ?? ''),
+    problem: String(data.problem ?? ''),
+    solution: String(data.solution ?? ''),
+    outcome: String(data.outcome ?? ''),
+    tags: mapTags(data.tags),
+    published: data.published !== false,
+    showOnHome: Boolean(data.showOnHome),
+    homeOrder: typeof data.homeOrder === 'number' ? data.homeOrder : 9999,
+    sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 9999,
+    createdAt: data.createdAt ?? null,
+    updatedAt: data.updatedAt ?? null,
+  }
+}
+
+export function toPublicCaseStudy(record: CaseStudyRecord): CaseStudy {
+  return {
+    slug: record.slug,
+    client: record.client,
+    sector: record.sector,
+    title: record.title,
+    image: record.image,
+    problem: record.problem,
+    solution: record.solution,
+    outcome: record.outcome,
+    tags: record.tags,
+  }
+}
+
+export async function fetchAllCaseStudyRecords(): Promise<CaseStudyRecord[]> {
+  const snap = await getDocs(
+    query(collection(getDb(), CASE_STUDIES_COLLECTION), orderBy('sortOrder', 'asc'))
+  )
+  return snap.docs.map((d) => mapRecord(d.id, d.data()))
+}
+
+export async function fetchCaseStudyRecordBySlug(
+  slug: string
+): Promise<CaseStudyRecord | null> {
+  const snap = await getDoc(doc(getDb(), CASE_STUDIES_COLLECTION, slug))
+  if (!snap.exists()) return null
+  return mapRecord(snap.id, snap.data())
+}
+
+export async function saveCaseStudy(input: CaseStudyInput): Promise<void> {
+  const slug = input.slug.trim()
+  if (!slug) throw new Error('Slug is required')
+  const ref = doc(getDb(), CASE_STUDIES_COLLECTION, slug)
+  const existing = await getDoc(ref)
+  await setDoc(
+    ref,
+    {
+      slug,
+      client: input.client.trim(),
+      sector: input.sector.trim(),
+      title: input.title.trim(),
+      image: input.image.trim(),
+      problem: input.problem.trim(),
+      solution: input.solution.trim(),
+      outcome: input.outcome.trim(),
+      tags: input.tags.map((t) => t.trim()).filter(Boolean),
+      published: input.published !== false,
+      showOnHome: Boolean(input.showOnHome),
+      homeOrder:
+        typeof input.homeOrder === 'number' ? input.homeOrder : 9999,
+      sortOrder:
+        typeof input.sortOrder === 'number' ? input.sortOrder : 9999,
+      updatedAt: serverTimestamp(),
+      ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
+    },
+    { merge: true }
+  )
+}
+
+export async function updateCaseStudyFields(
+  slug: string,
+  fields: Partial<CaseStudyInput>
+): Promise<void> {
+  const payload: UpdateData<DocumentData> = {
+    updatedAt: serverTimestamp(),
+  }
+  if (fields.client !== undefined) payload.client = fields.client.trim()
+  if (fields.sector !== undefined) payload.sector = fields.sector.trim()
+  if (fields.title !== undefined) payload.title = fields.title.trim()
+  if (fields.image !== undefined) payload.image = fields.image.trim()
+  if (fields.problem !== undefined) payload.problem = fields.problem.trim()
+  if (fields.solution !== undefined) payload.solution = fields.solution.trim()
+  if (fields.outcome !== undefined) payload.outcome = fields.outcome.trim()
+  if (fields.tags !== undefined)
+    payload.tags = fields.tags.map((t) => t.trim()).filter(Boolean)
+  if (fields.published !== undefined) payload.published = fields.published
+  if (fields.showOnHome !== undefined) payload.showOnHome = fields.showOnHome
+  if (fields.homeOrder !== undefined) payload.homeOrder = fields.homeOrder
+  if (fields.sortOrder !== undefined) payload.sortOrder = fields.sortOrder
+
+  await updateDoc(doc(getDb(), CASE_STUDIES_COLLECTION, slug), payload)
+}
+
+export async function deleteCaseStudy(slug: string): Promise<void> {
+  await deleteDoc(doc(getDb(), CASE_STUDIES_COLLECTION, slug))
+}
+
+/** Build the public home list from current showOnHome flags (max 4). */
+export function selectHomeCaseStudies(
+  records: CaseStudyRecord[]
+): CaseStudy[] {
+  return [...records]
+    .filter((r) => r.published && r.showOnHome)
+    .sort((a, b) => a.homeOrder - b.homeOrder || a.sortOrder - b.sortOrder)
+    .slice(0, HOME_CASE_STUDIES_LIMIT)
+    .map(toPublicCaseStudy)
+}
+
+/**
+ * Write a single Site Content document with the homepage cards.
+ * Call this from admin after choosing which studies appear on home —
+ * the public homepage reads only this document (one Firestore read).
+ */
+export async function publishHomeCaseStudiesSnapshot(
+  records?: CaseStudyRecord[]
+): Promise<CaseStudiesHomeSnapshot> {
+  const all = records ?? (await fetchAllCaseStudyRecords())
+  const items = selectHomeCaseStudies(all)
+  const payload: CaseStudiesHomeSnapshot = {
+    items,
+    slugs: items.map((i) => i.slug),
+    updatedAt: serverTimestamp(),
+  }
+  await setDoc(
+    doc(getDb(), SITE_CONTENT_COLLECTION, CASE_STUDIES_HOME_DOC_ID),
+    payload,
+    { merge: true }
+  )
+  return { items, slugs: payload.slugs, updatedAt: null }
+}
+
+export async function fetchHomeCaseStudiesSnapshot(): Promise<CaseStudy[]> {
+  const snap = await getDoc(
+    doc(getDb(), SITE_CONTENT_COLLECTION, CASE_STUDIES_HOME_DOC_ID)
+  )
+  if (!snap.exists()) return []
+  const data = snap.data() as DocumentData
+  if (!Array.isArray(data.items)) return []
+  return data.items
+    .map((raw) => {
+      if (!raw || typeof raw !== 'object') return null
+      const r = raw as Record<string, unknown>
+      const slug = String(r.slug ?? '').trim()
+      const title = String(r.title ?? '').trim()
+      if (!slug || !title) return null
+      return {
+        slug,
+        client: String(r.client ?? ''),
+        sector: String(r.sector ?? ''),
+        title,
+        image: String(r.image ?? ''),
+        problem: String(r.problem ?? ''),
+        solution: String(r.solution ?? ''),
+        outcome: String(r.outcome ?? ''),
+        tags: mapTags(r.tags),
+      } satisfies CaseStudy
+    })
+    .filter((item): item is CaseStudy => Boolean(item))
+    .slice(0, HOME_CASE_STUDIES_LIMIT)
+}
+
+/**
+ * Next page of published case studies for the homepage “More” control.
+ * Excludes already-visible slugs; ordered by sortOrder.
+ */
+export async function fetchMoreCaseStudies(options: {
+  excludeSlugs: string[]
+  limit?: number
+}): Promise<{ items: CaseStudy[]; hasMore: boolean }> {
+  const limit = options.limit ?? MORE_CASE_STUDIES_PAGE_SIZE
+  const exclude = new Set(
+    options.excludeSlugs.map((s) => s.trim().toLowerCase()).filter(Boolean)
+  )
+  const published = (await fetchAllCaseStudyRecords()).filter(
+    (r) => r.published && !exclude.has(r.slug.toLowerCase())
+  )
+  const page = published.slice(0, limit).map(toPublicCaseStudy)
+  return {
+    items: page,
+    hasMore: published.length > limit,
+  }
+}

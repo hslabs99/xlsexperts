@@ -1,21 +1,28 @@
 /**
- * Blog data access layer.
+ * Blog data access for public pages — Firebase only.
  *
- * Currently backed by the static `blogPosts` array in `lib/blog-posts.ts`.
- *
- * TO MIGRATE TO SANITY in Cursor:
- *   1. Replace the import below with your Sanity client import.
- *   2. Replace each function body with a `sanity.fetch(groq`...`)` call.
- *   3. The rest of the app (pages, sitemap, JSON-LD) touches only this file.
+ * LIVE source: Firestore `blogPosts` (+ image URLs in Firebase Storage).
+ * The v0 archive in `lib/blog-posts.ts` is for seeding/re-import only and is
+ * never used to serve the public site.
  */
 
-import type { BlogPost } from '@/lib/types'
-import { blogPosts } from '@/lib/blog-posts'
+import type { BlogListItem, BlogPost } from '@/lib/types'
+import {
+  fetchPublishedBlogList,
+  fetchPublishedBlogPostBySlug,
+  fetchPublishedBlogPosts,
+} from '@/lib/blog-db'
 
-export function getAllBlogPosts(): BlogPost[] {
-  return blogPosts
+export async function getAllBlogPosts(): Promise<BlogPost[]> {
+  return fetchPublishedBlogPosts()
 }
 
-export function getBlogPost(slug: string): BlogPost | undefined {
-  return blogPosts.find((p) => p.slug === slug)
+/** Index cards only — omits heavy section bodies. */
+export async function getBlogListPosts(): Promise<BlogListItem[]> {
+  return fetchPublishedBlogList()
+}
+
+export async function getBlogPost(slug: string): Promise<BlogPost | undefined> {
+  const post = await fetchPublishedBlogPostBySlug(slug)
+  return post ?? undefined
 }

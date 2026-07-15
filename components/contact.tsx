@@ -1,33 +1,37 @@
 'use client'
 
-import { useState } from 'react'
-import { CalendarDays, CheckSquare, MessageSquare, Phone } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  CalendarDays,
+  CheckSquare,
+  Loader2,
+  MessageSquare,
+  Phone,
+} from 'lucide-react'
 import { BookingCalendar } from '@/components/booking-calendar'
+import { markBookingSlotBooked } from '@/lib/booking-slots-db'
+import { fetchConfirmationContent } from '@/lib/confirmation-content-db'
+import {
+  DEFAULT_CONFIRMATION_CONTENT,
+  type ConfirmationContent,
+} from '@/lib/confirmation-content'
+import {
+  CONTACT_HEAR_OPTIONS,
+  CONTACT_SERVICE_OPTIONS,
+} from '@/lib/contact-options'
 
-const serviceOptions = [
-  'Macros / VBA',
-  'Google Apps Script',
-  'Office Scripts',
-  'Formulas & Functions',
-  'Charts & Dashboards',
-  'Data Connections / SQL',
-  'Power Query / Power Pivot',
-  'Enterprise Application',
-  'A.I. Workflow Solution',
-  'Web App / .NET',
-  'Data Analysis',
-  'Other',
+const serviceOptions = [...CONTACT_SERVICE_OPTIONS]
+const hearOptions = [...CONTACT_HEAR_OPTIONS]
+
+const BOOKING_STATUS_MESSAGES = [
+  'Reserving your discovery slot…',
+  'Notifying the XLS Experts team…',
+  'Preparing your confirmation email…',
+  'Locking in your preferred time…',
+  'Almost done — hang tight…',
 ]
 
-const hearOptions = [
-  'Google Search',
-  'Referral / Word of mouth',
-  'LinkedIn',
-  'Returning client',
-  'Other',
-]
-
-type FormStep = 'form' | 'calendar' | 'done'
+type FormStep = 'form' | 'calendar' | 'booking' | 'done'
 
 interface FormErrors {
   name?: string
@@ -36,10 +40,17 @@ interface FormErrors {
   message?: string
 }
 
+type BookedSlotSummary = { day: string; time: string; method: string }
+
 export function Contact() {
   const [selected, setSelected] = useState<string[]>([])
   const [step, setStep] = useState<FormStep>('form')
-  const [bookedSlot, setBookedSlot] = useState<{ day: string; time: string; method: string } | null>(null)
+  const [bookedSlot, setBookedSlot] = useState<BookedSlotSummary | null>(null)
+  const [confirmation, setConfirmation] = useState<ConfirmationContent>(
+    DEFAULT_CONFIRMATION_CONTENT
+  )
+  const [bookingStatusIndex, setBookingStatusIndex] = useState(0)
+  const [enquirySubmitting, setEnquirySubmitting] = useState(false)
 
   // Form field state
   const [name, setName] = useState('')
@@ -49,6 +60,32 @@ export function Contact() {
   const [message, setMessage] = useState('')
   const [hear, setHear] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const content = await fetchConfirmationContent()
+        if (!cancelled) setConfirmation(content)
+      } catch {
+        // Keep defaults if Firebase is unavailable
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (step !== 'booking') {
+      setBookingStatusIndex(0)
+      return
+    }
+    const id = window.setInterval(() => {
+      setBookingStatusIndex((i) => (i + 1) % BOOKING_STATUS_MESSAGES.length)
+    }, 1400)
+    return () => window.clearInterval(id)
+  }, [step])
 
   const toggle = (val: string) =>
     setSelected((prev) =>
@@ -70,12 +107,17 @@ export function Contact() {
     const errs = validate(false)
     if (Object.keys(errs).length) { setErrors(errs); return }
     setErrors({})
-    await fetch('/api/contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, company, email, phone, message, services: selected, hear }),
-    })
-    setStep('done')
+    setEnquirySubmitting(true)
+    try {
+      await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, company, email, phone, message, services: selected, hear }),
+      })
+      setStep('done')
+    } finally {
+      setEnquirySubmitting(false)
+    }
   }
 
   const handleBookCall = (e: React.FormEvent) => {
@@ -86,14 +128,57 @@ export function Contact() {
     setStep('calendar')
   }
 
-  const handleCalendarConfirm = async (day: string, time: string, method: string) => {
-    await fetch('/api/booking', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, company, email, phone, message, services: selected, hear, day, time, method }),
-    })
-    setBookedSlot({ day, time, method })
-    setStep('done')
+  const handleCalendarConfirm = async (payload: {
+    day: string
+    date: string
+    time: string
+    method: string
+    slotId: string
+  }) => {
+    const summary: BookedSlotSummary = {
+      day: payload.day,
+      time: payload.time,
+      method: payload.method,
+    }
+    setBookedSlot(summary)
+    setStep('booking')
+
+    try {
+      await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          company,
+          email,
+          phone,
+          message,
+          services: selected,
+          hear,
+          day: payload.day,
+          date: payload.date,
+          time: payload.time,
+          method: payload.method,
+          slotId: payload.slotId,
+        }),
+      })
+      try {
+        await markBookingSlotBooked(payload.slotId, {
+          name,
+          company,
+          email,
+          phone,
+          message,
+          services: selected,
+          hear,
+          method: payload.method,
+        })
+      } catch {
+        // Booking still recorded via API; admin can flip status if Firestore update fails
+      }
+    } finally {
+      setStep('done')
+    }
   }
 
   return (
@@ -102,7 +187,20 @@ export function Contact() {
 
         {/* Section header — changes once the action is complete */}
         <div className="mx-auto max-w-2xl text-center">
-          {step === 'done' && bookedSlot ? (
+          {step === 'booking' && bookedSlot ? (
+            <>
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#1a6b3c' }}>
+                Booking in progress
+              </span>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                Locking in your discovery call
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-gray-500">
+                {bookedSlot.day} at {bookedSlot.time} via {bookedSlot.method}. This usually takes a
+                moment — please wait while we confirm everything.
+              </p>
+            </>
+          ) : step === 'done' && bookedSlot ? (
             <>
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#1a6b3c' }}>
                 You&apos;re all set
@@ -121,13 +219,13 @@ export function Contact() {
           ) : step === 'done' ? (
             <>
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#1a6b3c' }}>
-                Message received
+                {confirmation.eyebrow}
               </span>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                Thanks — we will be in touch.
+                {confirmation.heading}
               </h2>
               <p className="mt-4 text-base leading-relaxed text-gray-500">
-                We have received your enquiry and will get back to you same business day. Keep an eye on your inbox.
+                {confirmation.subheading}
               </p>
             </>
           ) : (
@@ -150,14 +248,12 @@ export function Contact() {
           {/* Left — reassurance panel */}
           <div className="flex flex-col gap-8">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-700">What happens next</h3>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-700">
+                {confirmation.whatHappensNextTitle}
+              </h3>
               <ol className="mt-4 flex flex-col gap-5">
-                {[
-                  { n: '1', text: 'We review your enquiry and reach out to discuss your requirements — no commitment needed.' },
-                  { n: '2', text: 'We provide a no-obligation quote and estimated delivery timeframe.' },
-                  { n: '3', text: 'Once agreed, we build in stages and keep you updated throughout.' },
-                ].map((s) => (
-                  <li key={s.n} className="flex gap-3">
+                {confirmation.whatHappensNext.map((s) => (
+                  <li key={`${s.n}-${s.text.slice(0, 24)}`} className="flex gap-3">
                     <span
                       className="flex h-6 w-6 shrink-0 items-center justify-center text-xs font-bold text-white"
                       style={{ backgroundColor: '#1a6b3c' }}
@@ -202,6 +298,47 @@ export function Contact() {
           {/* Right — form / calendar / done */}
           <div className="lg:col-span-2">
 
+            {/* BOOKING PROCESSING state */}
+            {step === 'booking' && bookedSlot && (
+              <div
+                className="flex flex-col items-center justify-center gap-5 p-12 text-center"
+                style={{ backgroundColor: '#e8f5ee' }}
+                role="status"
+                aria-live="polite"
+                aria-busy="true"
+              >
+                <Loader2
+                  className="h-10 w-10 animate-spin"
+                  style={{ color: '#1a6b3c' }}
+                  aria-hidden="true"
+                />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Booking your discovery call
+                  </h3>
+                  <p
+                    key={bookingStatusIndex}
+                    className="text-sm font-medium text-gray-700 transition-opacity duration-300"
+                  >
+                    {BOOKING_STATUS_MESSAGES[bookingStatusIndex]}
+                  </p>
+                </div>
+                <p className="max-w-sm text-sm text-gray-600">
+                  <span className="font-semibold text-gray-900">
+                    {bookedSlot.day} at {bookedSlot.time}
+                  </span>
+                  {' '}
+                  via{' '}
+                  <span className="font-semibold text-gray-900">
+                    {bookedSlot.method}
+                  </span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  Please don&apos;t close this page — confirmation is next.
+                </p>
+              </div>
+            )}
+
             {/* DONE state */}
             {step === 'done' && (
               <div
@@ -221,8 +358,10 @@ export function Contact() {
                   </>
                 ) : (
                   <>
-                    <h3 className="text-lg font-bold text-gray-900">Thanks — we will be in touch shortly.</h3>
-                    <p className="text-sm text-gray-600">We typically respond same business day. Keep an eye on your inbox.</p>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      {confirmation.panelHeading}
+                    </h3>
+                    <p className="text-sm text-gray-600">{confirmation.panelBody}</p>
                   </>
                 )}
               </div>
@@ -384,15 +523,24 @@ export function Contact() {
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="submit"
+                      disabled={enquirySubmitting}
                       onClick={handleSendEnquiry}
-                      className="btn-primary inline-flex h-11 items-center gap-2 px-7 text-sm font-semibold"
+                      className="btn-primary inline-flex h-11 items-center gap-2 px-7 text-sm font-semibold disabled:opacity-70"
                     >
-                      Send enquiry
+                      {enquirySubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                          Sending…
+                        </>
+                      ) : (
+                        'Send enquiry'
+                      )}
                     </button>
                     <button
                       type="submit"
+                      disabled={enquirySubmitting}
                       onClick={handleBookCall}
-                      className="btn-outline inline-flex h-11 items-center gap-2 px-7 text-sm font-semibold"
+                      className="btn-outline inline-flex h-11 items-center gap-2 px-7 text-sm font-semibold disabled:opacity-70"
                     >
                       <CalendarDays className="h-4 w-4" aria-hidden="true" />
                       Book a discovery call

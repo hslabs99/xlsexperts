@@ -4,14 +4,14 @@ import { Contact } from '@/components/contact'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Enterprise Excel VBA Development | XLS Experts New Zealand',
+  title: 'Enterprise Excel VBA Development',
   description:
     'We design and build robust Excel/VBA applications and process automations that reduce manual work, improve accuracy, and hold up in enterprise environments across New Zealand.',
   alternates: {
     canonical: 'https://www.xlsexperts.co.nz/enterprise-excel-vba-development',
   },
   openGraph: {
-    title: 'Enterprise Excel VBA Development | XLS Experts New Zealand',
+    title: 'Enterprise Excel VBA Development | XLS Experts',
     description:
       'Robust Excel/VBA applications and process automations built to enterprise standards. Pricing tools, forecasting models, project controls, reporting automation, and database-connected solutions.',
     url: 'https://www.xlsexperts.co.nz/enterprise-excel-vba-development',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Enterprise Excel VBA Development | XLS Experts New Zealand',
+    title: 'Enterprise Excel VBA Development | XLS Experts',
     description:
       'Robust Excel/VBA applications and process automations built to enterprise standards.',
     images: ['/images/enterprise-hero.png'],

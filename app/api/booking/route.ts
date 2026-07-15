@@ -1,71 +1,122 @@
 /**
  * POST /api/booking
  *
- * Receives a discovery call booking and returns 200.
- *
- * TO WIRE UP IN CURSOR — choose one:
- *
- *   Option A — Microsoft Graph API (creates a real Teams calendar event):
- *     1. Register an app in Azure Active Directory
- *     2. Grant: Calendars.ReadWrite, OnlineMeetings.ReadWrite
- *     3. Env vars: AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID, AZURE_USER_ID
- *     4. POST to: https://graph.microsoft.com/v1.0/users/{AZURE_USER_ID}/events
- *
- *   Option B — Microsoft Bookings API (uses your existing Bookings calendar):
- *     1. Same Azure app registration as above
- *     2. Additional scope: Bookings.ReadWrite.All
- *     3. POST to: https://graph.microsoft.com/v1.0/solutions/bookingBusinesses/{id}/appointments
- *
- *   Option C — Cal.com REST API (simpler, no Azure required):
- *     Env vars: CALCOM_API_KEY, CALCOM_EVENT_TYPE_ID
- *     POST to: https://api.cal.com/v1/bookings
- *
- *   In all cases, also post a Teams channel notification (see /api/contact for the pattern).
+ * Discovery booking: saves to Firestore `enquiries`, then emails via the
+ * active discovery template.
  */
 
 import { NextResponse } from 'next/server'
+import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
+import { isEmailError } from '@/lib/email/errors'
+import {
+  buildDiscoveryMergeContext,
+  getBusinessEmail,
+  sendEnquiryNotificationEmail,
+} from '@/lib/email/enquiry-notify'
 import type { BookingPayload } from '@/lib/types'
 
-export async function POST(request: Request) {
-  const body: BookingPayload = await request.json()
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  // Basic server-side validation
-  if (!body.name || !body.email || !body.phone || !body.day || !body.time || !body.method) {
+export async function POST(request: Request) {
+  let body: BookingPayload
+  try {
+    body = (await request.json()) as BookingPayload
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
+  }
+
+  if (
+    !body.name?.trim() ||
+    !body.email?.trim() ||
+    !EMAIL_RE.test(body.email.trim()) ||
+    !body.phone?.trim() ||
+    !body.day?.trim() ||
+    !body.date?.trim() ||
+    !body.time?.trim() ||
+    !body.method?.trim() ||
+    !body.slotId?.trim()
+  ) {
     return NextResponse.json({ error: 'Missing required booking fields.' }, { status: 400 })
   }
 
-  // --- INTEGRATION POINT ---
-  // Example Microsoft Graph calendar event (uncomment in Cursor):
-  //
-  // const tokenRes = await fetch(
-  //   `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
-  //   {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  //     body: new URLSearchParams({
-  //       grant_type: 'client_credentials',
-  //       client_id: process.env.AZURE_CLIENT_ID!,
-  //       client_secret: process.env.AZURE_CLIENT_SECRET!,
-  //       scope: 'https://graph.microsoft.com/.default',
-  //     }),
-  //   }
-  // )
-  // const { access_token } = await tokenRes.json()
-  //
-  // await fetch(`https://graph.microsoft.com/v1.0/users/${process.env.AZURE_USER_ID}/events`, {
-  //   method: 'POST',
-  //   headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({
-  //     subject: `Discovery Call — ${body.name}`,
-  //     body: { contentType: 'text', content: body.message },
-  //     start: { dateTime: '/* derive ISO from body.day + body.time */', timeZone: 'New Zealand Standard Time' },
-  //     end:   { dateTime: '/* +30 min */', timeZone: 'New Zealand Standard Time' },
-  //     attendees: [{ emailAddress: { address: body.email, name: body.name }, type: 'required' }],
-  //     isOnlineMeeting: body.method === 'Microsoft Teams',
-  //     onlineMeetingProvider: body.method === 'Microsoft Teams' ? 'teamsForBusiness' : undefined,
-  //   }),
-  // })
-  // --- END INTEGRATION POINT ---
+  let enquiryId: string | null = null
+  try {
+    enquiryId = await createEnquiry({
+      type: 'discovery',
+      name: body.name,
+      company: body.company,
+      email: body.email,
+      phone: body.phone,
+      message: body.message,
+      services: body.services,
+      hear: body.hear,
+      day: body.day,
+      date: body.date,
+      time: body.time,
+      method: body.method,
+      slotId: body.slotId,
+      emailNotified: false,
+    })
+  } catch (error) {
+    console.error(
+      '[booking] Failed to save enquiry to Firestore',
+      error instanceof Error ? error.message : undefined
+    )
+    return NextResponse.json(
+      { error: 'Could not save booking enquiry. Please try again.' },
+      { status: 500 }
+    )
+  }
 
-  return NextResponse.json({ success: true }, { status: 200 })
+  if (!getBusinessEmail()) {
+    console.error('[booking] No CONTACT_NOTIFY_EMAIL or SENDGRID_FROM_EMAIL configured')
+    return NextResponse.json(
+      { success: true, enquiryId, notified: false },
+      { status: 200 }
+    )
+  }
+
+  try {
+    const result = await sendEnquiryNotificationEmail({
+      kind: 'discovery',
+      ctx: buildDiscoveryMergeContext(body),
+      category: 'discovery-booking',
+      referenceId: enquiryId
+        ? `booking-${enquiryId}`
+        : `booking-${body.slotId}-${Date.now()}`,
+    })
+
+    if (enquiryId && result.accepted) {
+      try {
+        await updateEnquiryEmailNotified(enquiryId, true)
+      } catch {
+        console.error('[booking] Enquiry saved but failed to mark emailNotified')
+      }
+    }
+
+    return NextResponse.json(
+      { success: true, enquiryId, notified: result.accepted },
+      { status: 200 }
+    )
+  } catch (error) {
+    if (isEmailError(error)) {
+      console.error('[booking] Discovery email failed', {
+        kind: error.kind,
+        statusCode: error.statusCode,
+        message: error.message,
+        sendGridErrors: error.sendGridErrors,
+        enquiryId,
+      })
+    } else {
+      console.error(
+        '[booking] Unexpected error sending discovery email',
+        error instanceof Error ? error.message : undefined
+      )
+    }
+
+    return NextResponse.json(
+      { success: true, enquiryId, notified: false },
+      { status: 200 }
+    )
+  }
 }

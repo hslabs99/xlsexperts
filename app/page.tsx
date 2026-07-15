@@ -3,19 +3,24 @@ import { Navbar } from '@/components/navbar'
 import { Hero } from '@/components/hero'
 import { Services } from '@/components/services'
 import { HowWeWork } from '@/components/how-we-work'
-import { CaseStudies } from '@/components/case-studies'
+import { CaseStudiesSection } from '@/components/case-studies-section'
 import { About } from '@/components/about'
 import { Contact } from '@/components/contact'
 
+/** Cache homepage (incl. case-study snapshot) briefly — admin “Publish homepage” is the source of truth. */
+export const revalidate = 120
+
 export const metadata: Metadata = {
-  title: 'Excel & Spreadsheet Consulting NZ — XLS Experts',
+  title: {
+    absolute: 'Excel & Spreadsheet Consulting NZ | XLS Experts',
+  },
   description:
     'XLS Experts are New Zealand\'s leading Excel and spreadsheet consultants. We build VBA automation, dashboards, financial models, and workflow automation tools for NZ businesses.',
   alternates: {
     canonical: 'https://www.xlsexperts.co.nz',
   },
   openGraph: {
-    title: 'Excel & Spreadsheet Consulting NZ — XLS Experts',
+    title: 'Excel & Spreadsheet Consulting NZ | XLS Experts',
     description:
       'New Zealand\'s leading Excel consultants. VBA automation, dashboards, financial modelling, and workflow automation.',
     url: 'https://www.xlsexperts.co.nz',
@@ -118,7 +123,7 @@ export default function Page() {
         <Hero />
         <Services />
         <HowWeWork />
-        <CaseStudies />
+        <CaseStudiesSection />
         <About />
         <Contact />
       </main>

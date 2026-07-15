@@ -20,8 +20,28 @@ export interface BlogPost {
   readTime: string
   excerpt: string
   image: string
+  /** Topic tag shown on cards and used for blog list filtering */
   category: string
   sections: BlogSection[]
+}
+
+/** List card payload — no article body (keeps /blog fast). */
+export type BlogListItem = Omit<BlogPost, 'sections'>
+
+/**
+ * Public case study card payload (homepage + “More”).
+ * Matches admin / Firestore content once seeded.
+ */
+export interface CaseStudy {
+  slug: string
+  client: string
+  sector: string
+  title: string
+  image: string
+  problem: string
+  solution: string
+  outcome: string
+  tags: string[]
 }
 
 /**
@@ -51,6 +71,8 @@ export interface BookingPayload {
   services: string[]
   hear: string
   day: string
+  date: string
   time: string
   method: string
+  slotId: string
 }

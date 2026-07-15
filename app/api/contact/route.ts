@@ -1,60 +1,132 @@
 /**
  * POST /api/contact
  *
- * Receives a contact form enquiry and returns 200.
- *
- * TO WIRE UP IN CURSOR — add any or all of:
- *   1. Microsoft Teams incoming webhook (simplest):
- *        POST TEAMS_WEBHOOK_URL with an Adaptive Card payload
- *        Env var: TEAMS_WEBHOOK_URL
- *
- *   2. Email notification via Resend / SendGrid:
- *        import { Resend } from 'resend'
- *        Env var: RESEND_API_KEY
- *
- *   3. CRM / database write (Neon, Supabase, etc.)
+ * Standard enquiry: saves to Firestore `enquiries`, then emails via the active
+ * standard template (To=client, Cc=business by default).
  */
 
 import { NextResponse } from 'next/server'
+import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
+import { isEmailError } from '@/lib/email/errors'
+import {
+  buildStandardMergeContext,
+  getBusinessEmail,
+  sendEnquiryNotificationEmail,
+} from '@/lib/email/enquiry-notify'
 import type { ContactPayload } from '@/lib/types'
 
-export async function POST(request: Request) {
-  const body: ContactPayload = await request.json()
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  // Basic server-side validation
-  if (!body.name || !body.email || !body.message) {
-    return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
+function validateContactPayload(body: ContactPayload): string | null {
+  if (!body.name?.trim() || body.name.trim().length > 200) {
+    return 'Invalid name.'
+  }
+  if (!body.email?.trim() || !EMAIL_RE.test(body.email.trim())) {
+    return 'Invalid email.'
+  }
+  if (!body.message?.trim() || body.message.trim().length > 10_000) {
+    return 'Invalid message.'
+  }
+  if (body.company && body.company.length > 200) {
+    return 'Invalid company.'
+  }
+  if (body.phone && body.phone.length > 50) {
+    return 'Invalid phone.'
+  }
+  if (body.hear && body.hear.length > 100) {
+    return 'Invalid hear field.'
+  }
+  if (body.services && (!Array.isArray(body.services) || body.services.length > 20)) {
+    return 'Invalid services.'
+  }
+  return null
+}
+
+export async function POST(request: Request) {
+  let body: ContactPayload
+  try {
+    body = (await request.json()) as ContactPayload
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
-  // --- INTEGRATION POINT ---
-  // Example Teams webhook (uncomment and add env var in Cursor):
-  //
-  // await fetch(process.env.TEAMS_WEBHOOK_URL!, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({
-  //     type: 'message',
-  //     attachments: [{
-  //       contentType: 'application/vnd.microsoft.card.adaptive',
-  //       content: {
-  //         type: 'AdaptiveCard',
-  //         version: '1.4',
-  //         body: [
-  //           { type: 'TextBlock', text: `New enquiry from ${body.name}`, weight: 'Bolder', size: 'Medium' },
-  //           { type: 'FactSet', facts: [
-  //             { title: 'Email',    value: body.email },
-  //             { title: 'Phone',   value: body.phone || 'Not provided' },
-  //             { title: 'Company', value: body.company || 'Not provided' },
-  //             { title: 'Services', value: body.services.join(', ') || 'None selected' },
-  //             { title: 'Source',  value: body.hear || 'Not provided' },
-  //           ]},
-  //           { type: 'TextBlock', text: body.message, wrap: true },
-  //         ],
-  //       },
-  //     }],
-  //   }),
-  // })
-  // --- END INTEGRATION POINT ---
+  const validationError = validateContactPayload(body)
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 })
+  }
 
-  return NextResponse.json({ success: true }, { status: 200 })
+  let enquiryId: string | null = null
+  try {
+    enquiryId = await createEnquiry({
+      type: 'standard',
+      name: body.name,
+      company: body.company,
+      email: body.email,
+      phone: body.phone,
+      message: body.message,
+      services: body.services,
+      hear: body.hear,
+      emailNotified: false,
+    })
+  } catch (error) {
+    console.error(
+      '[contact] Failed to save enquiry to Firestore',
+      error instanceof Error ? error.message : undefined
+    )
+    return NextResponse.json(
+      { error: 'Could not save enquiry. Please try again.' },
+      { status: 500 }
+    )
+  }
+
+  if (!getBusinessEmail()) {
+    console.error('[contact] No CONTACT_NOTIFY_EMAIL or SENDGRID_FROM_EMAIL configured')
+    return NextResponse.json(
+      { success: true, enquiryId, notified: false },
+      { status: 200 }
+    )
+  }
+
+  try {
+    const result = await sendEnquiryNotificationEmail({
+      kind: 'standard',
+      ctx: buildStandardMergeContext(body),
+      category: 'contact-enquiry',
+      referenceId: enquiryId ? `contact-${enquiryId}` : `contact-${Date.now()}`,
+    })
+
+    if (enquiryId && result.accepted) {
+      try {
+        await updateEnquiryEmailNotified(enquiryId, true)
+      } catch {
+        console.error('[contact] Enquiry saved but failed to mark emailNotified')
+      }
+    }
+
+    return NextResponse.json(
+      { success: true, enquiryId, notified: result.accepted },
+      { status: 200 }
+    )
+  } catch (error) {
+    if (isEmailError(error)) {
+      console.error('[contact] Enquiry email failed', {
+        kind: error.kind,
+        statusCode: error.statusCode,
+        message: error.message,
+        sendGridErrors: error.sendGridErrors,
+        enquiryId,
+      })
+    } else {
+      console.error(
+        '[contact] Unexpected error sending enquiry email',
+        error instanceof Error ? error.message : undefined
+      )
+    }
+
+    // Enquiry is stored; email failure does not undo the business save
+    return NextResponse.json(
+      { success: true, enquiryId, notified: false },
+      { status: 200 }
+    )
+  }
 }

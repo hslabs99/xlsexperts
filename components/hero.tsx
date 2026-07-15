@@ -161,11 +161,10 @@ export function Hero() {
 
       {/* Stats bar */}
       <div className="relative border-t border-gray-100" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="mx-auto grid max-w-5xl grid-cols-3 gap-px sm:grid-cols-5 md:grid-cols-5" style={{ backgroundColor: '#e5e7eb' }}>
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-px sm:grid-cols-4" style={{ backgroundColor: '#e5e7eb' }}>
           {[
             { value: '350+', label: 'Projects delivered' },
             { value: '20+', label: 'Years of expertise' },
-            { value: '$1,000+', label: 'Projects from $1,000' },
             { value: '100% NZ', label: 'Based team, local expertise' },
             { value: 'Fixed Price', label: 'Fixed pricing available' },
           ].map((stat) => (

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
+import { SiteTags } from '@/components/site-tags'
 import './globals.css'
 
 const _inter = Inter({
@@ -19,8 +20,8 @@ const _plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.xlsexperts.co.nz'),
   title: {
-    default: 'Excel & Spreadsheet Consulting NZ — XLS Experts',
-    template: '%s — XLS Experts NZ',
+    default: 'Excel & Spreadsheet Consulting NZ | XLS Experts',
+    template: '%s | XLS Experts',
   },
   description:
     'XLS Experts are New Zealand\'s leading Excel and spreadsheet consultants. We build models, automate data, and create dashboards that transform how your business works.',
@@ -42,12 +43,20 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', sizes: 'any' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/icon.svg'],
+  },
   openGraph: {
     type: 'website',
     locale: 'en_NZ',
     url: 'https://www.xlsexperts.co.nz',
     siteName: 'XLS Experts',
-    title: 'Excel & Spreadsheet Consulting NZ — XLS Experts',
+    title: 'Excel & Spreadsheet Consulting NZ | XLS Experts',
     description:
       'New Zealand\'s leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling, and workflow automation.',
     images: [
@@ -61,7 +70,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Excel & Spreadsheet Consulting NZ — XLS Experts',
+    title: 'Excel & Spreadsheet Consulting NZ | XLS Experts',
     description:
       'New Zealand\'s leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling.',
     images: ['/images/og-default.png'],
@@ -86,7 +95,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-NZ" className="bg-background">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <SiteTags />
+        {children}
+      </body>
     </html>
   )
 }

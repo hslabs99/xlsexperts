@@ -1,7 +1,10 @@
 import type { MetadataRoute } from 'next'
 import { getAllBlogPosts } from '@/lib/blog'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+/** Blog URLs come from Firestore at request time. */
+export const dynamic = 'force-dynamic'
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = 'https://www.xlsexperts.co.nz'
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -25,7 +28,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ]
 
-  const blogPages: MetadataRoute.Sitemap = getAllBlogPosts().map((post) => ({
+  const posts = await getAllBlogPosts()
+  const blogPages: MetadataRoute.Sitemap = posts.map((post) => ({
     url: `${base}/blog/${post.slug}`,
     lastModified: new Date(post.date),
     changeFrequency: 'monthly' as const,

@@ -1,3 +1,18 @@
+/**
+ * =============================================================================
+ * V0 BLOG ARCHIVE — DO NOT DELETE
+ * =============================================================================
+ * Frozen export of every blog post from the original v0 / vzero download of the
+ * XLS Experts site. This file is the source of truth for the Firebase seed.
+ *
+ * Live site reads from Firestore `blogPosts` (see `lib/blog.ts`).
+ * Staff edit live content in Admin → Blog.
+ *
+ * Keep this file (and `public/images/blog-*.png`) intact so we can re-seed or
+ * fall back if Firebase is empty. Do not “clean up” these posts after seeding.
+ * =============================================================================
+ */
+
 import type { BlogPost } from '@/lib/types'
 
 export const blogPosts: BlogPost[] = [

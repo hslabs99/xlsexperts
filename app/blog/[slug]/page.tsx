@@ -6,9 +6,9 @@ import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { Navbar } from '@/components/navbar'
 import { ArrowLeft } from 'lucide-react'
 
-export async function generateStaticParams() {
-  return getAllBlogPosts().map((post) => ({ slug: post.slug }))
-}
+/** Every slug resolved from Firestore at request time — nothing baked from disk. */
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
 
 export async function generateMetadata({
   params,
@@ -16,16 +16,18 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const post = getBlogPost(slug)
+  const post = await getBlogPost(slug)
   if (!post) return {}
 
   const url = `https://www.xlsexperts.co.nz/blog/${post.slug}`
-  const imageUrl = `https://www.xlsexperts.co.nz${post.image}`
+  const imageUrl = post.image.startsWith('http')
+    ? post.image
+    : `https://www.xlsexperts.co.nz${post.image}`
 
   return {
     title: post.title,
     description: post.excerpt,
-    authors: [{ name: post.author }],
+    authors: [{ name: 'XLS Experts' }],
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
@@ -33,7 +35,7 @@ export async function generateMetadata({
       title: post.title,
       description: post.excerpt,
       publishedTime: new Date(post.date).toISOString(),
-      authors: [post.author],
+      authors: ['XLS Experts'],
       images: [{ url: imageUrl, width: 1200, height: 630, alt: post.title }],
       siteName: 'XLS Experts',
     },
@@ -52,21 +54,25 @@ export default async function BlogPost({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const post = getBlogPost(slug)
+  const post = await getBlogPost(slug)
   if (!post) notFound()
 
-  const related = blogPosts.filter((p) => p.slug !== post.slug).slice(0, 2)
+  const allPosts = await getAllBlogPosts()
+  const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 2)
+  const imageUrl = post.image.startsWith('http')
+    ? post.image
+    : `https://www.xlsexperts.co.nz${post.image}`
 
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: post.title,
     description: post.excerpt,
-    image: `https://www.xlsexperts.co.nz${post.image}`,
+    image: imageUrl,
     datePublished: new Date(post.date).toISOString(),
     author: {
-      '@type': 'Person',
-      name: post.author,
+      '@type': 'Organization',
+      name: 'XLS Experts',
     },
     publisher: {
       '@type': 'Organization',
@@ -131,8 +137,6 @@ export default async function BlogPost({
                 {post.title}
               </h1>
               <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80">
-                <span className="font-medium text-white">{post.author}</span>
-                <span aria-hidden="true">·</span>
                 <span>{post.date}</span>
                 <span aria-hidden="true">·</span>
                 <span>{post.readTime}</span>
