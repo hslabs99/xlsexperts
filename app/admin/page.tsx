@@ -21,6 +21,7 @@ import { AdminCaseStudiesPanel } from '@/components/admin-case-studies-panel'
 import { AdminSeedingPanel } from '@/components/admin-seeding-panel'
 import { AdminBookingCalendar } from '@/components/admin-booking-calendar'
 import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
+import { AdminCrawlDocsPanel } from '@/components/admin-crawl-docs-panel'
 import {
   clearAdminSession,
   getEffectiveRole,
@@ -859,6 +860,7 @@ export default function AdminPage() {
           roleCanAccessTab(effectiveRole, 'marketing') && (
           <div className="mt-8 space-y-6" role="tabpanel">
             <AdminSiteTagsPanel />
+            <AdminCrawlDocsPanel />
           </div>
         )}
 
@@ -901,7 +903,7 @@ export default function AdminPage() {
                 <code className="text-xs">blogPosts</code> (images in Firebase
                 Storage), booking slots in{' '}
                 <code className="text-xs">Booking Slots</code>, and site
-                content (confirmation + analytics tags) in{' '}
+                content (confirmation, analytics tags, SEO crawl documents) in{' '}
                 <code className="text-xs">Site Content</code>. Nothing is
                 persisted in a local database while developing.
               </p>

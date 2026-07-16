@@ -70,6 +70,9 @@ export const CONFIRMATION_CONTENT_DOC_ID = 'contact-confirmation'
 /** Document id for site analytics / marketing tag snippets */
 export const SITE_TAGS_DOC_ID = 'analytics-tags'
 
+/** Document id for SEO crawl documents (robots, llms, sitemap extras, verification) */
+export const CRAWL_DOCS_DOC_ID = 'crawl-documents'
+
 /** Firestore collection for admin panel user accounts */
 export const USERS_COLLECTION = 'users'
 
