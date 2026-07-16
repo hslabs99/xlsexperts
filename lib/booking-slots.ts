@@ -1,5 +1,11 @@
 import type { Timestamp } from 'firebase/firestore'
 
+/** Business timezone for discovery booking availability. */
+export const BOOKING_TIMEZONE = 'Pacific/Auckland'
+
+/** Minimum notice before a slot start (NZ wall clock). Blocks same-morning urgent bookings. */
+export const BOOKING_MIN_LEAD_MINUTES = 120
+
 /** Slot status shown in admin: tick = available, cross = unavailable, B = booked */
 export type BookingSlotStatus = 'available' | 'unavailable' | 'booked'
 
@@ -170,6 +176,57 @@ export function formatDateKey(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+/** Calendar day + minutes-from-midnight in Pacific/Auckland for an instant. */
+export function aucklandDateAndMinutes(now: Date = new Date()): {
+  dateKey: string
+  minutes: number
+} {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BOOKING_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '0'
+  const dateKey = `${get('year')}-${get('month')}-${get('day')}`
+  let hour = Number(get('hour'))
+  if (hour === 24) hour = 0
+  const minute = Number(get('minute'))
+  return { dateKey, minutes: hour * 60 + minute }
+}
+
+/** YYYY-MM-DD in Pacific/Auckland for an instant. */
+export function aucklandDateKey(now: Date = new Date()): string {
+  return aucklandDateAndMinutes(now).dateKey
+}
+
+function dateKeyDayIndex(dateKey: string): number {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000)
+}
+
+/**
+ * True when the slot’s NZ wall-clock start is at least `leadMinutes` after `now`
+ * (also measured in NZ). Used to hide past / too-soon public slots.
+ */
+export function isSlotBookableWithLead(
+  date: string,
+  time: string,
+  leadMinutes: number = BOOKING_MIN_LEAD_MINUTES,
+  now: Date = new Date()
+): boolean {
+  const auckland = aucklandDateAndMinutes(now)
+  const slotAbs =
+    dateKeyDayIndex(date) * 24 * 60 + parseTimeToMinutes(time)
+  const nowAbs =
+    dateKeyDayIndex(auckland.dateKey) * 24 * 60 + auckland.minutes
+  return slotAbs >= nowAbs + leadMinutes
+}
+
 export function parseDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number)
   return new Date(y, m - 1, d)
@@ -192,16 +249,16 @@ export function formatDisplayDate(dateKey: string): string {
 /**
  * Build discovery slots from a weekly availability template.
  * Each enabled Mon–Fri cell becomes one 30-minute appointment start.
- * Past dates (and past times on today) are skipped.
+ * Slots sooner than BOOKING_MIN_LEAD_MINUTES in NZ time are skipped.
  */
 export function buildSeedSlots(
   config: SeedTemplateConfig = defaultSeedTemplateConfig(),
   from: Date = new Date()
 ): BookingSlotInput[] {
-  const start = new Date(from)
+  const { dateKey: todayKey } = aucklandDateAndMinutes(from)
+  const [y, m, d] = todayKey.split('-').map(Number)
+  const start = new Date(y, m - 1, d)
   start.setHours(0, 0, 0, 0)
-  const nowMinutes = from.getHours() * 60 + from.getMinutes()
-  const todayKey = formatDateKey(from)
 
   const windows = buildSeedTimeWindows()
   const daySpan = Math.max(1, config.weeks) * 7
@@ -220,11 +277,14 @@ export function buildSeedSlots(
 
     for (const win of windows) {
       if (!config.enabled[seedCellKey(weekday, win.startMinutes)]) continue
-      if (date === todayKey && win.startMinutes <= nowMinutes) continue
+      const time = formatMinutesToTime(win.startMinutes)
+      if (!isSlotBookableWithLead(date, time, BOOKING_MIN_LEAD_MINUTES, from)) {
+        continue
+      }
 
       slots.push({
         date,
-        time: formatMinutesToTime(win.startMinutes),
+        time,
         type: 'discovery',
         status: 'available',
         durationMinutes: duration,

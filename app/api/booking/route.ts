@@ -6,6 +6,10 @@
  */
 
 import { NextResponse } from 'next/server'
+import {
+  BOOKING_MIN_LEAD_MINUTES,
+  isSlotBookableWithLead,
+} from '@/lib/booking-slots'
 import { markBookingSlotBooked } from '@/lib/booking-slots-db'
 import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
 import { isEmailError } from '@/lib/email/errors'
@@ -39,6 +43,21 @@ export async function POST(request: Request) {
     !body.slotId?.trim()
   ) {
     return NextResponse.json({ error: 'Missing required booking fields.' }, { status: 400 })
+  }
+
+  if (
+    !isSlotBookableWithLead(
+      body.date.trim(),
+      body.time.trim(),
+      BOOKING_MIN_LEAD_MINUTES
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error: `This time is no longer available. Please choose a slot at least ${BOOKING_MIN_LEAD_MINUTES / 60} hours from now (New Zealand time).`,
+      },
+      { status: 400 }
+    )
   }
 
   let enquiryId: string | null = null

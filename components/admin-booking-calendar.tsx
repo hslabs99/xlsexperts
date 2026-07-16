@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Minus, X } from 'lucide-react'
 import {
   formatDateKey,
   formatDayLabel,
@@ -59,13 +59,23 @@ function statusStyles(status: BookingSlot['status'], selected: boolean) {
 type Props = {
   slots: BookingSlot[]
   loading?: boolean
+  busy?: boolean
+  onRemove?: (id: string) => void | Promise<void>
+  onMarkOccupied?: (slot: BookingSlot) => void | Promise<void>
 }
 
 /**
  * Admin week calendar matching the public discovery layout.
  * Shows available / unavailable / booked; hover booked cells for details.
+ * X removes a slot; − marks an available slot as occupied (unavailable).
  */
-export function AdminBookingCalendar({ slots, loading }: Props) {
+export function AdminBookingCalendar({
+  slots,
+  loading,
+  busy,
+  onRemove,
+  onMarkOccupied,
+}: Props) {
   const today = useMemo(() => aucklandToday(), [])
   const [weekMonday, setWeekMonday] = useState<Date>(() =>
     getMondayOfWeek(aucklandToday())
@@ -133,7 +143,8 @@ export function AdminBookingCalendar({ slots, loading }: Props) {
           <h2 className="text-lg font-semibold text-ink">Calendar view</h2>
           <p className="mt-1 text-sm text-ink-muted">
             Same week layout as the public discovery calendar. Hover a booked
-            time to see booking details.
+            time to see booking details. Use × to delete a slot, or − to mark it
+            occupied.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
@@ -144,7 +155,7 @@ export function AdminBookingCalendar({ slots, loading }: Props) {
             <span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> Booked
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-stone-400" /> Unavailable
+            <span className="h-2.5 w-2.5 rounded-full bg-stone-400" /> Occupied
           </span>
         </div>
       </div>
@@ -250,6 +261,8 @@ export function AdminBookingCalendar({ slots, loading }: Props) {
                   {daySlots.map((slot) => {
                     const isChosen = selectedSlotId === slot.id
                     const booked = slot.status === 'booked'
+                    const canOccupy =
+                      slot.status === 'available' && Boolean(onMarkOccupied)
                     return (
                       <div key={slot.id} className="group relative">
                         <button
@@ -257,7 +270,7 @@ export function AdminBookingCalendar({ slots, loading }: Props) {
                           onClick={() =>
                             setSelectedSlotId(isChosen ? null : slot.id)
                           }
-                          className={`w-full rounded-md border px-3 py-2.5 text-left text-xs font-semibold transition ${statusStyles(
+                          className={`w-full rounded-md border px-3 py-2.5 pr-9 text-left text-xs font-semibold transition ${statusStyles(
                             slot.status,
                             isChosen
                           )}`}
@@ -276,10 +289,43 @@ export function AdminBookingCalendar({ slots, loading }: Props) {
                             {slot.status === 'booked'
                               ? 'Booked'
                               : slot.status === 'unavailable'
-                                ? 'Unavailable'
+                                ? 'Occupied'
                                 : `${slot.durationMinutes} min`}
                           </span>
                         </button>
+
+                        <div className="absolute right-1 top-1 flex flex-col gap-0.5">
+                          {onRemove ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                void onRemove(slot.id)
+                              }}
+                              className="inline-flex h-5 w-5 items-center justify-center rounded bg-white/90 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                              title="Delete slot"
+                              aria-label={`Delete ${slot.time} slot`}
+                            >
+                              <X className="h-3 w-3" strokeWidth={2.5} />
+                            </button>
+                          ) : null}
+                          {canOccupy ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                void onMarkOccupied?.(slot)
+                              }}
+                              className="inline-flex h-5 w-5 items-center justify-center rounded bg-white/90 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:bg-stone-100 hover:text-stone-800 disabled:opacity-50"
+                              title="Mark occupied"
+                              aria-label={`Mark ${slot.time} as occupied`}
+                            >
+                              <Minus className="h-3 w-3" strokeWidth={2.5} />
+                            </button>
+                          ) : null}
+                        </div>
 
                         {booked ? (
                           <div

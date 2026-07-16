@@ -1,8 +1,8 @@
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
 const trustPoints = [
-  'Fixed-price, no surprises',
-  '100% NZ-based team',
+  'Fixed Pricing Available',
+  'NZ Based',
   'SMEs to enterprise — we work at your scale',
 ]
 
@@ -55,13 +55,6 @@ export function Hero() {
           backgroundSize: '28px 28px',
           opacity: 0.35,
         }}
-      />
-
-      {/* Top green accent line below nav */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-16 h-[2px]"
-        style={{ background: 'linear-gradient(to right, #1a6b3c 0%, #1a6b3c 6%, transparent 6%)' }}
       />
 
       <div className="relative mx-auto max-w-4xl px-6 pb-20 pt-20 text-center lg:pt-28">

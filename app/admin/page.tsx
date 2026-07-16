@@ -34,7 +34,6 @@ import {
 import type { AdminSession } from '@/lib/admin-users'
 
 type AdminTab =
-  | 'system'
   | 'bookings'
   | 'enquiries'
   | 'blog'
@@ -45,7 +44,6 @@ type AdminTab =
   | 'settings'
 
 const TABS: { id: AdminTab; label: string }[] = [
-  { id: 'system', label: 'System Testing' },
   { id: 'bookings', label: 'Bookings' },
   { id: 'enquiries', label: 'Inquiries' },
   { id: 'blog', label: 'Blog' },
@@ -55,12 +53,6 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: 'seeding', label: 'Seeding' },
   { id: 'settings', label: 'Settings' },
 ]
-
-type TestResult = {
-  ok: boolean
-  message: string
-  details?: string
-}
 
 function formatBookedAt(value: BookingSlot['booking']): string {
   const bookedAt = value?.bookedAt as unknown
@@ -161,9 +153,6 @@ export default function AdminPage() {
   const [newTime, setNewTime] = useState('9:00 AM')
   const [newType, setNewType] = useState('discovery')
   const [newDuration, setNewDuration] = useState<15 | 30>(30)
-
-  const [testLoading, setTestLoading] = useState(false)
-  const [testResult, setTestResult] = useState<TestResult | null>(null)
 
   useEffect(() => {
     const existing = readAdminSession()
@@ -344,70 +333,6 @@ export default function AdminPage() {
     await markAvailable(slot)
   }
 
-  async function testDbConnection() {
-    setTestLoading(true)
-    setTestResult(null)
-    try {
-      const createRes = await fetch('/api/admin/booking-slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create',
-          slot: {
-            date: formatDateKey(new Date()),
-            time: '12:00 PM',
-            type: 'system-test',
-            status: 'available',
-            durationMinutes: 15,
-          },
-        }),
-      })
-      const created = (await createRes.json()) as {
-        ok?: boolean
-        id?: string
-        error?: string
-      }
-      if (!createRes.ok || !created.ok || !created.id) {
-        throw new Error(created.error || 'Write test failed')
-      }
-
-      const listRes = await fetch('/api/admin/booking-slots')
-      const listed = (await listRes.json()) as {
-        ok?: boolean
-        items?: BookingSlot[]
-        error?: string
-      }
-      if (!listRes.ok || !listed.ok) {
-        throw new Error(listed.error || 'Read test failed')
-      }
-
-      setTestResult({
-        ok: true,
-        message: `Connected. Wrote test slot ${created.id} via server API (${listed.items?.length ?? 0} slot(s) readable).`,
-        details: JSON.stringify(
-          (listed.items ?? []).slice(0, 5).map((s) => ({
-            id: s.id,
-            date: s.date,
-            time: s.time,
-            status: s.status,
-          })),
-          null,
-          2
-        ),
-      })
-      await loadSlots()
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setTestResult({
-        ok: false,
-        message: 'Firebase connection failed via server API.',
-        details: msg,
-      })
-    } finally {
-      setTestLoading(false)
-    }
-  }
-
   function handleSignOut() {
     clearAdminSession()
     setSession(null)
@@ -501,46 +426,6 @@ export default function AdminPage() {
           })}
         </div>
 
-        {tab === 'system' && effectiveRole && roleCanAccessTab(effectiveRole, 'system') && (
-          <div className="mt-8 space-y-6" role="tabpanel">
-            <div className="rounded-lg border border-border bg-surface p-6">
-              <h2 className="text-lg font-semibold text-ink">Firestore</h2>
-              <p className="mt-1 text-sm text-ink-muted">
-                Writes a sample document to{' '}
-                <code className="rounded bg-brand-light px-1.5 py-0.5 text-brand-dark">
-                  Booking Slots
-                </code>{' '}
-                via the server API to verify connectivity.
-              </p>
-              <button
-                type="button"
-                onClick={testDbConnection}
-                disabled={testLoading}
-                className="mt-6 inline-flex items-center justify-center rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {testLoading ? 'Testing…' : 'Test DB connection'}
-              </button>
-              {testResult && (
-                <div
-                  className={`mt-6 rounded-md border p-4 text-sm ${
-                    testResult.ok
-                      ? 'border-brand/30 bg-brand-light text-brand-dark'
-                      : 'border-red-200 bg-red-50 text-red-800'
-                  }`}
-                  role="status"
-                >
-                  <p className="font-medium">{testResult.message}</p>
-                  {testResult.details && (
-                    <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words font-mono text-xs opacity-90">
-                      {testResult.details}
-                    </pre>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {tab === 'bookings' &&
           effectiveRole &&
           roleCanAccessTab(effectiveRole, 'bookings') && (
@@ -582,7 +467,13 @@ export default function AdminPage() {
               )}
             </div>
 
-            <AdminBookingCalendar slots={slots} loading={loading} />
+            <AdminBookingCalendar
+              slots={slots}
+              loading={loading}
+              busy={busy}
+              onRemove={handleRemove}
+              onMarkOccupied={markUnavailable}
+            />
 
             <div className="flex flex-wrap gap-3">
               <button

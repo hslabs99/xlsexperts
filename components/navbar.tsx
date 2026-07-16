@@ -9,7 +9,6 @@ const navLinks = [
   { label: 'How We Work', href: '#how-we-work' },
   { label: 'Services', href: '#services', dropdown: true as const },
   { label: 'Case Studies', href: '#case-studies' },
-  { label: 'Pricing', href: '#pricing' },
   { label: 'Enterprise', href: '/enterprise-excel-vba-development' },
   { label: 'About', href: '#about' },
   { label: 'Blog', href: '/blog' },
@@ -72,7 +71,7 @@ export function Navbar() {
   }, [pathname])
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-sm">
+    <header className="fixed inset-x-0 top-0 z-50 border-b-2 border-[#1a6b3c] bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <a href="/" className="flex items-center gap-2" aria-label="XLS Experts home">
           <svg
@@ -100,17 +99,17 @@ export function Navbar() {
         <nav aria-label="Main navigation" className="hidden items-center gap-7 md:flex">
           {links.map((link) =>
             link.dropdown ? (
-              <div key={link.label} className="relative" ref={servicesRef}>
+              <div key={link.label} className="relative flex items-center" ref={servicesRef}>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+                  className="inline-flex h-8 items-center gap-1 p-0 text-sm font-medium leading-none text-gray-500 transition-colors hover:text-gray-900"
                   aria-expanded={servicesOpen}
                   aria-haspopup="true"
                   onClick={() => setServicesOpen((open) => !open)}
                 >
                   Services
                   <ChevronDown
-                    className={`h-3.5 w-3.5 transition-transform ${servicesOpen ? 'rotate-180' : ''}`}
+                    className={`h-3.5 w-3.5 shrink-0 transition-transform ${servicesOpen ? 'rotate-180' : ''}`}
                     aria-hidden="true"
                   />
                 </button>
@@ -148,7 +147,7 @@ export function Navbar() {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+                className="inline-flex h-8 items-center text-sm font-medium leading-none text-gray-500 transition-colors hover:text-gray-900"
               >
                 {link.label}
               </a>
@@ -156,18 +155,12 @@ export function Navbar() {
           )}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
-          <a
-            href={contactHref}
-            className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            Send an enquiry
-          </a>
+        <div className="hidden items-center md:flex">
           <a
             href={contactHref}
             className="btn-primary inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold shadow-sm"
           >
-            Book a free discovery call
+            Contact Us
           </a>
         </div>
 
@@ -233,21 +226,14 @@ export function Navbar() {
               ),
             )}
           </nav>
-          <div className="mt-3 flex flex-col gap-2">
+          <div className="mt-3">
             <a
               href={contactHref}
               className="flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white"
               style={{ backgroundColor: '#1a6b3c' }}
               onClick={() => setMobileOpen(false)}
             >
-              Book a free discovery call
-            </a>
-            <a
-              href={contactHref}
-              className="flex h-10 w-full items-center justify-center rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              onClick={() => setMobileOpen(false)}
-            >
-              Send an enquiry
+              Contact Us
             </a>
           </div>
         </div>

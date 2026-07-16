@@ -1,28 +1,21 @@
 import { NextResponse } from 'next/server'
+import {
+  BOOKING_MIN_LEAD_MINUTES,
+  aucklandDateKey,
+  isSlotBookableWithLead,
+} from '@/lib/booking-slots'
 import { fetchBookingSlots } from '@/lib/booking-slots-db'
 import { withTimeout } from '@/lib/with-timeout'
 
 /**
- * Business-local “today” so Cloud Run UTC (or visitor browsers abroad)
- * do not drop NZ calendar days.
- */
-function todayInAuckland(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Pacific/Auckland',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}
-
-/**
  * GET /api/booking/slots
  * Public list of available discovery slots from today (NZ) onward.
+ * Only returns slots at least BOOKING_MIN_LEAD_MINUTES from now (NZ time).
  * Served from the server so the calendar does not depend on browser Firestore.
  */
 export async function GET() {
   try {
-    const fromDate = todayInAuckland()
+    const fromDate = aucklandDateKey()
     const items = await withTimeout(
       fetchBookingSlots({
         status: 'available',
@@ -31,10 +24,14 @@ export async function GET() {
       12_000,
       'fetchBookingSlots'
     )
+    const bookable = items.filter((slot) =>
+      isSlotBookableWithLead(slot.date, slot.time, BOOKING_MIN_LEAD_MINUTES)
+    )
     return NextResponse.json({
       ok: true,
       fromDate,
-      items,
+      minLeadMinutes: BOOKING_MIN_LEAD_MINUTES,
+      items: bookable,
     })
   } catch (error) {
     console.error(
