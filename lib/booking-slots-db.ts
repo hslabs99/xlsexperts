@@ -5,6 +5,7 @@ import { getAdminDb } from '@/lib/firebase-admin'
 import { BOOKING_SLOTS_COLLECTION } from '@/lib/firebase'
 import {
   buildSeedSlots,
+  SEED_SLOT_MINUTES,
   type BookingDetails,
   type BookingSlot,
   type BookingSlotInput,
@@ -113,6 +114,30 @@ export async function clearBookingAndReopen(id: string): Promise<void> {
     status: 'available',
     booking: null,
   })
+}
+
+/** Set durationMinutes to 30 on every slot that is not already 30. */
+export async function normalizeAllBookingSlotDurations(): Promise<{
+  updated: number
+  total: number
+}> {
+  const snap = await getAdminDb().collection(BOOKING_SLOTS_COLLECTION).get()
+  const toUpdate = snap.docs.filter(
+    (d) => d.data().durationMinutes !== SEED_SLOT_MINUTES
+  )
+  if (toUpdate.length === 0) {
+    return { updated: 0, total: snap.size }
+  }
+
+  const chunkSize = 400
+  for (let i = 0; i < toUpdate.length; i += chunkSize) {
+    const batch = getAdminDb().batch()
+    for (const d of toUpdate.slice(i, i + chunkSize)) {
+      batch.update(d.ref, { durationMinutes: SEED_SLOT_MINUTES })
+    }
+    await batch.commit()
+  }
+  return { updated: toUpdate.length, total: snap.size }
 }
 
 /** Delete every document in Booking Slots (global reset). */

@@ -1,9 +1,9 @@
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 
 const trustPoints = [
-  'Fixed Pricing Available',
-  'NZ Based',
-  'SMEs to enterprise — we work at your scale',
+  'Fixed-price projects available',
+  'New Zealand based',
+  'Trusted by SMEs & enterprise',
 ]
 
 const clientNames = [
@@ -57,7 +57,16 @@ export function Hero() {
         }}
       />
 
-      <div className="relative mx-auto max-w-4xl px-6 pb-20 pt-20 text-center lg:pt-28">
+      <div className="relative mx-auto max-w-4xl px-6 pb-20 pt-10 text-center lg:pt-14">
+
+        <p
+          className="mb-8 text-balance text-[1.72265625rem] font-bold uppercase leading-tight tracking-[0.12em] sm:text-[1.96875rem] lg:text-[2.625rem]"
+          style={{ color: '#1a6b3c' }}
+        >
+          NEW ZEALAND
+          <br />
+          BUSINESS AUTOMATION SPECIALISTS
+        </p>
 
         {/* Eyebrow badge strip */}
         <div className="mb-8 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
@@ -77,14 +86,14 @@ export function Hero() {
         <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-[56px]">
           We automate your{' '}
           <span style={{ color: '#1a6b3c' }}>Excel and Google spreadsheets,</span>{' '}
-          data and business workflows.
+          business data and workflows.
         </h1>
 
         {/* Body copy */}
         <p className="mx-auto mt-4 max-w-2xl text-balance text-base leading-relaxed text-gray-500">
-          Whether you&apos;re a solo engineer with a messy workbook or a finance team running
-          business-critical models — we can assist in designing and building a spreadsheet,
-          enterprise app or A.I. workflow solution.
+          Whether you&apos;re managing a complex financial model, replacing manual reporting,
+          building a costing solution or looking to build a custom business application, we create
+          practical solutions that save time, improve accuracy and scale with your business.
         </p>
 
         {/* Trust checklist */}
@@ -115,13 +124,19 @@ export function Hero() {
           >
             See how we work
           </a>
+          <a
+            href="#case-studies"
+            className="inline-flex h-11 items-center rounded-lg border border-gray-200 bg-white px-7 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            View Case Studies
+          </a>
         </div>
 
         {/* Client name strip */}
         <div className="mt-12 flex flex-col items-center gap-4">
           <span className="text-sm font-bold uppercase tracking-widest text-gray-700">
-            Clients include
-          </span>
+          Trusted by organisations including
+        </span>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {clientNames.map((name) => (
               <span
@@ -149,6 +164,10 @@ export function Hero() {
               </span>
             ))}
           </div>
+          <p className="mx-auto mt-2 max-w-2xl text-balance text-sm leading-relaxed text-gray-500">
+            Hundreds of custom business solutions delivered across engineering, finance,
+            manufacturing, logistics and professional services.
+          </p>
         </div>
       </div>
 

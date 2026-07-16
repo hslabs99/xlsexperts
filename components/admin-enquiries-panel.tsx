@@ -518,6 +518,11 @@ export function AdminEnquiriesPanel() {
     [rows, selectedId]
   )
 
+  const deleteTarget = useMemo(
+    () => rows.find((r) => r.id === deleteEnquiryId) ?? null,
+    [rows, deleteEnquiryId]
+  )
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -604,7 +609,8 @@ export function AdminEnquiriesPanel() {
             <h2 className="text-lg font-semibold text-ink">Inquiries</h2>
             <p className="mt-1 text-sm text-ink-muted">
               Click a row to open the submission exactly as filled in. Filter
-              above each column; click headers to sort. Data is live Firebase{' '}
+              above each column; click headers to sort. Use the trash icon to
+              delete test enquiries. Data is live Firebase{' '}
               <code className="text-xs">enquiries</code>.
             </p>
           </div>
@@ -810,7 +816,7 @@ export function AdminEnquiriesPanel() {
                 <th className="px-2 py-2">
                   <SortableHeader label="Mailed" column="emailNotified" />
                 </th>
-                <th className="px-2 py-2 text-ink-muted">Open</th>
+                <th className="px-2 py-2 text-ink-muted">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -875,16 +881,31 @@ export function AdminEnquiriesPanel() {
                       )}
                     </td>
                     <td className="px-2 py-2.5">
-                      <button
-                        type="button"
-                        className="text-xs font-semibold text-brand hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedId(row.id)
-                        }}
-                      >
-                        View
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-brand hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedId(row.id)
+                          }}
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          title="Delete enquiry"
+                          aria-label={`Delete enquiry from ${row.name || row.email}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteEnquiryId(row.id)
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -906,7 +927,7 @@ export function AdminEnquiriesPanel() {
 
       <AdminDialog
         open={deleteEnquiryId != null}
-        title="Delete enquiry?"
+        title="Delete this enquiry?"
         mode="confirm"
         tone="danger"
         confirmLabel="Delete permanently"
@@ -920,9 +941,22 @@ export function AdminEnquiriesPanel() {
         onConfirm={confirmDeleteEnquiry}
       >
         <p>
-          Permanently remove this enquiry from Firebase. Enter the delete
-          password to continue.
+          Permanently remove this enquiry from Firebase. This cannot be undone —
+          use this to clear test submissions from the enquiries collection.
         </p>
+        {deleteTarget ? (
+          <div className="rounded-md border border-red-200 bg-red-50/60 p-3 text-ink">
+            <p className="font-semibold">{deleteTarget.name || 'Untitled enquiry'}</p>
+            <p className="mt-1 font-mono text-xs">{deleteTarget.email || '—'}</p>
+            <p className="mt-2 text-xs text-ink-muted">
+              <span className="capitalize">{deleteTarget.type}</span>
+              {deleteTarget.company ? ` · ${deleteTarget.company}` : ''}
+              {' · '}
+              {formatEnquiryCreatedAt(deleteTarget.createdAt)}
+            </p>
+          </div>
+        ) : null}
+        <p className="text-xs">Enter the delete password to continue.</p>
       </AdminDialog>
     </div>
   )

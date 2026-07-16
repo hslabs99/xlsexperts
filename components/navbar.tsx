@@ -41,7 +41,7 @@ export function Navbar() {
     href: resolveNavHref(link.href, pathname),
   }))
   const contactHref = resolveNavHref('#contact', pathname)
-  const servicesOverviewHref = resolveNavHref('#services', pathname)
+  const servicesOverviewHref = '/services'
 
   useEffect(() => {
     if (!servicesOpen) return

@@ -5,10 +5,15 @@ import {
   deleteAllBookingSlots,
   deleteBookingSlot,
   fetchAllBookingSlots,
+  normalizeAllBookingSlotDurations,
   seedBookingSlots,
   setBookingSlotStatus,
 } from '@/lib/booking-slots-db'
-import type { BookingSlotStatus, SeedTemplateConfig } from '@/lib/booking-slots'
+import {
+  SEED_SLOT_MINUTES,
+  type BookingSlotStatus,
+  type SeedTemplateConfig,
+} from '@/lib/booking-slots'
 import { withTimeout } from '@/lib/with-timeout'
 
 function serializeSlot(slot: Awaited<ReturnType<typeof fetchAllBookingSlots>>[number]) {
@@ -91,9 +96,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, deleted })
     }
 
+    if (body.action === 'normalize-durations') {
+      const result = await withTimeout(
+        normalizeAllBookingSlotDurations(),
+        60_000,
+        'normalizeAllBookingSlotDurations'
+      )
+      return NextResponse.json({ ok: true, ...result })
+    }
+
     if (body.action === 'create' && body.slot) {
       const id = await withTimeout(
-        createBookingSlot(body.slot),
+        createBookingSlot({
+          ...body.slot,
+          durationMinutes: SEED_SLOT_MINUTES,
+        }),
         8_000,
         'createBookingSlot'
       )

@@ -262,8 +262,6 @@ export function buildSeedSlots(
 
   const windows = buildSeedTimeWindows()
   const daySpan = Math.max(1, config.weeks) * 7
-  const duration =
-    config.appointmentMinutes === 15 ? 15 : SEED_SLOT_MINUTES
   const slots: BookingSlotInput[] = []
 
   for (let offset = 0; offset < daySpan; offset++) {
@@ -287,7 +285,7 @@ export function buildSeedSlots(
         time,
         type: 'discovery',
         status: 'available',
-        durationMinutes: duration,
+        durationMinutes: SEED_SLOT_MINUTES,
       })
     }
   }

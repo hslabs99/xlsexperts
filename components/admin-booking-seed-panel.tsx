@@ -93,6 +93,7 @@ type Props = {
   busy?: boolean
   slots?: BookingSlot[]
   onSeed: (config: SeedTemplateConfig) => Promise<void>
+  onNormalizeDurations: () => Promise<void>
   onClearAll: () => Promise<void>
 }
 
@@ -100,6 +101,7 @@ export function AdminBookingSeedPanel({
   busy,
   slots = [],
   onSeed,
+  onNormalizeDurations,
   onClearAll,
 }: Props) {
   const [config, setConfig] = useState<SeedTemplateConfig>(() =>
@@ -116,6 +118,10 @@ export function AdminBookingSeedPanel({
 
   const windows = useMemo(() => buildSeedTimeWindows(), [])
   const slotCount = slots.length
+  const nonThirtyCount = useMemo(
+    () => slots.filter((s) => s.durationMinutes !== SEED_SLOT_MINUTES).length,
+    [slots]
+  )
 
   const plannedCount = useMemo(
     () => countPlannedSeedSlots(config),
@@ -261,6 +267,17 @@ export function AdminBookingSeedPanel({
           className="rounded-md border border-border bg-white px-3 py-1.5 text-xs font-semibold text-ink transition hover:bg-surface-raised"
         >
           Mon / Wed / Fri mornings
+        </button>
+        <button
+          type="button"
+          disabled={busy || slotCount === 0 || nonThirtyCount === 0}
+          onClick={() => void onNormalizeDurations()}
+          className="rounded-md border border-border bg-white px-3 py-1.5 text-xs font-semibold text-ink transition hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-60"
+          title="Set durationMinutes to 30 on every slot in the collection"
+        >
+          {nonThirtyCount > 0
+            ? `Set all slots to 30 min (${nonThirtyCount} need update)`
+            : 'All slots are 30 min'}
         </button>
         <button
           type="button"

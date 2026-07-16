@@ -152,7 +152,6 @@ export default function AdminPage() {
   const [newDate, setNewDate] = useState(() => formatDateKey(new Date()))
   const [newTime, setNewTime] = useState('9:00 AM')
   const [newType, setNewType] = useState('discovery')
-  const [newDuration, setNewDuration] = useState<15 | 30>(30)
 
   useEffect(() => {
     const existing = readAdminSession()
@@ -243,7 +242,7 @@ export default function AdminPage() {
             time: newTime,
             type: newType.trim() || 'discovery',
             status: 'available',
-            durationMinutes: newDuration,
+            durationMinutes: 30,
           },
         }),
       })
@@ -519,12 +518,7 @@ export default function AdminPage() {
                   <span className="font-medium text-ink">Time</span>
                   <select
                     value={newTime}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setNewTime(val)
-                      const match = SEED_TIME_OPTIONS.find((t) => t.time === val)
-                      if (match) setNewDuration(match.durationMinutes)
-                    }}
+                    onChange={(e) => setNewTime(e.target.value)}
                     className="rounded-md border border-border px-3 py-2"
                   >
                     {SEED_TIME_OPTIONS.map((t) => (
@@ -532,17 +526,6 @@ export default function AdminPage() {
                         {t.time}
                       </option>
                     ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-ink">Duration</span>
-                  <select
-                    value={newDuration}
-                    onChange={(e) => setNewDuration(Number(e.target.value) as 15 | 30)}
-                    className="rounded-md border border-border px-3 py-2"
-                  >
-                    <option value={15}>15 minutes</option>
-                    <option value={30}>30 minutes</option>
                   </select>
                 </label>
                 <label className="flex flex-col gap-1 text-sm">

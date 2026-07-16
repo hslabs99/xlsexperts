@@ -358,6 +358,42 @@ export function AdminSeedingPanel() {
     }
   }
 
+  async function normalizeBookingDurations() {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'normalize-durations' }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        updated?: number
+        total?: number
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not normalize slot durations')
+      }
+      const updated = data.updated ?? 0
+      const total = data.total ?? 0
+      setMessage(
+        updated === 0
+          ? `All ${total} booking slot${total === 1 ? '' : 's'} are already 30 minutes.`
+          : `Normalized ${updated} of ${total} slot${total === 1 ? '' : 's'} to 30 minutes.`
+      )
+      await loadSlots()
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not normalize slot durations'
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function clearAllBookingSlots() {
     setBusy(true)
     setError(null)
@@ -538,6 +574,7 @@ export function AdminSeedingPanel() {
         busy={busy}
         slots={slots}
         onSeed={seedBookingSlots}
+        onNormalizeDurations={normalizeBookingDurations}
         onClearAll={clearAllBookingSlots}
       />
 

@@ -137,7 +137,7 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
 
       <div>
         <h3 className="text-base font-bold text-gray-900">Book a free discovery call</h3>
-        <p className="mt-1 text-sm text-gray-500">15–30 minutes · Free · No commitment</p>
+        <p className="mt-1 text-sm text-gray-500">30 minutes · Free · No commitment</p>
       </div>
 
       {loading && (
