@@ -1,12 +1,9 @@
-import 'server-only'
-
 /**
- * Seed Firestore `caseStudies` from the frozen archive + optional Storage heroes.
+ * Seed Firestore `caseStudies` from the frozen archive + Firebase Storage heroes.
  *
- * Image uploads compress with sharp first (case-study PNGs are ~2MB raw).
- * Local `/images/cs-*.png` paths remain valid if Storage fails.
- *
- * Server-only — never import from Client Components.
+ * Seed input: `public/images/cs-*.png` (local archive only).
+ * Runtime: Storage download URLs written into Firestore.
+ * Server/CLI only — do not import from Client Components.
  */
 
 import { readFile } from 'node:fs/promises'
@@ -19,10 +16,7 @@ import {
   publishHomeCaseStudiesSnapshot,
   updateCaseStudyFields,
 } from '@/lib/case-studies-db'
-import {
-  formatStorageError,
-  uploadCaseStudyImage,
-} from '@/lib/case-studies-storage'
+import { uploadCaseStudyImageAdmin } from '@/lib/case-studies-storage-admin'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { CASE_STUDIES_COLLECTION } from '@/lib/firebase'
 
@@ -39,7 +33,7 @@ export type CaseStudySeedResult = {
   hint?: string
 }
 
-/** Resize + JPEG so Storage uploads stay small and reliable. */
+/** Centre-crop to card size + JPEG for Storage. */
 export async function compressLocalCaseStudyImage(
   imagePath: string
 ): Promise<{ bytes: Uint8Array; contentType: string; filename: string }> {
@@ -50,8 +44,8 @@ export async function compressLocalCaseStudyImage(
   const raw = await readFile(abs)
   const bytes = await sharp(raw)
     .rotate()
-    .resize({ width: 1600, height: 1000, fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 78, mozjpeg: true })
+    .resize(900, 300, { fit: 'cover', position: 'centre' })
+    .jpeg({ quality: 80, mozjpeg: true })
     .toBuffer()
   return {
     bytes: new Uint8Array(bytes),
@@ -65,7 +59,7 @@ export async function importLocalCaseStudyImageToStorage(
   imagePath: string
 ): Promise<string> {
   const compressed = await compressLocalCaseStudyImage(imagePath)
-  return uploadCaseStudyImage(
+  return uploadCaseStudyImageAdmin(
     slug,
     compressed.bytes,
     compressed.filename,
@@ -104,7 +98,6 @@ export async function seedCaseStudiesFromArchive(options?: {
           client: item.client,
           sector: item.sector,
           title: item.title,
-          // Keep local public path; Storage URL replaces this when upload succeeds
           image: item.image,
           problem: item.problem,
           solution: item.solution,
@@ -137,7 +130,8 @@ export async function seedCaseStudiesFromArchive(options?: {
       imagesUploaded += 1
     } catch (err) {
       imagesFailed += 1
-      lastImageError = formatStorageError(err)
+      lastImageError =
+        err instanceof Error ? err.message : 'Image upload failed'
     }
   }
 
@@ -149,9 +143,9 @@ export async function seedCaseStudiesFromArchive(options?: {
 
   const hint =
     uploadImages && imagesFailed > 0 && imagesUploaded === 0
-      ? 'Firestore + homepage snapshot are fine — heroes still use /images/cs-*.png (works on the site). Storage upload failed for every file: check Firebase Console → Storage (enabled + bucket linked) and Storage Rules (unauthenticated writes must be allowed for admin seed, or use “Push images from browser” after opening Storage). Typical rules fix: allow write for path case-studies/{allPaths=**} while developing.'
+      ? 'Storage upload failed for every file. Confirm bucket xlsexperts-49c22.firebasestorage.app exists and ADC can write to it.'
       : uploadImages && imagesFailed > 0
-        ? 'Some images uploaded. Failures keep the local /images/… path so cards still render.'
+        ? 'Some images uploaded; failed ones still have local /images/… paths until re-run.'
         : undefined
 
   return {

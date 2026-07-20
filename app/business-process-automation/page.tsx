@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Document creation done by hand from template files — one at a time',
   'No visibility of where processes break down or how long they actually take',
   'Staff time consumed by routine, low-value work that should not require human attention',
-]
-
-const examples = [
-  { tag: 'Finance', title: 'Month-End Close Automation', detail: 'Automated data pull from three systems, consolidation, reconciliation and report generation — a two-day process reduced to four hours with human review only at key decision points.' },
-  { tag: 'HR', title: 'Onboarding Document Workflow', detail: 'New starter form triggers automated document generation, email sending, system provisioning requests and calendar invites — previously a 45-minute manual process per hire.' },
-  { tag: 'Sales', title: 'Proposal Generation System', detail: 'Sales team selects products and configuration from a structured Excel form; automation generates a formatted Word proposal and PDF, emails it to the client and logs to the CRM.' },
-  { tag: 'Operations', title: 'Supplier Invoice Processing', detail: 'VBA and Power Automate work together to extract invoice data, match against purchase orders, flag exceptions and route for approval — eliminating manual keying for 80% of invoices.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function BusinessProcessAutomationPage() {
+export default async function BusinessProcessAutomationPage() {
+  const exampleTiles = await getServicePageTiles('/business-process-automation')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -92,7 +88,7 @@ export default function BusinessProcessAutomationPage() {
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">Business Process Automation</span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Automate the work that should not need a person.
+              Automate the work that is keeping your staff from greatness!
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
               Every New Zealand business has processes that consume staff time, create errors and depend entirely on someone remembering to do them. We identify those processes and automate them using the right combination of Excel, VBA, Power Automate and AI — so your team focuses on work that actually needs human judgement.
@@ -118,21 +114,11 @@ export default function BusinessProcessAutomationPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Business process automation examples</h2>
-            <p className="mb-12 text-center text-gray-500">Automation projects delivered for New Zealand organisations.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Business process automation examples"
+          subheading="Automation projects delivered for New Zealand organisations."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

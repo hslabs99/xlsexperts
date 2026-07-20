@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight, Database, Globe, RefreshCw, Users } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -77,29 +79,6 @@ const integrationTypes = [
     title: 'Database-Backed Multi-User Excel Applications',
     body: 'Excel is an exceptional front-end for business users — familiar, flexible, and powerful. By storing data in SQL Server or another relational database and using VBA to handle all reads and writes, we build multi-user applications that look and feel like Excel but behave like proper database applications: concurrent access, record locking, audit trails, and no file corruption.',
     examples: ['Job management tools used by field and office teams simultaneously', 'Pricing engines where multiple estimators work from a shared database of rates and materials', 'Approval workflow tools where submitters and approvers see the same data in real time'],
-  },
-]
-
-const legacyExamples = [
-  {
-    platform: 'Simpro',
-    scenario: 'Job costing and cost code reclassification',
-    detail: 'Simpro is powerful for field service management but inflexible for cost reporting restructuring. We build Excel tools that download Simpro job data, allow finance teams to reclassify cost codes and margins at scale, and re-upload corrected records — a task that would take weeks of Simpro support tickets.',
-  },
-  {
-    platform: 'Xero / MYOB',
-    scenario: 'Budgeting, forecasting and variance reporting',
-    detail: 'Xero and MYOB handle transactional accounting well but offer limited modelling capability. We connect Excel directly to the Xero or MYOB API, pull actuals in real time, and build forecast models and variance reports that live-update without any manual export.',
-  },
-  {
-    platform: 'Shopify / WooCommerce',
-    scenario: 'E-commerce analytics and inventory management',
-    detail: 'We pull order history, product performance, and inventory data from e-commerce APIs into Excel for analysis, margin calculation, and demand forecasting. Scheduled refreshes keep reports current without anyone touching a keyboard.',
-  },
-  {
-    platform: 'SQL Server / PostgreSQL',
-    scenario: 'Multi-user front-end applications',
-    detail: 'When a business outgrows a shared workbook but is not ready for a full custom application, a database-backed Excel front-end is often the pragmatic solution. One to five concurrent users, full record history, and proper data integrity — built and running in weeks.',
   },
 ]
 
@@ -184,7 +163,8 @@ const faqSchema = {
   })),
 }
 
-export default function ExcelIntegrationsPage() {
+export default async function ExcelIntegrationsPage() {
+  const exampleTiles = await getServicePageTiles('/excel-integrations')
   return (
     <>
       <script
@@ -293,33 +273,11 @@ export default function ExcelIntegrationsPage() {
           </div>
         </section>
 
-        {/* Real-world platform examples */}
-        <section className="bg-white py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">
-              Real-world platform examples
-            </h2>
-            <p className="mb-12 text-center text-gray-500 max-w-2xl mx-auto">
-              These are the specific integration patterns we build most often for New Zealand businesses.
-            </p>
-            <div className="space-y-4">
-              {legacyExamples.map((ex) => (
-                <div key={ex.platform} className="rounded-2xl border border-gray-200 bg-gray-50 p-7">
-                  <div className="mb-2 flex flex-wrap items-center gap-3">
-                    <span
-                      className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                      style={{ backgroundColor: '#1a6b3c' }}
-                    >
-                      {ex.platform}
-                    </span>
-                    <h3 className="font-display font-bold text-gray-900">{ex.scenario}</h3>
-                  </div>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Real-world platform examples"
+          subheading="These are the specific integration patterns we build most often for New Zealand businesses."
+          tiles={exampleTiles}
+        />
 
         {/* Process */}
         <section className="bg-gray-50 py-20">

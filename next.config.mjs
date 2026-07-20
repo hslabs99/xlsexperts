@@ -3,6 +3,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  async redirects() {
+    return [
+      { source: '/post', destination: '/blog', permanent: true },
+      { source: '/post/:slug*', destination: '/blog/:slug*', permanent: true },
+    ]
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [375, 640, 750, 828, 1080, 1200, 1920],

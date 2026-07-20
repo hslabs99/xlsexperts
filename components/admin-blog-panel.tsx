@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Plus, Trash2, Upload, Eye } from 'lucide-react'
 import type { BlogPostRecord } from '@/lib/blog-shared'
-// Image uploads remain browser Firebase Storage (not moved to API yet).
-import { uploadBlogImage } from '@/lib/blog-storage'
 import { AdminDialog } from '@/components/admin-dialog'
 import {
   AdminBlogPreviewShell,
@@ -228,10 +226,22 @@ export function AdminBlogPanel() {
     setBusy(true)
     setError(null)
     try {
-      const url = await uploadBlogImage(slug, file)
-      setForm((p) => ({ ...p, image: url, slug: p.slug || slug }))
+      const body = new FormData()
+      body.set('action', 'upload-image')
+      body.set('slug', slug)
+      body.set('image', file)
+      const res = await fetch('/api/admin/blogs', { method: 'POST', body })
+      const data = (await res.json()) as {
+        ok?: boolean
+        image?: string
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.image) {
+        throw new Error(data.error || 'Image upload failed')
+      }
+      setForm((p) => ({ ...p, image: data.image!, slug: p.slug || slug }))
       setMessage(
-        `Image uploaded (${formatBytes(file.size)}). Aim under ${formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)} when you can.`
+        `Image uploaded to cloud (${formatBytes(file.size)}). Aim under ${formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)} when you can.`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed')

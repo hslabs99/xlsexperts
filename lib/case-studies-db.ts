@@ -1,5 +1,3 @@
-import 'server-only'
-
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'

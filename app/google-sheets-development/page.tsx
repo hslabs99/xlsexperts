@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Teams on Google Workspace who need Excel-quality solutions without switching platforms',
   'Sheets connected to nothing — disconnected from the other tools the business runs on',
   'No access controls — anyone can edit anything at any time',
-]
-
-const examples = [
-  { tag: 'Operations', title: 'Automated Project Tracker', detail: 'Google Sheet with Apps Script automation updates project statuses, sends email reminders for overdue actions and generates a weekly summary report — all without manual intervention.' },
-  { tag: 'HR', title: 'Leave and Attendance System', detail: 'Staff submit leave requests via Google Form; Sheet processes requests, updates a shared calendar and notifies managers automatically via Gmail.' },
-  { tag: 'Sales', title: 'CRM Lite for a Growing NZ Business', detail: 'Custom Google Sheet CRM with pipeline stages, follow-up reminders, deal value tracking and exportable reporting — built for a team that did not need (or want) Salesforce.' },
-  { tag: 'Finance', title: 'Multi-Entity Consolidation Tool', detail: 'Pulls data from subsidiary Sheets via ImportRange, consolidates into a group view and formats a monthly reporting pack automatically.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function GoogleSheetsDevelopmentPage() {
+export default async function GoogleSheetsDevelopmentPage() {
+  const exampleTiles = await getServicePageTiles('/google-sheets-development')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function GoogleSheetsDevelopmentPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Google Sheets projects we have built</h2>
-            <p className="mb-12 text-center text-gray-500">Custom solutions for New Zealand businesses on Google Workspace.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Google Sheets projects we have built"
+          subheading="Custom solutions for New Zealand businesses on Google Workspace."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

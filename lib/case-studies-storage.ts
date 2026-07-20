@@ -37,6 +37,62 @@ function toUploadBody(
   return { body: file as Uint8Array, type }
 }
 
+export async function prepareCaseStudyImageUpload(file: File): Promise<File> {
+  const width = 900
+  const height = 300
+  const bitmap = await createImageBitmap(file)
+  const targetRatio = width / height
+  const sourceRatio = bitmap.width / bitmap.height
+
+  let sourceX = 0
+  let sourceY = 0
+  let sourceWidth = bitmap.width
+  let sourceHeight = bitmap.height
+
+  if (sourceRatio > targetRatio) {
+    sourceWidth = bitmap.height * targetRatio
+    sourceX = (bitmap.width - sourceWidth) / 2
+  } else {
+    sourceHeight = bitmap.width / targetRatio
+    sourceY = (bitmap.height - sourceHeight) / 2
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const context = canvas.getContext('2d')
+  if (!context) {
+    bitmap.close()
+    throw new Error('Could not prepare the case study image')
+  }
+
+  context.drawImage(
+    bitmap,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    width,
+    height
+  )
+  bitmap.close()
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) =>
+        result
+          ? resolve(result)
+          : reject(new Error('Could not encode the case study image')),
+      'image/webp',
+      0.85
+    )
+  })
+  const baseName = file.name.replace(/\.[^.]+$/, '') || 'hero'
+  return new File([blob], `${baseName}.webp`, { type: 'image/webp' })
+}
+
 export async function uploadCaseStudyImage(
   slug: string,
   file: File | Blob | Uint8Array | ArrayBuffer,

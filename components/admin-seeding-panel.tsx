@@ -3,13 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
 import { AdminDialog } from '@/components/admin-dialog'
-import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
-import {
-  formatStorageError,
-  uploadCaseStudyImage,
-} from '@/lib/case-studies-storage'
-import { importSiteImageToStorage } from '@/lib/blog-storage'
-import type { BlogPostRecord } from '@/lib/blog-shared'
 import type { BookingSlot, SeedTemplateConfig } from '@/lib/booking-slots'
 
 type PendingConfirm =
@@ -21,6 +14,8 @@ type PendingConfirm =
  * Admin-only one-time / maintenance seed tools.
  * Kept off Blog, Case Studies, Bookings, and Email tabs so marketing staff
  * are not shown archive import controls.
+ *
+ * Image pushes go through Admin APIs → Firebase Storage (cloud only).
  */
 export function AdminSeedingPanel() {
   const [busy, setBusy] = useState(false)
@@ -85,51 +80,8 @@ export function AdminSeedingPanel() {
   }
 
   async function pushBlogImages() {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/blogs')
-      const data = (await res.json()) as {
-        ok?: boolean
-        items?: BlogPostRecord[]
-        error?: string
-      }
-      if (!res.ok || !data.ok || !data.items) {
-        throw new Error(data.error || 'Failed to load blog posts')
-      }
-      let uploaded = 0
-      let failed = 0
-      for (const post of data.items) {
-        if (!post.image.startsWith('/')) continue
-        const url = await importSiteImageToStorage(post.slug, post.image)
-        if (!url) {
-          failed += 1
-          continue
-        }
-        const patchRes = await fetch('/api/admin/blogs', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug: post.slug, image: url }),
-        })
-        const patchData = (await patchRes.json()) as {
-          ok?: boolean
-          error?: string
-        }
-        if (!patchRes.ok || !patchData.ok) {
-          failed += 1
-          continue
-        }
-        uploaded += 1
-      }
-      setMessage(
-        `Blog image Storage upload finished: ${uploaded} uploaded, ${failed} failed/skipped.`
-      )
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Blog image push failed')
-    } finally {
-      setBusy(false)
-    }
+    // Cloud-only: seed API compresses archive files and writes Storage URLs.
+    await seedBlogs(false, true)
   }
 
   async function seedCaseStudies(uploadImages: boolean) {
@@ -170,99 +122,8 @@ export function AdminSeedingPanel() {
     }
   }
 
-  async function pushCaseStudyImagesFromBrowser() {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    let uploaded = 0
-    let failed = 0
-    let lastErr: string | undefined
-    try {
-      const listRes = await fetch('/api/admin/case-studies')
-      const listData = (await listRes.json()) as {
-        ok?: boolean
-        items?: { slug: string }[]
-      }
-      const existing = new Set(
-        (listData.items ?? []).map((r) => r.slug).filter(Boolean)
-      )
-
-      for (const item of CASE_STUDIES_ARCHIVE) {
-        try {
-          const res = await fetch(item.localImage)
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status} for ${item.localImage}`)
-          }
-          const blob = await res.blob()
-          const bytes = new Uint8Array(await blob.arrayBuffer())
-          const url = await uploadCaseStudyImage(
-            item.slug,
-            bytes,
-            'hero.png',
-            blob.type || 'image/png'
-          )
-          if (existing.has(item.slug)) {
-            const patchRes = await fetch('/api/admin/case-studies', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ slug: item.slug, image: url }),
-            })
-            const patchData = (await patchRes.json()) as {
-              ok?: boolean
-              error?: string
-            }
-            if (!patchRes.ok || !patchData.ok) {
-              throw new Error(patchData.error || 'Failed to update image URL')
-            }
-          } else {
-            const createRes = await fetch('/api/admin/case-studies', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                slug: item.slug,
-                client: item.client,
-                sector: item.sector,
-                title: item.title,
-                image: url,
-                problem: item.problem,
-                solution: item.solution,
-                outcome: item.outcome,
-                tags: item.tags,
-                published: true,
-                showOnHome: false,
-                homeOrder: 9999,
-                sortOrder: 9999,
-              }),
-            })
-            const createData = (await createRes.json()) as {
-              ok?: boolean
-              error?: string
-            }
-            if (!createRes.ok || !createData.ok) {
-              throw new Error(createData.error || 'Failed to save case study')
-            }
-          }
-          uploaded += 1
-        } catch (err) {
-          failed += 1
-          lastErr = formatStorageError(err)
-        }
-      }
-      await fetch('/api/admin/case-studies', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'publish-home' }),
-      })
-      setMessage(
-        `Case study browser push → ${uploaded} uploaded, ${failed} failed.${lastErr ? ` Last error: ${lastErr}` : ''}`
-      )
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Case study image push failed'
-      )
-    } finally {
-      setBusy(false)
-    }
+  async function pushCaseStudyImages() {
+    await seedCaseStudies(true)
   }
 
   async function publishEmailThumbs() {
@@ -293,6 +154,38 @@ export function AdminSeedingPanel() {
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Email thumbs publish failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function seedServicePageTiles(overwrite: boolean) {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/seed-service-page-tiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ overwrite }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        created?: number
+        updated?: number
+        skipped?: number
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Service page tiles seed failed')
+      }
+      setMessage(
+        `Service page tiles → created ${data.created ?? 0}, updated ${data.updated ?? 0}, skipped ${data.skipped ?? 0}.`
+      )
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Service page tiles seed failed'
+      )
     } finally {
       setBusy(false)
     }
@@ -535,11 +428,11 @@ export function AdminSeedingPanel() {
           <button
             type="button"
             disabled={busy}
-            onClick={() => void pushCaseStudyImagesFromBrowser()}
+            onClick={() => void pushCaseStudyImages()}
             className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-            title="Uploads /images/cs-*.png from this browser into Storage"
+            title="Uploads archive images to Firebase Storage via Admin API"
           >
-            Push images from browser
+            Push images to Storage
           </button>
           <button
             type="button"
@@ -549,6 +442,34 @@ export function AdminSeedingPanel() {
             title="Compress 6 heroes → Storage email/case-studies/*.jpg for discovery emails"
           >
             Publish email thumbs (Storage)
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-6">
+        <h3 className="text-base font-semibold text-ink">Service page tiles</h3>
+        <p className="mt-1 text-sm text-ink-muted">
+          Import the frozen archive of example / case-study cards from each
+          service landing page into Firestore{' '}
+          <code className="text-xs">servicePageTiles</code>. Edit and assign
+          pages under Admin → Service Tiles. Does not affect the homepage.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void seedServicePageTiles(false)}
+            className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+          >
+            Seed service page tiles
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void seedServicePageTiles(true)}
+            className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+          >
+            Re-seed (overwrite)
           </button>
         </div>
       </section>

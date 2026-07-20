@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Reports that cannot refresh until someone manually runs the data preparation process',
   'No record of what transformations were applied — just "it works, don\'t touch it"',
   'Pivot tables and charts that update correctly only when data is structured perfectly',
-]
-
-const examples = [
-  { tag: 'Finance', title: 'ERP Export Automation', detail: 'Power Query connects to monthly ERP exports, applies 14 transformation steps and loads a clean, structured table — replacing 3 hours of manual preparation.' },
-  { tag: 'Retail', title: 'Multi-Store Sales Consolidation', detail: 'Queries from six store systems, applies consistent naming and category mapping, and loads consolidated data into a pivot-ready model — refreshes with one click.' },
-  { tag: 'HR', title: 'Payroll System Data Cleaner', detail: 'Power Query standardises payroll exports with inconsistent formatting, merges cost centre data and produces a reconciliation-ready table for finance.' },
-  { tag: 'Operations', title: 'Supplier Data Feed Processor', detail: 'Connects to supplier CSV feeds, applies pricing rules and availability flags, and loads into a procurement dashboard that updates daily.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function PowerQueryConsultingPage() {
+export default async function PowerQueryConsultingPage() {
+  const exampleTiles = await getServicePageTiles('/power-query-consulting')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function PowerQueryConsultingPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Power Query projects we have delivered</h2>
-            <p className="mb-12 text-center text-gray-500">Data pipeline and transformation work for New Zealand organisations.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Power Query projects we have delivered"
+          subheading="Data pipeline and transformation work for New Zealand organisations."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

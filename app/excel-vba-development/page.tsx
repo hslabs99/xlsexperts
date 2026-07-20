@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Data entry errors caused by unprotected inputs and no validation',
   'Excel files that run slowly because formulas are recalculating everything',
   'No way to generate documents, emails or exports automatically from Excel',
-]
-
-const examples = [
-  { tag: 'Finance', title: 'Automated Month-End Reporting', detail: 'VBA pulls data from multiple source files, applies transformations and produces a formatted management pack — a two-hour process reduced to under five minutes.' },
-  { tag: 'Operations', title: 'Purchase Order Generator', detail: 'Staff complete a structured input form; VBA validates entries, generates a formatted PDF purchase order and saves it to the correct folder automatically.' },
-  { tag: 'HR', title: 'Payroll Reconciliation Tool', detail: 'VBA imports payroll exports, reconciles against budget, flags variances and produces a sign-off report for finance review.' },
-  { tag: 'Logistics', title: 'Route and Load Optimisation', detail: 'VBA processes delivery data, assigns loads to vehicles by capacity and region, and outputs a daily run sheet with driving order.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function ExcelVBADevelopmentPage() {
+export default async function ExcelVBADevelopmentPage() {
+  const exampleTiles = await getServicePageTiles('/excel-vba-development')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function ExcelVBADevelopmentPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">VBA projects we have delivered in NZ</h2>
-            <p className="mb-12 text-center text-gray-500">A sample of real automation work across New Zealand industries.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="VBA projects we have delivered in NZ"
+          subheading="A sample of real automation work across New Zealand industries."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

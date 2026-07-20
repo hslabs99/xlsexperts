@@ -46,6 +46,13 @@ function hasFlag(flag: string): boolean {
 async function main() {
   // Must load env BEFORE importing Firebase modules (config reads process.env at import).
   await loadEnvLocal()
+  if (
+    !process.env.GOOGLE_CLOUD_PROJECT &&
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  ) {
+    process.env.GOOGLE_CLOUD_PROJECT =
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  }
 
   const { getV0BlogArchive, seedBlogPostsFromV0Archive } = await import(
     '../lib/blog-seed'

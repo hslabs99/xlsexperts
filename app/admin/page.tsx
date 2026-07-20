@@ -18,6 +18,7 @@ import { AdminLogin } from '@/components/admin-login'
 import { AdminUsersPanel } from '@/components/admin-users-panel'
 import { AdminBlogPanel } from '@/components/admin-blog-panel'
 import { AdminCaseStudiesPanel } from '@/components/admin-case-studies-panel'
+import { AdminServicePageTilesPanel } from '@/components/admin-service-page-tiles-panel'
 import { AdminSeedingPanel } from '@/components/admin-seeding-panel'
 import { AdminBookingCalendar } from '@/components/admin-booking-calendar'
 import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
@@ -38,6 +39,7 @@ type AdminTab =
   | 'enquiries'
   | 'blog'
   | 'case-studies'
+  | 'service-tiles'
   | 'marketing'
   | 'email'
   | 'seeding'
@@ -48,6 +50,7 @@ const TABS: { id: AdminTab; label: string }[] = [
   { id: 'enquiries', label: 'Inquiries' },
   { id: 'blog', label: 'Blog' },
   { id: 'case-studies', label: 'Case Studies' },
+  { id: 'service-tiles', label: 'Service Tiles' },
   { id: 'marketing', label: 'Marketing' },
   { id: 'email', label: 'Email' },
   { id: 'seeding', label: 'Seeding' },
@@ -726,6 +729,14 @@ export default function AdminPage() {
           roleCanAccessTab(effectiveRole, 'case-studies') && (
           <div className="mt-8" role="tabpanel">
             <AdminCaseStudiesPanel />
+          </div>
+        )}
+
+        {tab === 'service-tiles' &&
+          effectiveRole &&
+          roleCanAccessTab(effectiveRole, 'service-tiles') && (
+          <div className="mt-8" role="tabpanel">
+            <AdminServicePageTilesPanel />
           </div>
         )}
 

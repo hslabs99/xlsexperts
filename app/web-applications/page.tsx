@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -24,33 +26,6 @@ const problems = [
   'Business processes trapped in a single workbook with no way to expose them securely to customers or partners',
   'Need to keep Excel for reporting while moving day-to-day operations into a browser-based system',
   'IT wanting cloud hosting, managed databases and modern deployment — not macros emailed around as attachments',
-]
-
-const examples = [
-  {
-    tag: 'Hospitality · Web + SQL · Excel',
-    title: 'Valet Parking Hybrid App',
-    detail:
-      'Pullman Hotel Auckland: mobile web apps for parking attendants connected to a cloud SQL database, with Excel remaining the admin analytics console — the same data, two interfaces.',
-  },
-  {
-    tag: 'Insurance · .NET · SQL · Excel',
-    title: 'Claims Analysis Platform',
-    detail:
-      'NZI: a web application for collecting claims data into MS SQL, feeding management dashboards while Excel remains available for deeper analyst work on the same dataset.',
-  },
-  {
-    tag: 'Retail · Cloud DB · Spreadsheets',
-    title: 'Range Planning Multi-User System',
-    detail:
-      'Fashion retail: buyers kept familiar spreadsheet workflows while a shared cloud database replaced fragile linked workbooks — enabling concurrent planning and POS integration.',
-  },
-  {
-    tag: 'Operations · Browser App · Cloud',
-    title: 'Field-to-Office Workflow App',
-    detail:
-      'Browser-based capture for in-field teams with role-based access, cloud storage and optional Excel exports for finance and management reporting.',
-  },
 ]
 
 const steps = [
@@ -136,7 +111,8 @@ const faqSchema = {
   })),
 }
 
-export default function WebApplicationsPage() {
+export default async function WebApplicationsPage() {
+  const exampleTiles = await getServicePageTiles('/web-applications')
   return (
     <>
       <script
@@ -210,35 +186,11 @@ export default function WebApplicationsPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">
-              Web application examples
-            </h2>
-            <p className="mb-12 text-center text-gray-500">
-              Hybrid and full web solutions delivered for New Zealand
-              organisations.
-            </p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div
-                  key={ex.title}
-                  className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm"
-                >
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">
-                    {ex.tag}
-                  </span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">
-                    {ex.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-gray-600">
-                    {ex.detail}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Web application examples"
+          subheading="Hybrid and full web solutions delivered for New Zealand organisations."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

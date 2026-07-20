@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Slow workbooks full of volatile formulas that could be replaced with a macro',
   'No button to run the process — staff have to remember a sequence of steps',
   'Macro security warnings that prevent the automation from running at all',
-]
-
-const examples = [
-  { tag: 'Reporting', title: 'Weekly KPI Report Formatter', detail: 'A single button formats incoming data, applies conditional formatting, generates charts and saves a timestamped PDF — replacing 45 minutes of weekly manual work.' },
-  { tag: 'Data Processing', title: 'Multi-File Data Consolidator', detail: 'Macro opens all files in a folder, extracts specific data ranges, consolidates into a master sheet and applies cleaning rules automatically.' },
-  { tag: 'Finance', title: 'Invoice Batch Processor', detail: 'Reads invoice data from a structured input sheet, generates individual formatted invoice files, saves them to client folders and logs each one in a register.' },
-  { tag: 'Administration', title: 'Meeting Pack Generator', detail: 'Macro pulls agenda items, attendee data and action statuses from input sheets and assembles a formatted Word document ready for distribution.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function ExcelMacroAutomationPage() {
+export default async function ExcelMacroAutomationPage() {
+  const exampleTiles = await getServicePageTiles('/excel-macro-automation')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function ExcelMacroAutomationPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Macro automation examples</h2>
-            <p className="mb-12 text-center text-gray-500">Real projects delivered for New Zealand organisations.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Macro automation examples"
+          subheading="Real projects delivered for New Zealand organisations."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

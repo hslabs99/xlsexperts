@@ -83,6 +83,12 @@ export const BLOG_POSTS_COLLECTION = 'blogPosts'
 export const CASE_STUDIES_COLLECTION = 'caseStudies'
 
 /**
+ * Firestore collection for example / case-study tiles on service landing pages.
+ * Not used on the homepage.
+ */
+export const SERVICE_PAGE_TILES_COLLECTION = 'servicePageTiles'
+
+/**
  * Site Content doc: pre-rendered homepage case studies (usually 4 cards).
  * Homepage reads this single document instead of querying the collection.
  */

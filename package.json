@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "seed:blogs": "node ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-blogs-from-v0.ts",
-    "seed:blogs:snapshot": "node ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-blogs-from-v0.ts --snapshot-only",
-    "seed:case-studies": "node ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-case-studies.ts"
+    "seed:blogs": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-blogs-from-v0.ts",
+    "seed:blogs:snapshot": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-blogs-from-v0.ts --snapshot-only",
+    "seed:blogs:images": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-blogs-from-v0.ts --images",
+    "seed:case-studies": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-case-studies.ts",
+    "seed:case-studies:images": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-case-studies.ts --images"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

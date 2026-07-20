@@ -8,7 +8,10 @@ import {
   type BlogPostInput,
   type BlogPostRecord,
 } from '@/lib/blog-db'
+import { uploadBlogImageAdmin } from '@/lib/blog-storage-admin'
 import { withTimeout } from '@/lib/with-timeout'
+
+export const runtime = 'nodejs'
 
 function serializeTimestamp(value: unknown): string | null {
   if (!value) return null
@@ -60,6 +63,35 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const contentType = request.headers.get('content-type') || ''
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+      const action = String(formData.get('action') || '').trim()
+      if (action === 'upload-image') {
+        const slug = String(formData.get('slug') || '').trim()
+        const image = formData.get('image')
+        if (!slug) {
+          return NextResponse.json(
+            { ok: false, error: 'slug is required' },
+            { status: 400 }
+          )
+        }
+        if (!image || typeof image === 'string') {
+          return NextResponse.json(
+            { ok: false, error: 'image file is required' },
+            { status: 400 }
+          )
+        }
+        const url = await withTimeout(
+          uploadBlogImageAdmin(slug, image),
+          20_000,
+          'uploadBlogImageAdmin'
+        )
+        return NextResponse.json({ ok: true, image: url })
+      }
+    }
+
     const body = (await request.json()) as BlogPostInput
     await withTimeout(saveBlogPost(body), 12_000, 'saveBlogPost')
     return NextResponse.json({ ok: true })

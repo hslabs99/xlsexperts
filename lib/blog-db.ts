@@ -1,5 +1,3 @@
-import 'server-only'
-
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { BLOG_POSTS_COLLECTION } from '@/lib/firebase'

@@ -8,11 +8,7 @@ import {
   selectHomeCaseStudies,
   type CaseStudyRecord,
 } from '@/lib/case-studies-shared'
-// Image uploads remain browser Firebase Storage (not moved to API yet).
-import {
-  importCaseStudySiteImageToStorage,
-  uploadCaseStudyImage,
-} from '@/lib/case-studies-storage'
+import { prepareCaseStudyImageUpload } from '@/lib/case-studies-storage'
 import { AdminDialog } from '@/components/admin-dialog'
 import {
   AdminCaseStudiesPreviewShell,
@@ -47,6 +43,13 @@ function slugify(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+function sanitizeSlugInput(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-{2,}/g, '-')
 }
 
 export function AdminCaseStudiesPanel() {
@@ -157,15 +160,10 @@ export function AdminCaseStudiesPanel() {
     setError(null)
     setMessage(null)
     try {
-      let slug = form.slug.trim() || slugify(`${form.client}-${form.title}`)
+      const slug =
+        slugify(form.slug) || slugify(`${form.client}-${form.title}`)
       if (!slug) throw new Error('Slug is required')
       if (!form.title.trim()) throw new Error('Title is required')
-
-      let image = form.image.trim()
-      if (pendingImageFile) {
-        // Remains browser Storage SDK upload.
-        image = await uploadCaseStudyImage(slug, pendingImageFile)
-      }
 
       const homeOn = Boolean(form.showOnHome)
       const homeAlready = rows.filter(
@@ -180,7 +178,7 @@ export function AdminCaseStudiesPanel() {
       const payload = {
         ...form,
         slug,
-        image,
+        image: form.image.trim(),
         tags: tagsText
           .split(',')
           .map((t) => t.trim())
@@ -193,11 +191,23 @@ export function AdminCaseStudiesPanel() {
           : 9999,
       }
 
-      const res = await fetch('/api/admin/case-studies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      let res: Response
+      if (pendingImageFile) {
+        const preparedImage = await prepareCaseStudyImageUpload(pendingImageFile)
+        const requestBody = new FormData()
+        requestBody.set('payload', JSON.stringify(payload))
+        requestBody.set('image', preparedImage)
+        res = await fetch('/api/admin/case-studies', {
+          method: 'POST',
+          body: requestBody,
+        })
+      } else {
+        res = await fetch('/api/admin/case-studies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      }
       const data = (await res.json()) as { ok?: boolean; error?: string }
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Save failed')
@@ -281,13 +291,15 @@ export function AdminCaseStudiesPanel() {
     setBusy(true)
     setError(null)
     try {
-      const url = await importCaseStudySiteImageToStorage(
-        form.slug.trim(),
-        form.image.trim()
+      const response = await fetch(form.image.trim())
+      if (!response.ok) throw new Error('Could not read local image')
+      const blob = await response.blob()
+      const filename =
+        form.image.split('/').pop()?.split('?')[0] || 'case-study-image.png'
+      setPendingImageFile(
+        new File([blob], filename, { type: blob.type || 'image/png' })
       )
-      if (!url) throw new Error('Could not import local image')
-      setForm((p) => ({ ...p, image: url }))
-      setMessage('Image imported to Firebase Storage.')
+      setMessage('Local image queued. Save the case study to upload it.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed')
     } finally {
@@ -581,7 +593,10 @@ export function AdminCaseStudiesPanel() {
                 required
                 value={form.slug}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, slug: slugify(e.target.value) }))
+                  setForm((p) => ({
+                    ...p,
+                    slug: sanitizeSlugInput(e.target.value),
+                  }))
                 }
                 className="rounded-md border border-border px-3 py-2 font-mono text-xs"
               />
@@ -613,7 +628,7 @@ export function AdminCaseStudiesPanel() {
             <div className="flex flex-wrap gap-2 sm:col-span-2">
               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised">
                 <Upload className="h-4 w-4" />
-                Upload image
+                Upload image (900 × 300)
                 <input
                   type="file"
                   accept="image/*"

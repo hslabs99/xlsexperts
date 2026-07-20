@@ -62,8 +62,10 @@ export function roleCanAccessTab(
   role: AdminUserRole,
   tab: string
 ): boolean {
-  // Seeding + Case Studies are admin-only (also hidden when an admin “views as marketing”).
-  if (tab === 'seeding' || tab === 'case-studies') return role === 'admin'
+  // Seeding, Case Studies, and Service Tiles are admin-only (also hidden when an admin “views as marketing”).
+  if (tab === 'seeding' || tab === 'case-studies' || tab === 'service-tiles') {
+    return role === 'admin'
+  }
   if (role === 'admin') return true
   // Marketing: Inquiries, Blog, and Marketing (tags)
   return tab === 'enquiries' || tab === 'blog' || tab === 'marketing'

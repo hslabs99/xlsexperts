@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Circular references or broken links that have been ignored because no one knows how to fix them',
   'Inconsistent formulas across rows where some cells have been manually overridden',
   'A spreadsheet that works most of the time — but occasionally produces numbers that look wrong',
-]
-
-const examples = [
-  { tag: 'Finance', title: 'Investment Model Audit', detail: 'Pre-investment review of a target company\'s three-statement financial model identified three formula errors and two structural issues that materially affected the valuation output.' },
-  { tag: 'Regulatory', title: 'Regulatory Submission Spreadsheet Review', detail: 'Independent review of calculation spreadsheets used in a regulatory submission — confirmed methodology, identified two input cells with incorrect references and provided a written sign-off report.' },
-  { tag: 'Operations', title: 'Pricing Tool Audit', detail: 'Audit of a pricing spreadsheet used by a sales team revealed that margin calculations were using an outdated cost basis in two product categories — immediately corrected before a major contract renewal.' },
-  { tag: 'IT Handover', title: 'Departed Staff Spreadsheet Review', detail: 'Structured review of three critical workbooks inherited after a key staff member left — documented what each does, identified risks and produced a maintenance guide for the team.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function SpreadsheetAuditingPage() {
+export default async function SpreadsheetAuditingPage() {
+  const exampleTiles = await getServicePageTiles('/spreadsheet-auditing')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function SpreadsheetAuditingPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Spreadsheet audit case studies</h2>
-            <p className="mb-12 text-center text-gray-500">Issues found — and prevented — through independent spreadsheet review.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Spreadsheet audit case studies"
+          subheading="Issues found — and prevented — through independent spreadsheet review."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

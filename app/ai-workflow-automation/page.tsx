@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Reviewing documents for specific information and manually populating a spreadsheet',
   'No way to use AI capabilities without replacing Excel-based workflows the team already relies on',
   'AI tools used ad hoc by individuals but never integrated into an actual business process',
-]
-
-const examples = [
-  { tag: 'Finance', title: 'Invoice Data Extraction', detail: 'AI extracts supplier name, amount, GST, date and line items from PDF invoices and populates an Excel register automatically — replacing manual keying for 95% of invoices.' },
-  { tag: 'Operations', title: 'Customer Feedback Classifier', detail: 'AI classifies incoming customer feedback by sentiment, category and urgency, populates a structured Excel tracker and flags high-priority items for immediate review.' },
-  { tag: 'HR', title: 'CV Screening Assistant', detail: 'AI reads submitted CVs, extracts experience, qualifications and skills against a structured criteria set, and populates a ranked comparison sheet in Excel for recruiter review.' },
-  { tag: 'Legal', title: 'Contract Review Summary Tool', detail: 'AI reads contract documents, extracts key clauses, dates, obligations and risk flags, and produces a structured Excel summary for legal team review.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function AIWorkflowAutomationPage() {
+export default async function AIWorkflowAutomationPage() {
+  const exampleTiles = await getServicePageTiles('/ai-workflow-automation')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function AIWorkflowAutomationPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">AI workflow automation examples</h2>
-            <p className="mb-12 text-center text-gray-500">AI integrated into real business workflows for New Zealand organisations.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="AI workflow automation examples"
+          subheading="AI integrated into real business workflows for New Zealand organisations."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

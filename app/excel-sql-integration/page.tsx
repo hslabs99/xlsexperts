@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Multiple teams pulling the same data separately and getting different numbers',
   'No way for Excel to write processed results back to a database for other systems to use',
   'IT requests needed every time someone wants a new data extract',
-]
-
-const examples = [
-  { tag: 'Finance', title: 'Live GL Reporting in Excel', detail: 'Excel connects directly to the general ledger database via Power Query — finance team refreshes reports in one click without IT involvement.' },
-  { tag: 'Operations', title: 'Production Dashboard from ERP Database', detail: 'VBA queries the ERP SQL database, pulls current production data and updates a formatted Excel dashboard that refreshes every morning automatically.' },
-  { tag: 'Insurance', title: 'Claims Analysis Tool', detail: 'Excel connected to the claims database via ADO — analysts can run custom queries from dropdown filters in Excel without writing SQL.' },
-  { tag: 'Retail', title: 'Stock and Sales Reporting', detail: 'Power Query connects to the retail management SQL database, joins stock and sales tables and loads a pivot-ready dataset — replaces daily manual CSV extraction.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function ExcelSQLIntegrationPage() {
+export default async function ExcelSQLIntegrationPage() {
+  const exampleTiles = await getServicePageTiles('/excel-sql-integration')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function ExcelSQLIntegrationPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Excel SQL integration projects</h2>
-            <p className="mb-12 text-center text-gray-500">Live database connections built for New Zealand businesses.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Excel SQL integration projects"
+          subheading="Live database connections built for New Zealand businesses."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

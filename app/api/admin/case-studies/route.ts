@@ -9,7 +9,10 @@ import {
   type CaseStudyInput,
   type CaseStudyRecord,
 } from '@/lib/case-studies-db'
+import { uploadCaseStudyImageAdmin } from '@/lib/case-studies-storage-admin'
 import { withTimeout } from '@/lib/with-timeout'
+
+export const runtime = 'nodejs'
 
 function serializeTimestamp(value: unknown): string | null {
   if (!value) return null
@@ -63,9 +66,34 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as CaseStudyInput
+    let body: CaseStudyInput
+    const contentType = request.headers.get('content-type') || ''
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+      const payload = formData.get('payload')
+      if (typeof payload !== 'string') {
+        return NextResponse.json(
+          { ok: false, error: 'Case study payload is required' },
+          { status: 400 }
+        )
+      }
+      body = JSON.parse(payload) as CaseStudyInput
+
+      const image = formData.get('image')
+      if (image && typeof image !== 'string') {
+        body.image = await withTimeout(
+          uploadCaseStudyImageAdmin(body.slug, image),
+          20_000,
+          'uploadCaseStudyImageAdmin'
+        )
+      }
+    } else {
+      body = (await request.json()) as CaseStudyInput
+    }
+
     await withTimeout(saveCaseStudy(body), 12_000, 'saveCaseStudy')
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, image: body.image })
   } catch (error) {
     return NextResponse.json(
       {

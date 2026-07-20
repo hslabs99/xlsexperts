@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Inconsistent formatting that makes reports look different each period',
   'No interactivity — stakeholders cannot filter, slice or drill down without asking IT',
   'Hours spent on presentation formatting rather than analysis',
-]
-
-const examples = [
-  { tag: 'Executive', title: 'CEO Monthly Dashboard', detail: 'Single-page executive view with revenue, margin, headcount and NPS metrics — updated automatically from source data with slicers for period and business unit.' },
-  { tag: 'Finance', title: 'P&L and Cash Flow Dashboard', detail: 'Interactive P&L with actuals versus budget, rolling cash flow forecast and variance commentary inputs — designed for CFO board presentation.' },
-  { tag: 'Operations', title: 'Production and Quality Dashboard', detail: 'Real-time view of production throughput, defect rates and downtime by line — automatically updated from the daily export from the production system.' },
-  { tag: 'Sales', title: 'Sales Performance Dashboard', detail: 'Territory, rep and product breakdown with pipeline coverage, win rates and monthly trend — refreshed weekly from CRM export.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function ExcelDashboardDevelopmentPage() {
+export default async function ExcelDashboardDevelopmentPage() {
+  const exampleTiles = await getServicePageTiles('/excel-dashboard-development')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,21 +114,11 @@ export default function ExcelDashboardDevelopmentPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Dashboard examples</h2>
-            <p className="mb-12 text-center text-gray-500">Real dashboards built for New Zealand businesses and leadership teams.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="Dashboard examples"
+          subheading="Real dashboards built for New Zealand businesses and leadership teams."
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

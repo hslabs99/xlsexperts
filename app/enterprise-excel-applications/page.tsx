@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'Excel used to do something a proper application should do, but a rebuild isn\'t justified',
   'Existing Excel applications that need SQL back-ends as data volumes grow beyond Excel\'s limits',
   'A tool that works in one department but cannot scale to a business-wide deployment',
-]
-
-const examples = [
-  { tag: 'Energy · VBA · SharePoint', title: 'Resource Planning Application', detail: 'Enterprise application for Contact Energy deployed via SharePoint — manages resource allocation, availability and capacity planning across multiple teams with role-based access and VBA-driven data logic.' },
-  { tag: 'Finance · VBA · SQL', title: 'Fund Manager Reporting Suite', detail: 'AMP Financial Services: extensible reporting and workflow automation for fund management operations, integrating with EDI systems and database-backed data management.' },
-  { tag: 'Insurance · SQL · VBA', title: 'Claims Analysis Platform', detail: 'NZI Insurance: web app front-end (.NET + SQL) feeds data into an Excel-based management analytics layer — combining familiar Excel interfaces with enterprise data infrastructure.' },
-  { tag: 'Operations · VBA · EDI', title: 'SIMPRO Integration Tool', detail: 'Excel add-on for SIMPRO that extends the platform\'s capabilities for scheduling, pricing and asset management — deployed across a national maintenance business.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function EnterpriseExcelApplicationsPage() {
+export default async function EnterpriseExcelApplicationsPage() {
+  const exampleTiles = await getServicePageTiles('/enterprise-excel-applications')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -118,20 +114,11 @@ export default function EnterpriseExcelApplicationsPage() {
           </div>
         </section>
 
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-2 text-center text-3xl font-bold text-gray-900 uppercase tracking-wide">NZ Enterprise Case Studies</h2>
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
-              {examples.map((cs) => (
-                <div key={cs.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{cs.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{cs.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{cs.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="NZ Enterprise Case Studies"
+          subheading=""
+          tiles={exampleTiles}
+        />
 
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">

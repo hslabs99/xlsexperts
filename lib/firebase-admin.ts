@@ -1,5 +1,3 @@
-import 'server-only'
-
 import {
   applicationDefault,
   getApps,
@@ -7,6 +5,7 @@ import {
   type App,
 } from 'firebase-admin/app'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
+import { getStorage, type Storage } from 'firebase-admin/storage'
 
 /**
  * Server Firestore via Firebase Admin SDK.
@@ -89,4 +88,8 @@ export function getAdminApp(): App {
 
 export function getAdminDb(): Firestore {
   return getFirestore(getAdminApp())
+}
+
+export function getAdminStorage(): Storage {
+  return getStorage(getAdminApp())
 }

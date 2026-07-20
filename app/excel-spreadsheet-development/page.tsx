@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { ServicePageExamples } from '@/components/service-page-examples'
+import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -23,13 +25,6 @@ const problems = [
   'No input validation — anyone can type anything anywhere',
   'Reports that take half a day to update instead of minutes',
   'Critical business logic locked in one person\'s head (or one cell)',
-]
-
-const examples = [
-  { tag: 'Finance', title: 'Monthly Management Reporting Pack', detail: 'Consolidates data from four systems into a structured, formatted report — updated in minutes, not hours.' },
-  { tag: 'Operations', title: 'Job Costing Tracker', detail: 'Tracks materials, labour and margins per job with automated summaries and variance flags.' },
-  { tag: 'HR', title: 'Headcount and Budget Model', detail: 'Linked salary, FTE and cost-centre model with scenario planning and board-ready outputs.' },
-  { tag: 'Sales', title: 'Pipeline and Forecast Tool', detail: 'Weighted pipeline view with rolling 12-month forecast and territory breakdown.' },
 ]
 
 const steps = [
@@ -78,7 +73,8 @@ const faqSchema = {
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-export default function ExcelSpreadsheetDevelopmentPage() {
+export default async function ExcelSpreadsheetDevelopmentPage() {
+  const exampleTiles = await getServicePageTiles('/excel-spreadsheet-development')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
@@ -121,21 +117,11 @@ export default function ExcelSpreadsheetDevelopmentPage() {
         </section>
 
         {/* Examples */}
-        <section className="bg-gray-50 py-20">
-          <div className="mx-auto max-w-5xl px-6">
-            <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">What we build for NZ businesses</h2>
-            <p className="mb-12 text-center text-gray-500">Real examples of spreadsheet development projects delivered across New Zealand.</p>
-            <div className="grid gap-6 md:grid-cols-2">
-              {examples.map((ex) => (
-                <div key={ex.title} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
-                  <span className="mb-3 inline-block rounded-full bg-[#e8f5ee] px-3 py-1 text-xs font-semibold text-[#1a6b3c]">{ex.tag}</span>
-                  <h3 className="font-display mb-2 text-lg font-bold text-gray-900">{ex.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-600">{ex.detail}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <ServicePageExamples
+          heading="What we build for NZ businesses"
+          subheading="Real examples of spreadsheet development projects delivered across New Zealand."
+          tiles={exampleTiles}
+        />
 
         {/* Process */}
         <section className="bg-white py-20">
