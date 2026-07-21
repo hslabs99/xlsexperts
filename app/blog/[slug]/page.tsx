@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
+import { renderBlogInline } from '@/lib/blog-inline-markup'
 import { Navbar } from '@/components/navbar'
 import { ArrowLeft } from 'lucide-react'
 
@@ -161,7 +162,11 @@ export default async function BlogPost({
                 return (
                   <div key={i}>
                     <h2 className="mt-10 text-xl font-bold text-gray-900 sm:text-2xl">{section.heading}</h2>
-                    {section.text && <p className="mt-3 text-base leading-relaxed text-gray-700">{section.text}</p>}
+                    {section.text && (
+                      <p className="mt-3 text-base leading-relaxed text-gray-700">
+                        {renderBlogInline(section.text)}
+                      </p>
+                    )}
                   </div>
                 )
               }
@@ -169,14 +174,18 @@ export default async function BlogPost({
                 return (
                   <div key={i}>
                     <h3 className="mt-7 text-lg font-bold text-gray-900">{section.heading}</h3>
-                    {section.text && <p className="mt-2 text-base leading-relaxed text-gray-700">{section.text}</p>}
+                    {section.text && (
+                      <p className="mt-2 text-base leading-relaxed text-gray-700">
+                        {renderBlogInline(section.text)}
+                      </p>
+                    )}
                   </div>
                 )
               }
               if (section.type === 'intro' || section.type === 'p') {
                 return (
                   <p key={i} className="mt-5 text-base leading-relaxed text-gray-700">
-                    {section.text}
+                    {renderBlogInline(section.text ?? '')}
                   </p>
                 )
               }
@@ -186,7 +195,7 @@ export default async function BlogPost({
                     {section.items?.map((item, j) => (
                       <li key={j} className="flex items-start gap-2 text-base text-gray-700">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: '#1a6b3c' }} aria-hidden="true" />
-                        {item}
+                        {renderBlogInline(item)}
                       </li>
                     ))}
                   </ul>
@@ -200,7 +209,9 @@ export default async function BlogPost({
                       {section.faqs?.map((faq, j) => (
                         <div key={j} className="border-l-2 pl-5" style={{ borderColor: '#1a6b3c' }}>
                           <dt className="font-bold text-gray-900">{faq.q}</dt>
-                          <dd className="mt-1.5 text-base leading-relaxed text-gray-700">{faq.a}</dd>
+                          <dd className="mt-1.5 text-base leading-relaxed text-gray-700">
+                            {renderBlogInline(faq.a)}
+                          </dd>
                         </div>
                       ))}
                     </dl>

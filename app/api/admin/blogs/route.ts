@@ -35,6 +35,8 @@ function serializeBlog(record: BlogPostRecord) {
     sortOrder: record.sortOrder,
     createdAt: serializeTimestamp(record.createdAt),
     updatedAt: serializeTimestamp(record.updatedAt),
+    sourceUrl: record.sourceUrl,
+    sourceImageUrl: record.sourceImageUrl,
   }
 }
 

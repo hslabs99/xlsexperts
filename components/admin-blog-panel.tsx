@@ -10,6 +10,7 @@ import {
   type BlogPreviewKind,
 } from '@/components/admin-blog-preview'
 import { BlogImageSizeAdvice } from '@/components/blog-image-size-advice'
+import { AdminBlogTextField } from '@/components/admin-blog-text-field'
 import {
   assessBlogImage,
   formatBytes,
@@ -78,6 +79,10 @@ export function AdminBlogPanel() {
   } | null>(null)
   const [isNew, setIsNew] = useState(false)
   const [search, setSearch] = useState('')
+  const [publishFilter, setPublishFilter] = useState<
+    'all' | 'published' | 'draft'
+  >('all')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
 
   const load = useCallback(async () => {
@@ -106,15 +111,112 @@ export function AdminBlogPanel() {
   }, [load])
 
   const filtered = useMemo(() => {
+    let list = rows
+    if (publishFilter === 'published') {
+      list = list.filter((r) => r.published)
+    } else if (publishFilter === 'draft') {
+      list = list.filter((r) => !r.published)
+    }
     const q = search.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((r) =>
+    if (!q) return list
+    return list.filter((r) =>
       [r.title, r.slug, r.category, r.author, r.excerpt]
         .join(' ')
         .toLowerCase()
         .includes(q)
     )
-  }, [rows, search])
+  }, [rows, search, publishFilter])
+
+  const selectedInView = useMemo(
+    () => filtered.filter((r) => selected.has(r.slug)).map((r) => r.slug),
+    [filtered, selected]
+  )
+
+  const counts = useMemo(() => {
+    let published = 0
+    let draft = 0
+    for (const r of rows) {
+      if (r.published) published += 1
+      else draft += 1
+    }
+    return { published, draft, total: rows.length }
+  }, [rows])
+
+  function toggleSelected(slug: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(slug)) next.delete(slug)
+      else next.add(slug)
+      return next
+    })
+  }
+
+  function selectAllFiltered() {
+    setSelected(new Set(filtered.map((r) => r.slug)))
+  }
+
+  function clearSelection() {
+    setSelected(new Set())
+  }
+
+  async function setPublishedForSlugs(slugs: string[], published: boolean) {
+    if (!slugs.length) {
+      setError(
+        published
+          ? 'Select one or more posts to publish.'
+          : 'Select one or more posts to unpublish (hide).'
+      )
+      return
+    }
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      let okCount = 0
+      const errors: string[] = []
+      for (const slug of slugs) {
+        const res = await fetch('/api/admin/blogs', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, published }),
+        })
+        const data = (await res.json()) as { ok?: boolean; error?: string }
+        if (!res.ok || !data.ok) {
+          errors.push(`${slug}: ${data.error || 'failed'}`)
+        } else {
+          okCount += 1
+        }
+      }
+      // Optimistic local update
+      setRows((prev) =>
+        prev.map((r) =>
+          slugs.includes(r.slug) && !errors.some((e) => e.startsWith(r.slug))
+            ? { ...r, published }
+            : r
+        )
+      )
+      if (errors.length) {
+        setError(
+          `Updated ${okCount}/${slugs.length}. Errors: ${errors.slice(0, 3).join('; ')}`
+        )
+      } else {
+        setMessage(
+          published
+            ? `Published ${okCount} post${okCount === 1 ? '' : 's'}.`
+            : `Unpublished (hidden) ${okCount} post${okCount === 1 ? '' : 's'}.`
+        )
+      }
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Batch update failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function toggleOnePublished(post: BlogPostRecord) {
+    await setPublishedForSlugs([post.slug], !post.published)
+  }
 
   function startNew() {
     setIsNew(true)
@@ -157,8 +259,8 @@ export function AdminBlogPanel() {
     }
   }
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSave(e?: React.FormEvent) {
+    e?.preventDefault()
     setBusy(true)
     setError(null)
     setMessage(null)
@@ -181,11 +283,10 @@ export function AdminBlogPanel() {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Save failed')
       }
-      setMessage(`Saved “${form.title.trim()}” to Firebase.`)
+      setMessage(`Saved “${form.title.trim()}”.`)
       setIsNew(false)
       setForm((p) => ({ ...p, slug }))
       await load()
-      setMode('list')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
     } finally {
@@ -624,23 +725,20 @@ export function AdminBlogPanel() {
                   section.type === 'h3' ||
                   section.type === 'p' ||
                   section.type === 'intro') && (
-                  <textarea
+                  <AdminBlogTextField
                     value={section.text ?? ''}
-                    onChange={(e) =>
-                      updateSection(index, { text: e.target.value })
-                    }
+                    onChange={(text) => updateSection(index, { text })}
                     placeholder="Text"
                     rows={4}
-                    className="mt-2 w-full rounded-md border border-border px-3 py-2 text-sm"
                   />
                 )}
 
                 {section.type === 'ul' && (
-                  <textarea
+                  <AdminBlogTextField
                     value={(section.items ?? []).join('\n')}
-                    onChange={(e) =>
+                    onChange={(raw) =>
                       updateSection(index, {
-                        items: e.target.value
+                        items: raw
                           .split('\n')
                           .map((line) => line.trimEnd())
                           .filter((line, i, arr) =>
@@ -650,7 +748,7 @@ export function AdminBlogPanel() {
                     }
                     placeholder="One list item per line"
                     rows={5}
-                    className="mt-3 w-full rounded-md border border-border px-3 py-2 font-mono text-xs"
+                    className="mt-0 w-full rounded-md border border-border px-3 py-2 font-mono text-xs"
                   />
                 )}
 
@@ -671,16 +769,16 @@ export function AdminBlogPanel() {
                           placeholder="Question"
                           className="w-full rounded border border-border px-2 py-1.5 text-sm"
                         />
-                        <textarea
+                        <AdminBlogTextField
                           value={faq.a}
-                          onChange={(e) => {
+                          onChange={(a) => {
                             const faqs = [...(section.faqs ?? [])]
-                            faqs[fi] = { ...faqs[fi], a: e.target.value }
+                            faqs[fi] = { ...faqs[fi], a }
                             updateSection(index, { faqs })
                           }}
                           placeholder="Answer"
                           rows={3}
-                          className="mt-2 w-full rounded border border-border px-2 py-1.5 text-sm"
+                          className="mt-0 w-full rounded border border-border px-2 py-1.5 text-sm"
                         />
                         <button
                           type="button"
@@ -709,6 +807,17 @@ export function AdminBlogPanel() {
                     </button>
                   </div>
                 )}
+
+                <div className="mt-3 flex justify-end border-t border-border pt-3">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void handleSave()}
+                    className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+                  >
+                    {busy ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -736,7 +845,7 @@ export function AdminBlogPanel() {
             disabled={busy}
             className="rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
           >
-            {busy ? 'Saving…' : 'Save to Firebase'}
+            {busy ? 'Saving…' : 'Save'}
           </button>
           {!isNew && (
             <button
@@ -762,7 +871,8 @@ export function AdminBlogPanel() {
             <h2 className="text-lg font-semibold text-ink">Blog posts</h2>
             <p className="mt-1 text-sm text-ink-muted">
               Live posts in Firebase <code className="text-xs">blogPosts</code>.
-              Create, edit, and publish articles for the public blog.
+              Filter drafts vs published, select rows, then batch publish or
+              unpublish (hide from the public blog).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -790,22 +900,89 @@ export function AdminBlogPanel() {
           </div>
         )}
 
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search title, slug, category, author…"
-          className="mt-5 w-full max-w-md rounded-md border border-border px-3 py-2 text-sm"
-        />
+        <div className="mt-5 flex flex-wrap items-end gap-3">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search title, slug, category, author…"
+            className="w-full max-w-md rounded-md border border-border px-3 py-2 text-sm"
+          />
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="mr-1 text-xs text-ink-muted">Show:</span>
+            {(
+              [
+                { id: 'all', label: `All (${counts.total})` },
+                { id: 'published', label: `Published (${counts.published})` },
+                { id: 'draft', label: `Drafts (${counts.draft})` },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={busy}
+                onClick={() => setPublishFilter(opt.id)}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold ${
+                  publishFilter === opt.id
+                    ? 'border-brand bg-brand-light text-brand-dark'
+                    : 'border-border bg-white text-ink-muted hover:bg-surface-raised'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={busy || filtered.length === 0}
+            onClick={selectAllFiltered}
+            className="rounded-md border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+          >
+            Select filtered ({filtered.length})
+          </button>
+          <button
+            type="button"
+            disabled={busy || selected.size === 0}
+            onClick={clearSelection}
+            className="rounded-md border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+          >
+            Clear selection
+          </button>
+          <button
+            type="button"
+            disabled={busy || selectedInView.length === 0}
+            onClick={() => void setPublishedForSlugs(selectedInView, true)}
+            className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-60"
+          >
+            Publish selected ({selectedInView.length})
+          </button>
+          <button
+            type="button"
+            disabled={busy || selectedInView.length === 0}
+            onClick={() => void setPublishedForSlugs(selectedInView, false)}
+            className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100 disabled:opacity-60"
+          >
+            Unpublish selected ({selectedInView.length})
+          </button>
+        </div>
 
         <p className="mt-3 text-xs text-ink-muted">
-          {filtered.length} of {rows.length} posts
+          Showing {filtered.length} of {rows.length} posts
+          {selectedInView.length > 0
+            ? ` · ${selectedInView.length} selected`
+            : ''}
         </p>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-ink-muted">
+                <th className="py-2 pr-2 w-8">
+                  <span className="sr-only">Select</span>
+                </th>
                 <th className="py-2 pr-3">Order</th>
                 <th className="py-2 pr-3">Title</th>
                 <th className="py-2 pr-3">Category</th>
@@ -818,19 +995,30 @@ export function AdminBlogPanel() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-ink-muted">
+                  <td colSpan={8} className="py-6 text-ink-muted">
                     Loading from Firebase…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-ink-muted">
-                    No posts in Firebase yet. Add a new post to get started.
+                  <td colSpan={8} className="py-6 text-ink-muted">
+                    {rows.length === 0
+                      ? 'No posts in Firebase yet. Add a new post to get started.'
+                      : 'No posts match this filter.'}
                   </td>
                 </tr>
               ) : (
                 filtered.map((post) => (
                   <tr key={post.slug} className="border-b border-border/70">
+                    <td className="py-2.5 pr-2">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(post.slug)}
+                        disabled={busy}
+                        onChange={() => toggleSelected(post.slug)}
+                        aria-label={`Select ${post.title}`}
+                      />
+                    </td>
                     <td className="py-2.5 pr-3 text-xs text-ink-muted">
                       {post.sortOrder}
                     </td>
@@ -849,11 +1037,23 @@ export function AdminBlogPanel() {
                     <td className="py-2.5 pr-3">{post.category}</td>
                     <td className="py-2.5 pr-3">{post.author}</td>
                     <td className="py-2.5 pr-3">
-                      {post.published ? (
-                        <span className="font-semibold text-emerald-700">Yes</span>
-                      ) : (
-                        <span className="text-amber-700">Draft</span>
-                      )}
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void toggleOnePublished(post)}
+                        className={`rounded px-2 py-0.5 text-xs font-semibold disabled:opacity-60 ${
+                          post.published
+                            ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                            : 'bg-amber-50 text-amber-900 hover:bg-amber-100'
+                        }`}
+                        title={
+                          post.published
+                            ? 'Click to unpublish (hide from public blog)'
+                            : 'Click to publish (show on public blog)'
+                        }
+                      >
+                        {post.published ? 'Published' : 'Draft'}
+                      </button>
                     </td>
                     <td className="py-2.5 pr-3">
                       {post.featured ? '★' : '—'}

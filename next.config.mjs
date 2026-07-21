@@ -24,6 +24,11 @@ const nextConfig = {
         hostname: 'xlsexperts-49c22.firebasestorage.app',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'static.wixstatic.com',
+        pathname: '/media/**',
+      },
     ],
   },
 }

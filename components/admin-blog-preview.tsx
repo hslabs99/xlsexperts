@@ -9,6 +9,7 @@ import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import type { BlogPost, BlogSection } from '@/lib/types'
 import { BlogImageSizeAdvice } from '@/components/blog-image-size-advice'
+import { renderBlogInline } from '@/lib/blog-inline-markup'
 
 function HeroImage({
   src,
@@ -57,7 +58,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
               </h2>
               {section.text ? (
                 <p className="mt-3 text-base leading-relaxed text-gray-700">
-                  {section.text}
+                  {renderBlogInline(section.text)}
                 </p>
               ) : null}
             </div>
@@ -71,7 +72,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
               </h3>
               {section.text ? (
                 <p className="mt-2 text-base leading-relaxed text-gray-700">
-                  {section.text}
+                  {renderBlogInline(section.text)}
                 </p>
               ) : null}
             </div>
@@ -80,7 +81,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
         if (section.type === 'intro' || section.type === 'p') {
           return (
             <p key={i} className="mt-5 text-base leading-relaxed text-gray-700">
-              {section.text || '…'}
+              {section.text ? renderBlogInline(section.text) : '…'}
             </p>
           )
         }
@@ -97,7 +98,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
                     style={{ backgroundColor: '#1a6b3c' }}
                     aria-hidden="true"
                   />
-                  {item || '…'}
+                  {item ? renderBlogInline(item) : '…'}
                 </li>
               ))}
             </ul>
@@ -121,7 +122,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
                         {faq.q || 'Question'}
                       </dt>
                       <dd className="mt-1.5 text-base leading-relaxed text-gray-700">
-                        {faq.a || 'Answer'}
+                        {faq.a ? renderBlogInline(faq.a) : 'Answer'}
                       </dd>
                     </div>
                   )

@@ -55,6 +55,12 @@ function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
     sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 9999,
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
+    sourceUrl:
+      typeof data.sourceUrl === 'string' ? data.sourceUrl : undefined,
+    sourceImageUrl:
+      typeof data.sourceImageUrl === 'string'
+        ? data.sourceImageUrl
+        : undefined,
   }
 }
 

@@ -11,6 +11,9 @@ export type BlogPostRecord = BlogPost & {
   sortOrder: number
   createdAt: unknown
   updatedAt: unknown
+  /** Present on Wix-harvested drafts */
+  sourceUrl?: string
+  sourceImageUrl?: string
 }
 
 export type BlogPostInput = BlogPost & {

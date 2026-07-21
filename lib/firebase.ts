@@ -79,6 +79,12 @@ export const USERS_COLLECTION = 'users'
 /** Firestore collection for blog posts */
 export const BLOG_POSTS_COLLECTION = 'blogPosts'
 
+/**
+ * Queue of Wix posts to harvest into draft blogPosts.
+ * Doc id = slug. Synced from `lib/wix-blog-seed-urls.ts`.
+ */
+export const BLOG_SEED_TODO_COLLECTION = 'blog_seed_todo'
+
 /** Firestore collection for case studies */
 export const CASE_STUDIES_COLLECTION = 'caseStudies'
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
 import { AdminDialog } from '@/components/admin-dialog'
+import { AdminWixBlogSeedPanel } from '@/components/admin-wix-blog-seed-panel'
 import type { BookingSlot, SeedTemplateConfig } from '@/lib/booking-slots'
 
 type PendingConfirm =
@@ -399,6 +400,15 @@ export function AdminSeedingPanel() {
           </button>
         </div>
       </section>
+
+      <AdminWixBlogSeedPanel
+        busy={busy}
+        setBusy={setBusy}
+        onMessage={(message, error) => {
+          setMessage(message)
+          setError(error ?? null)
+        }}
+      />
 
       <section className="rounded-lg border border-border bg-surface p-6">
         <h3 className="text-base font-semibold text-ink">Case studies</h3>
