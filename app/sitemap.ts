@@ -3,6 +3,7 @@ import { getAllBlogPosts } from '@/lib/blog'
 import { fetchCrawlDocs } from '@/lib/crawl-docs-db'
 import { SITE_BASE_URL } from '@/lib/crawl-docs'
 import { servicePageHrefs } from '@/lib/service-pages'
+import { ALL_SOLUTIONS_HREF, solutionPageHrefs } from '@/lib/solutions'
 
 /** Blog URLs and CMS extras come from Firestore at request time. */
 export const dynamic = 'force-dynamic'
@@ -28,6 +29,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.8,
+    })),
+    {
+      url: `${base}${ALL_SOLUTIONS_HREF}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    },
+    ...solutionPageHrefs.map((href) => ({
+      url: `${base}${href}`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.85,
     })),
     {
       url: `${base}/blog`,

@@ -17,7 +17,12 @@ export type EnquiryRecord = {
   email: string
   phone: string
   message: string
+  /** Task-concern checkboxes */
   services: string[]
+  /** Optional service-catalogue dropdown */
+  service: string
+  /** Optional solution-catalogue dropdown */
+  solution: string
   hear: string
   /** Discovery-only fields */
   day: string
@@ -38,6 +43,8 @@ export type EnquiryInput = {
   phone?: string
   message?: string
   services?: string[]
+  service?: string
+  solution?: string
   hear?: string
   day?: string
   date?: string

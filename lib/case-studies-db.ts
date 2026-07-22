@@ -38,6 +38,14 @@ function mapTags(raw: unknown): string[] {
   return raw.map(String).map((t) => t.trim()).filter(Boolean)
 }
 
+function mapSlugList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map(String)
+    .map((t) => t.trim().replace(/^\//, ''))
+    .filter(Boolean)
+}
+
 function mapRecord(id: string, data: Record<string, unknown>): CaseStudyRecord {
   return {
     slug: String(data.slug ?? id),
@@ -49,6 +57,8 @@ function mapRecord(id: string, data: Record<string, unknown>): CaseStudyRecord {
     solution: String(data.solution ?? ''),
     outcome: String(data.outcome ?? ''),
     tags: mapTags(data.tags),
+    serviceSlugs: mapSlugList(data.serviceSlugs),
+    solutionSlugs: mapSlugList(data.solutionSlugs),
     published: data.published !== false,
     showOnHome: Boolean(data.showOnHome),
     homeOrder: typeof data.homeOrder === 'number' ? data.homeOrder : 9999,
@@ -95,6 +105,12 @@ export async function saveCaseStudy(input: CaseStudyInput): Promise<void> {
       solution: input.solution.trim(),
       outcome: input.outcome.trim(),
       tags: input.tags.map((t) => t.trim()).filter(Boolean),
+      serviceSlugs: (input.serviceSlugs ?? [])
+        .map((t) => t.trim().replace(/^\//, ''))
+        .filter(Boolean),
+      solutionSlugs: (input.solutionSlugs ?? [])
+        .map((t) => t.trim().replace(/^\//, ''))
+        .filter(Boolean),
       published: input.published !== false,
       showOnHome: Boolean(input.showOnHome),
       homeOrder:
@@ -124,6 +140,14 @@ export async function updateCaseStudyFields(
   if (fields.outcome !== undefined) payload.outcome = fields.outcome.trim()
   if (fields.tags !== undefined)
     payload.tags = fields.tags.map((t) => t.trim()).filter(Boolean)
+  if (fields.serviceSlugs !== undefined)
+    payload.serviceSlugs = fields.serviceSlugs
+      .map((t) => t.trim().replace(/^\//, ''))
+      .filter(Boolean)
+  if (fields.solutionSlugs !== undefined)
+    payload.solutionSlugs = fields.solutionSlugs
+      .map((t) => t.trim().replace(/^\//, ''))
+      .filter(Boolean)
   if (fields.published !== undefined) payload.published = fields.published
   if (fields.showOnHome !== undefined) payload.showOnHome = fields.showOnHome
   if (fields.homeOrder !== undefined) payload.homeOrder = fields.homeOrder
@@ -167,7 +191,7 @@ export async function fetchHomeCaseStudiesSnapshot(): Promise<CaseStudy[]> {
   const data = snap.data() as Record<string, unknown>
   if (!Array.isArray(data.items)) return []
   return data.items
-    .map((raw) => {
+    .map((raw): CaseStudy | null => {
       if (!raw || typeof raw !== 'object') return null
       const r = raw as Record<string, unknown>
       const slug = String(r.slug ?? '').trim()
@@ -183,9 +207,11 @@ export async function fetchHomeCaseStudiesSnapshot(): Promise<CaseStudy[]> {
         solution: String(r.solution ?? ''),
         outcome: String(r.outcome ?? ''),
         tags: mapTags(r.tags),
-      } satisfies CaseStudy
+        serviceSlugs: mapSlugList(r.serviceSlugs),
+        solutionSlugs: mapSlugList(r.solutionSlugs),
+      }
     })
-    .filter((item): item is CaseStudy => Boolean(item))
+    .filter((item): item is CaseStudy => item !== null)
     .slice(0, HOME_CASE_STUDIES_LIMIT)
 }
 

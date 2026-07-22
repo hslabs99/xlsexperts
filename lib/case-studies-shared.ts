@@ -16,6 +16,8 @@ export type CaseStudyRecord = CaseStudy & {
   sortOrder: number
   createdAt: unknown
   updatedAt: unknown
+  serviceSlugs: string[]
+  solutionSlugs: string[]
 }
 
 export type CaseStudyInput = CaseStudy & {
@@ -42,6 +44,8 @@ export function toPublicCaseStudy(record: CaseStudyRecord): CaseStudy {
     solution: record.solution,
     outcome: record.outcome,
     tags: record.tags,
+    serviceSlugs: record.serviceSlugs ?? [],
+    solutionSlugs: record.solutionSlugs ?? [],
   }
 }
 

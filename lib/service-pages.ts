@@ -198,11 +198,48 @@ export const homeServicePages: readonly ServicePage[] = homeHrefs.map(
 
 export const ALL_SERVICES_HREF = '/services'
 
+/** Resolve a service page from href, slug, or pathname. */
+export function getServiceByHref(
+  hrefOrSlug: string | null | undefined,
+): ServicePage | undefined {
+  if (!hrefOrSlug) return undefined
+  const raw = hrefOrSlug.trim()
+  if (!raw) return undefined
+  const href = raw.startsWith('/') ? raw.replace(/\/$/, '') || '/' : `/${raw.replace(/\/$/, '')}`
+  return servicePages.find((p) => p.href === href)
+}
+
+export function contactLabelForService(
+  hrefOrSlug: string | null | undefined,
+): string | undefined {
+  return getServiceByHref(hrefOrSlug)?.label
+}
+
+/** Prefill helper when Contact is mounted on a service landing page. */
+export function contactLabelForServicePath(
+  pathname: string | null | undefined,
+): string | undefined {
+  if (!pathname) return undefined
+  const path = pathname.replace(/\/$/, '') || '/'
+  return servicePages.find(
+    (p) => path === p.href || path.startsWith(`${p.href}/`),
+  )?.label
+}
+
+export function contactHrefForService(href: string): string {
+  const path = href.startsWith('/') ? href : `/${href}`
+  const slug = path.replace(/^\//, '')
+  return `${path}?service=${encodeURIComponent(slug)}#contact`
+}
+
 /** Pages that mount the shared Contact / booking section. */
 export function pageHasContactSection(pathname: string | null): boolean {
   if (!pathname) return false
   if (pathname === '/') return true
   if (pathname === ALL_SERVICES_HREF || pathname.startsWith(`${ALL_SERVICES_HREF}/`)) {
+    return true
+  }
+  if (pathname === '/solutions' || pathname.startsWith('/solutions/')) {
     return true
   }
   if (pathname.startsWith('/enterprise-excel-vba-development')) return true

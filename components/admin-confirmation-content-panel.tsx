@@ -79,7 +79,13 @@ export function AdminConfirmationContentPanel() {
     setMessage(null)
     try {
       if (!form.heading.trim() || !form.subheading.trim()) {
-        throw new Error('Heading and subheading are required.')
+        throw new Error('Enquiry heading and subheading are required.')
+      }
+      if (
+        !form.discoveryHeading.trim() ||
+        !form.discoverySubheading.trim()
+      ) {
+        throw new Error('Discovery heading and subheading are required.')
       }
       if (form.whatHappensNext.some((s) => !s.text.trim())) {
         throw new Error('Each “What happens next” step needs text.')
@@ -93,7 +99,9 @@ export function AdminConfirmationContentPanel() {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Save failed')
       }
-      setMessage('Confirmation copy saved to Firebase (Site Content).')
+      setMessage(
+        'Thank-you page copy saved to Firebase (Site Content / contact-confirmation).'
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
     } finally {
@@ -104,7 +112,7 @@ export function AdminConfirmationContentPanel() {
   if (loading) {
     return (
       <div className="rounded-lg border border-border bg-surface p-6 text-sm text-ink-muted">
-        Loading confirmation copy from Firebase…
+        Loading thank-you page copy from Firebase…
       </div>
     )
   }
@@ -112,16 +120,15 @@ export function AdminConfirmationContentPanel() {
   return (
     <form
       onSubmit={(e) => void handleSave(e)}
-      className="space-y-4 rounded-lg border border-border bg-surface p-6"
+      className="space-y-6 rounded-lg border border-border bg-surface p-6"
     >
       <div>
-        <h2 className="text-lg font-semibold text-ink">
-          Standard enquiry confirmation copy
-        </h2>
+        <h2 className="text-lg font-semibold text-ink">Thank-you page copy</h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Shown after someone sends a standard enquiry (not discovery). Stored in
-          Firebase <code className="text-xs">Site Content / contact-confirmation</code>
-          .
+          Shown on <code className="text-xs">/thank-you</code> after a standard
+          enquiry or discovery booking (conversion tracking URL). Stored in
+          Firebase{' '}
+          <code className="text-xs">Site Content / contact-confirmation</code>.
         </p>
       </div>
 
@@ -137,56 +144,165 @@ export function AdminConfirmationContentPanel() {
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="font-medium text-ink">Eyebrow</span>
+      <fieldset className="space-y-3 rounded-md border border-border p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">
+          Standard enquiry
+        </legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="font-medium text-ink">Eyebrow</span>
+            <input
+              value={form.eyebrow}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, eyebrow: e.target.value }))
+              }
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="font-medium text-ink">Heading</span>
+            <input
+              value={form.heading}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, heading: e.target.value }))
+              }
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="font-medium text-ink">Subheading</span>
+            <textarea
+              value={form.subheading}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, subheading: e.target.value }))
+              }
+              rows={3}
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-ink">Panel heading</span>
+            <input
+              value={form.panelHeading}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, panelHeading: e.target.value }))
+              }
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-ink">Panel body</span>
+            <textarea
+              value={form.panelBody}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, panelBody: e.target.value }))
+              }
+              rows={3}
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-md border border-border p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">
+          Discovery call booking
+        </legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="font-medium text-ink">Eyebrow</span>
+            <input
+              value={form.discoveryEyebrow}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, discoveryEyebrow: e.target.value }))
+              }
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="font-medium text-ink">Heading</span>
+            <input
+              value={form.discoveryHeading}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, discoveryHeading: e.target.value }))
+              }
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="font-medium text-ink">Subheading</span>
+            <textarea
+              value={form.discoverySubheading}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  discoverySubheading: e.target.value,
+                }))
+              }
+              rows={3}
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-ink">Panel heading</span>
+            <input
+              value={form.discoveryPanelHeading}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  discoveryPanelHeading: e.target.value,
+                }))
+              }
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-ink">Panel body</span>
+            <textarea
+              value={form.discoveryPanelBody}
+              onChange={(e) =>
+                setForm((p) => ({
+                  ...p,
+                  discoveryPanelBody: e.target.value,
+                }))
+              }
+              rows={3}
+              className="rounded-md border border-border px-3 py-2"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-md border border-border p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">
+          Shared reassurance
+        </legend>
+        <p className="text-xs text-ink-muted">
+          Shown on both thank-you variants — keep them with you rather than
+          shopping other consultants.
+        </p>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-ink">Title</span>
           <input
-            value={form.eyebrow}
-            onChange={(e) => setForm((p) => ({ ...p, eyebrow: e.target.value }))}
-            className="rounded-md border border-border px-3 py-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="font-medium text-ink">Heading</span>
-          <input
-            value={form.heading}
-            onChange={(e) => setForm((p) => ({ ...p, heading: e.target.value }))}
-            className="rounded-md border border-border px-3 py-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="font-medium text-ink">Subheading</span>
-          <textarea
-            value={form.subheading}
+            value={form.reassureTitle}
             onChange={(e) =>
-              setForm((p) => ({ ...p, subheading: e.target.value }))
+              setForm((p) => ({ ...p, reassureTitle: e.target.value }))
             }
-            rows={3}
             className="rounded-md border border-border px-3 py-2"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-ink">Panel heading</span>
-          <input
-            value={form.panelHeading}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, panelHeading: e.target.value }))
-            }
-            className="rounded-md border border-border px-3 py-2"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-ink">Panel body</span>
+          <span className="font-medium text-ink">Body</span>
           <textarea
-            value={form.panelBody}
+            value={form.reassureBody}
             onChange={(e) =>
-              setForm((p) => ({ ...p, panelBody: e.target.value }))
+              setForm((p) => ({ ...p, reassureBody: e.target.value }))
             }
-            rows={3}
+            rows={4}
             className="rounded-md border border-border px-3 py-2"
           />
         </label>
-      </div>
+      </fieldset>
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2">

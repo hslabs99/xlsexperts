@@ -12,17 +12,19 @@ export const revalidate = 120
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Excel & Spreadsheet Consulting NZ | XLS Experts',
+    absolute:
+      'Excel Experts, Excel Data Analysis, Consulting & Solutions in New Zealand',
   },
   description:
-    'XLS Experts are New Zealand\'s leading Excel and spreadsheet consultants. We build VBA automation, dashboards, financial models, and workflow automation tools for NZ businesses.',
+    'Spreadsheet experts in Auckland, New Zealand ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.',
   alternates: {
     canonical: 'https://www.xlsexperts.co.nz',
   },
   openGraph: {
-    title: 'Excel & Spreadsheet Consulting NZ | XLS Experts',
+    title:
+      'Excel Experts, Excel Data Analysis, Consulting & Solutions in New Zealand',
     description:
-      'New Zealand\'s leading Excel consultants. VBA automation, dashboards, financial modelling, and workflow automation.',
+      'Spreadsheet experts in Auckland, New Zealand ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.',
     url: 'https://www.xlsexperts.co.nz',
     images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
   },

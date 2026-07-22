@@ -44,6 +44,8 @@ export function buildContactEnquiryEmail(
 ): ContactEnquiryEmail {
   const services =
     payload.services?.length > 0 ? payload.services.join(', ') : 'None selected'
+  const service = payload.service?.trim() || 'Not selected'
+  const solution = payload.solution?.trim() || 'Not selected'
   const company = payload.company?.trim() || 'Not provided'
   const phone = payload.phone?.trim() || 'Not provided'
   const hear = payload.hear?.trim() || 'Not provided'
@@ -57,7 +59,9 @@ export function buildContactEnquiryEmail(
     `Company: ${company}`,
     `Email: ${payload.email.trim()}`,
     `Phone: ${phone}`,
-    `Services: ${services}`,
+    `Concerns: ${services}`,
+    `Service: ${service}`,
+    `Solution: ${solution}`,
     `How they heard: ${hear}`,
     '',
     'Message:',
@@ -71,7 +75,9 @@ export function buildContactEnquiryEmail(
       <tr><td><strong>Company</strong></td><td>${escapeHtml(company)}</td></tr>
       <tr><td><strong>Email</strong></td><td>${escapeHtml(payload.email.trim())}</td></tr>
       <tr><td><strong>Phone</strong></td><td>${escapeHtml(phone)}</td></tr>
-      <tr><td><strong>Services</strong></td><td>${escapeHtml(services)}</td></tr>
+      <tr><td><strong>Concerns</strong></td><td>${escapeHtml(services)}</td></tr>
+      <tr><td><strong>Service</strong></td><td>${escapeHtml(service)}</td></tr>
+      <tr><td><strong>Solution</strong></td><td>${escapeHtml(solution)}</td></tr>
       <tr><td><strong>How they heard</strong></td><td>${escapeHtml(hear)}</td></tr>
     </table>
     <h3>Message</h3>

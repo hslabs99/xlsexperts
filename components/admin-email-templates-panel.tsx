@@ -36,6 +36,8 @@ const SAMPLE_CTX: EnquiryMergeContext = {
   hear: 'Google Search',
   concernsPlain: 'Macros / VBA, Charts & Dashboards',
   concernsHtml: '<ul><li>Macros / VBA</li><li>Charts &amp; Dashboards</li></ul>',
+  service: 'Excel VBA Development',
+  solution: 'Dashboards & Business Intelligence',
   enquiryType: 'Standard enquiry',
   when: '',
   method: '',
@@ -135,6 +137,16 @@ export function AdminEmailTemplatesPanel() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // After load, open the active standard template so it isn't buried under the
+  // discovery preview or an unused discovery-kind Firestore row.
+  useEffect(() => {
+    if (loading || selectedId !== null || templates.length === 0) return
+    const standard =
+      templates.find((t) => t.kind === 'standard' && t.active) ??
+      templates.find((t) => t.kind === 'standard')
+    if (standard) startEdit(standard)
+  }, [loading, selectedId, templates])
 
   const selected = useMemo(
     () => templates.find((t) => t.id === selectedId) ?? null,
@@ -398,8 +410,12 @@ export function AdminEmailTemplatesPanel() {
         <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
-              Templates
+              Editable templates
             </h3>
+            <p className="mt-1 text-xs text-ink-muted">
+              Standard enquiry replies are edited here. The discovery preview
+              above is separate (code-driven).
+            </p>
             {loading ? (
               <p className="mt-3 text-sm text-ink-muted">Loading…</p>
             ) : templates.length === 0 ? (
@@ -419,11 +435,19 @@ export function AdminEmailTemplatesPanel() {
                           : 'hover:bg-surface-raised text-ink'
                       }`}
                     >
-                      <span className="block truncate">{t.name}</span>
+                      <span className="block truncate">
+                        {t.name.trim() ||
+                          (t.kind === 'standard'
+                            ? 'Unnamed standard template'
+                            : 'Unnamed discovery template')}
+                      </span>
                       <span className="mt-0.5 block text-xs text-ink-muted">
                         {t.kind}
                         {t.active ? '' : ' · inactive'} · To:{' '}
                         {t.recipients.to}
+                        {t.kind === 'discovery'
+                          ? ' · not used for bookings'
+                          : ''}
                       </span>
                     </button>
                   </li>

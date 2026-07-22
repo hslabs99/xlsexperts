@@ -14,6 +14,8 @@ const SAMPLE_DISCOVERY_CTX: EnquiryMergeContext = {
   hear: 'Admin panel',
   concernsPlain: 'Macros / VBA, Charts & Dashboards',
   concernsHtml: '<ul><li>Macros / VBA</li><li>Charts &amp; Dashboards</li></ul>',
+  service: 'Excel VBA Development',
+  solution: 'Dashboards & Business Intelligence',
   enquiryType: 'Discovery request (Microsoft Teams)',
   when: 'Tuesday · 21 July 2026 · 10:00 AM',
   method: 'Microsoft Teams',

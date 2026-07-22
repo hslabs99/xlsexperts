@@ -23,6 +23,8 @@ function mapBooking(data: Record<string, unknown>): BookingDetails | null {
     phone: String(b.phone ?? ''),
     message: String(b.message ?? ''),
     services: Array.isArray(b.services) ? b.services.map(String) : [],
+    service: String(b.service ?? ''),
+    solution: String(b.solution ?? ''),
     hear: String(b.hear ?? ''),
     method: String(b.method ?? ''),
     // Admin Timestamp still has toDate(); BookingDetails may type bookedAt as client Timestamp

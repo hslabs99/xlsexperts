@@ -42,13 +42,21 @@ function mapTemplate(id: string, data: Record<string, unknown>): EmailTemplate {
 }
 
 export async function fetchEmailTemplates(): Promise<EmailTemplate[]> {
-  const snap = await getAdminDb()
-    .collection(EMAIL_TEMPLATES_COLLECTION)
-    .orderBy('name', 'asc')
-    .get()
-  return snap.docs.map((d) =>
+  // Fetch without orderBy('name'): Firestore omits docs that lack that field,
+  // which hid working standard templates from Admin while send still found them
+  // via where('kind' == …). Sort in memory instead.
+  const snap = await getAdminDb().collection(EMAIL_TEMPLATES_COLLECTION).get()
+  const templates = snap.docs.map((d) =>
     mapTemplate(d.id, d.data() as Record<string, unknown>)
   )
+  templates.sort((a, b) => {
+    // Prefer standard first — that is what Admin edits; discovery rows are unused for bookings.
+    if (a.kind !== b.kind) {
+      return a.kind === 'standard' ? -1 : 1
+    }
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  })
+  return templates
 }
 
 export async function fetchEmailTemplateById(

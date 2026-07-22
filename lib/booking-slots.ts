@@ -17,6 +17,8 @@ export interface BookingDetails {
   phone: string
   message: string
   services: string[]
+  service: string
+  solution: string
   hear: string
   method: string
   bookedAt?: Timestamp | null

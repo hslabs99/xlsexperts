@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { usePathname } from 'next/navigation'
 import { ChevronDown, Menu, X } from 'lucide-react'
 import { pageHasContactSection, servicePages } from '@/lib/service-pages'
+import { ALL_SOLUTIONS_HREF, solutionPages } from '@/lib/solutions'
 
 const navLinks = [
   { label: 'How We Work', href: '#how-we-work' },
-  { label: 'Services', href: '#services', dropdown: true as const },
+  { label: 'Solutions', href: ALL_SOLUTIONS_HREF, dropdown: 'solutions' as const },
+  { label: 'Services', href: '#services', dropdown: 'services' as const },
   { label: 'Case Studies', href: '#case-studies' },
   { label: 'Enterprise', href: '/enterprise-excel-vba-development' },
   { label: 'About', href: '#about' },
@@ -29,11 +31,14 @@ function resolveNavHref(href: string, pathname: string | null): string {
   return `/${href}`
 }
 
+type OpenMenu = 'services' | 'solutions' | null
+
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [servicesOpen, setServicesOpen] = useState(false)
-  const [mobileServicesOpen, setMobileServicesOpen] = useState(false)
+  const [desktopOpen, setDesktopOpen] = useState<OpenMenu>(null)
+  const [mobileOpenMenu, setMobileOpenMenu] = useState<OpenMenu>(null)
   const servicesRef = useRef<HTMLDivElement>(null)
+  const solutionsRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
 
   const links = navLinks.map((link) => ({
@@ -44,16 +49,19 @@ export function Navbar() {
   const servicesOverviewHref = '/services'
 
   useEffect(() => {
-    if (!servicesOpen) return
+    if (!desktopOpen) return
 
     function handlePointerDown(event: MouseEvent) {
-      if (servicesRef.current && !servicesRef.current.contains(event.target as Node)) {
-        setServicesOpen(false)
-      }
+      const target = event.target as Node
+      const inServices =
+        servicesRef.current && servicesRef.current.contains(target)
+      const inSolutions =
+        solutionsRef.current && solutionsRef.current.contains(target)
+      if (!inServices && !inSolutions) setDesktopOpen(null)
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setServicesOpen(false)
+      if (event.key === 'Escape') setDesktopOpen(null)
     }
 
     document.addEventListener('mousedown', handlePointerDown)
@@ -62,13 +70,132 @@ export function Navbar() {
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [servicesOpen])
+  }, [desktopOpen])
 
   useEffect(() => {
-    setServicesOpen(false)
-    setMobileServicesOpen(false)
+    setDesktopOpen(null)
+    setMobileOpenMenu(null)
     setMobileOpen(false)
   }, [pathname])
+
+  function renderDesktopDropdown(
+    kind: 'services' | 'solutions',
+    buttonLabel: string,
+    overviewHref: string,
+    overviewLabel: string,
+    items: { href: string; label: string }[],
+    ref: RefObject<HTMLDivElement | null>,
+  ) {
+    const open = desktopOpen === kind
+    return (
+      <div key={buttonLabel} className="relative flex items-center" ref={ref}>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-1 p-0 text-sm font-medium leading-none text-gray-500 transition-colors hover:text-gray-900"
+          aria-expanded={open}
+          aria-haspopup="true"
+          onClick={() => setDesktopOpen((current) => (current === kind ? null : kind))}
+        >
+          {buttonLabel}
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
+        </button>
+        {open && (
+          <div
+            className={`absolute top-full z-50 mt-3 rounded-lg border border-gray-200 bg-white py-2 shadow-lg ${
+              kind === 'solutions'
+                ? 'left-0 w-80'
+                : 'left-1/2 w-72 -translate-x-1/2'
+            }`}
+            role="menu"
+            aria-label={buttonLabel}
+          >
+            <a
+              href={overviewHref}
+              className="block border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
+              role="menuitem"
+              onClick={() => setDesktopOpen(null)}
+            >
+              {overviewLabel}
+            </a>
+            <div className="max-h-[70vh] overflow-y-auto py-1">
+              {items.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="block px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                  role="menuitem"
+                  onClick={() => setDesktopOpen(null)}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function renderMobileDropdown(
+    kind: 'services' | 'solutions',
+    buttonLabel: string,
+    overviewHref: string,
+    overviewLabel: string,
+    items: { href: string; label: string }[],
+  ) {
+    const open = mobileOpenMenu === kind
+    return (
+      <div key={buttonLabel}>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-md px-2 py-2.5 text-left text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+          aria-expanded={open}
+          onClick={() =>
+            setMobileOpenMenu((current) => (current === kind ? null : kind))
+          }
+        >
+          {buttonLabel}
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
+        </button>
+        {open && (
+          <div className="mb-1 ml-2 border-l border-gray-200 pl-3">
+            <a
+              href={overviewHref}
+              className="block rounded-md px-2 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
+              onClick={() => setMobileOpen(false)}
+            >
+              {overviewLabel}
+            </a>
+            {items.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="block rounded-md px-2 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                onClick={() => setMobileOpen(false)}
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const solutionItems = solutionPages.map((s) => ({
+    href: s.href,
+    label: s.navLabel,
+  }))
+  const serviceItems = servicePages.map((s) => ({
+    href: s.href,
+    label: s.label,
+  }))
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b-2 border-[#1a6b3c] bg-white/95 backdrop-blur-sm">
@@ -96,54 +223,29 @@ export function Navbar() {
           </span>
         </a>
 
-        <nav aria-label="Main navigation" className="hidden items-center gap-7 md:flex">
-          {links.map((link) =>
-            link.dropdown ? (
-              <div key={link.label} className="relative flex items-center" ref={servicesRef}>
-                <button
-                  type="button"
-                  className="inline-flex h-8 items-center gap-1 p-0 text-sm font-medium leading-none text-gray-500 transition-colors hover:text-gray-900"
-                  aria-expanded={servicesOpen}
-                  aria-haspopup="true"
-                  onClick={() => setServicesOpen((open) => !open)}
-                >
-                  Services
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 shrink-0 transition-transform ${servicesOpen ? 'rotate-180' : ''}`}
-                    aria-hidden="true"
-                  />
-                </button>
-                {servicesOpen && (
-                  <div
-                    className="absolute left-1/2 top-full z-50 mt-3 w-72 -translate-x-1/2 rounded-lg border border-gray-200 bg-white py-2 shadow-lg"
-                    role="menu"
-                    aria-label="Services"
-                  >
-                    <a
-                      href={servicesOverviewHref}
-                      className="block border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
-                      role="menuitem"
-                      onClick={() => setServicesOpen(false)}
-                    >
-                      All services overview
-                    </a>
-                    <div className="max-h-[70vh] overflow-y-auto py-1">
-                      {servicePages.map((service) => (
-                        <a
-                          key={service.href}
-                          href={service.href}
-                          className="block px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-                          role="menuitem"
-                          onClick={() => setServicesOpen(false)}
-                        >
-                          {service.label}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
+        <nav aria-label="Main navigation" className="hidden items-center gap-6 lg:flex">
+          {links.map((link) => {
+            if (link.dropdown === 'solutions') {
+              return renderDesktopDropdown(
+                'solutions',
+                'Solutions',
+                ALL_SOLUTIONS_HREF,
+                'All Solutions',
+                solutionItems,
+                solutionsRef,
+              )
+            }
+            if (link.dropdown === 'services') {
+              return renderDesktopDropdown(
+                'services',
+                'Services',
+                servicesOverviewHref,
+                'All services overview',
+                serviceItems,
+                servicesRef,
+              )
+            }
+            return (
               <a
                 key={link.label}
                 href={link.href}
@@ -151,11 +253,11 @@ export function Navbar() {
               >
                 {link.label}
               </a>
-            ),
-          )}
+            )
+          })}
         </nav>
 
-        <div className="hidden items-center md:flex">
+        <div className="hidden items-center lg:flex">
           <a
             href={contactHref}
             className="btn-primary inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold shadow-sm"
@@ -165,7 +267,7 @@ export function Navbar() {
         </div>
 
         <button
-          className="flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-50 hover:text-gray-900 md:hidden"
+          className="flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-50 hover:text-gray-900 lg:hidden"
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -175,46 +277,28 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-gray-100 bg-white px-6 pb-5 pt-3 md:hidden">
+        <div className="border-t border-gray-100 bg-white px-6 pb-5 pt-3 lg:hidden">
           <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
-            {links.map((link) =>
-              link.dropdown ? (
-                <div key={link.label}>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between rounded-md px-2 py-2.5 text-left text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-                    aria-expanded={mobileServicesOpen}
-                    onClick={() => setMobileServicesOpen((open) => !open)}
-                  >
-                    Services
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${mobileServicesOpen ? 'rotate-180' : ''}`}
-                      aria-hidden="true"
-                    />
-                  </button>
-                  {mobileServicesOpen && (
-                    <div className="mb-1 ml-2 border-l border-gray-200 pl-3">
-                      <a
-                        href={servicesOverviewHref}
-                        className="block rounded-md px-2 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        All services overview
-                      </a>
-                      {servicePages.map((service) => (
-                        <a
-                          key={service.href}
-                          href={service.href}
-                          className="block rounded-md px-2 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          {service.label}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
+            {links.map((link) => {
+              if (link.dropdown === 'solutions') {
+                return renderMobileDropdown(
+                  'solutions',
+                  'Solutions',
+                  ALL_SOLUTIONS_HREF,
+                  'All Solutions',
+                  solutionItems,
+                )
+              }
+              if (link.dropdown === 'services') {
+                return renderMobileDropdown(
+                  'services',
+                  'Services',
+                  servicesOverviewHref,
+                  'All services overview',
+                  serviceItems,
+                )
+              }
+              return (
                 <a
                   key={link.label}
                   href={link.href}
@@ -223,8 +307,8 @@ export function Navbar() {
                 >
                   {link.label}
                 </a>
-              ),
-            )}
+              )
+            })}
           </nav>
           <div className="mt-3">
             <a

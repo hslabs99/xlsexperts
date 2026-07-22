@@ -80,6 +80,8 @@ export function buildStandardMergeContext(
     hear: payload.hear?.trim() || 'Not provided',
     concernsPlain: concernsPlain(payload.services),
     concernsHtml: concernsHtml(payload.services),
+    service: payload.service?.trim() || 'Not selected',
+    solution: payload.solution?.trim() || 'Not selected',
     enquiryType: 'Standard enquiry',
     when: '',
     method: '',

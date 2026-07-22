@@ -83,10 +83,11 @@ Sitemap: ${SITE_BASE_URL}/sitemap.xml
 
 export const DEFAULT_LLMS_TXT = `# XLS Experts — Excel & Spreadsheet Consulting, New Zealand
 
-XLS Experts is New Zealand's leading Excel and spreadsheet consulting firm. We design and build custom Excel tools, VBA automation, dashboards, financial models, and workflow automation solutions for businesses across New Zealand.
+XLS Experts is a New Zealand business systems consultancy. We design and build practical systems that may combine Excel, Microsoft 365, cloud applications, databases and integrations — helping organisations improve, automate or replace spreadsheet-driven processes.
 
 ## What we do
 
+- **Business systems solutions**: Spreadsheet modernisation, dashboards & BI, resource planning, financial modelling, quoting systems, field apps, client/staff portals, and workflow automation — see ${SITE_BASE_URL}/solutions
 - **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
 - **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
 - **Financial Modelling**: Budget vs actual reporting, cash flow forecasting, scenario analysis, and management reporting tools for finance teams.
@@ -137,6 +138,7 @@ VBA (Visual Basic for Applications) is Excel's built-in programming language. VB
 ## Key pages
 
 - Homepage: ${SITE_BASE_URL}
+- Solutions: ${SITE_BASE_URL}/solutions
 - Enterprise Excel VBA Development: ${SITE_BASE_URL}/enterprise-excel-vba-development
 - Blog: ${SITE_BASE_URL}/blog
 

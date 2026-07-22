@@ -12,6 +12,8 @@ import {
 import {
   CONTACT_HEAR_OPTIONS,
   CONTACT_SERVICE_OPTIONS,
+  CONTACT_SERVICE_PAGE_OPTIONS,
+  CONTACT_SOLUTION_OPTIONS,
 } from '@/lib/contact-options'
 import { AdminDialog } from '@/components/admin-dialog'
 
@@ -281,6 +283,55 @@ function EnquiryDetailModal({
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-600">
+                Service
+              </span>
+              <select
+                disabled
+                value={enquiry.service || ''}
+                className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-ink disabled:opacity-100"
+              >
+                <option value="">
+                  {enquiry.service ? enquiry.service : 'Not selected'}
+                </option>
+                {CONTACT_SERVICE_PAGE_OPTIONS.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+                {enquiry.service &&
+                !CONTACT_SERVICE_PAGE_OPTIONS.includes(enquiry.service) ? (
+                  <option value={enquiry.service}>{enquiry.service}</option>
+                ) : null}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-600">
+                Solution
+              </span>
+              <select
+                disabled
+                value={enquiry.solution || ''}
+                className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-ink disabled:opacity-100"
+              >
+                <option value="">
+                  {enquiry.solution ? enquiry.solution : 'Not selected'}
+                </option>
+                {CONTACT_SOLUTION_OPTIONS.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+                {enquiry.solution &&
+                !CONTACT_SOLUTION_OPTIONS.includes(enquiry.solution) ? (
+                  <option value={enquiry.solution}>{enquiry.solution}</option>
+                ) : null}
+              </select>
+            </label>
           </div>
 
           <label className="flex flex-col gap-1 text-sm">

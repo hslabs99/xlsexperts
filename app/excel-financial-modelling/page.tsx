@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
+import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
@@ -163,6 +164,15 @@ export default async function ExcelFinancialModellingPage() {
             </div>
           </div>
         </section>
+
+        <SolutionCrossLinks
+          links={[
+            {
+              href: '/solutions/project-costing-financial-modelling',
+              label: 'Project Costing & Financial Modelling',
+            },
+          ]}
+        />
 
         <section className="py-16 text-center" style={{ backgroundColor: '#1a6b3c' }}>
           <div className="mx-auto max-w-xl px-6">

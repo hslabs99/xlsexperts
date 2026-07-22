@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { Plus, Trash2, Upload, Home, Eye } from 'lucide-react'
+import { Plus, Trash2, Upload, Home, Eye, Sparkles } from 'lucide-react'
 import {
   HOME_CASE_STUDIES_LIMIT,
   selectHomeCaseStudies,
@@ -14,8 +14,12 @@ import {
   AdminCaseStudiesPreviewShell,
   type CaseStudyPreviewKind,
 } from '@/components/admin-case-studies-preview'
+import { AdminCaseStudyAiAssist } from '@/components/admin-case-study-ai-assist'
+import type { CaseStudyAiDraft } from '@/lib/case-study-ai-types'
+import { servicePages } from '@/lib/service-pages'
+import { solutionPages } from '@/lib/solutions'
 
-type EditorMode = 'list' | 'edit' | 'preview'
+type EditorMode = 'list' | 'edit' | 'preview' | 'ai'
 
 function emptyRecord(): CaseStudyRecord {
   return {
@@ -28,6 +32,8 @@ function emptyRecord(): CaseStudyRecord {
     solution: '',
     outcome: '',
     tags: [],
+    serviceSlugs: [],
+    solutionSlugs: [],
     published: true,
     showOnHome: false,
     homeOrder: 9999,
@@ -64,6 +70,7 @@ export function AdminCaseStudiesPanel() {
   const [search, setSearch] = useState('')
   const [tagsText, setTagsText] = useState('')
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [previewKind, setPreviewKind] = useState<CaseStudyPreviewKind>('card')
   const [previewSlug, setPreviewSlug] = useState('')
@@ -96,6 +103,16 @@ export function AdminCaseStudiesPanel() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    if (!pendingImageFile) {
+      setPendingPreviewUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(pendingImageFile)
+    setPendingPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [pendingImageFile])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return rows
@@ -116,8 +133,59 @@ export function AdminCaseStudiesPanel() {
     setError(null)
   }
 
+  function startAiAssist() {
+    setMessage(null)
+    setError(null)
+    setMode('ai')
+  }
+
+  function applyAiDraft(draft: CaseStudyAiDraft, imageFile: File | null) {
+    setForm({
+      ...emptyRecord(),
+      title: draft.title,
+      client: draft.client,
+      sector: draft.sector,
+      slug: draft.slug,
+      problem: draft.problem,
+      solution: draft.solution,
+      outcome: draft.outcome,
+      tags: draft.tags,
+      serviceSlugs: draft.serviceSlugs,
+      solutionSlugs: draft.solutionSlugs,
+      published: false,
+    })
+    setTagsText(draft.tags.join(', '))
+    setPendingImageFile(imageFile)
+    setIsNew(true)
+    setMode('edit')
+    setMessage(
+      imageFile
+        ? 'AI draft and image applied. Review fields, then Save to publish to Firestore.'
+        : 'AI draft applied. Review fields (and generate/upload an image if needed), then Save.'
+    )
+    setError(null)
+  }
+
+  function toggleSlug(
+    field: 'serviceSlugs' | 'solutionSlugs',
+    slug: string
+  ) {
+    setForm((prev) => {
+      const current = prev[field] ?? []
+      const next = current.includes(slug)
+        ? current.filter((s) => s !== slug)
+        : [...current, slug]
+      return { ...prev, [field]: next }
+    })
+  }
+
   function startEdit(row: CaseStudyRecord) {
-    setForm({ ...row, tags: [...row.tags] })
+    setForm({
+      ...row,
+      tags: [...row.tags],
+      serviceSlugs: [...(row.serviceSlugs ?? [])],
+      solutionSlugs: [...(row.solutionSlugs ?? [])],
+    })
     setTagsText(row.tags.join(', '))
     setPendingImageFile(null)
     setIsNew(false)
@@ -143,7 +211,12 @@ export function AdminCaseStudiesPanel() {
     }
     if (row) {
       setIsNew(false)
-      setForm({ ...row, tags: [...row.tags] })
+      setForm({
+        ...row,
+        tags: [...row.tags],
+        serviceSlugs: [...(row.serviceSlugs ?? [])],
+        solutionSlugs: [...(row.solutionSlugs ?? [])],
+      })
       setTagsText(row.tags.join(', '))
     }
     setPreviewReturn(returnTo)
@@ -183,6 +256,8 @@ export function AdminCaseStudiesPanel() {
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
+        serviceSlugs: form.serviceSlugs ?? [],
+        solutionSlugs: form.solutionSlugs ?? [],
         showOnHome: homeOn,
         homeOrder: homeOn
           ? typeof form.homeOrder === 'number' && form.homeOrder < 9000
@@ -321,6 +396,17 @@ export function AdminCaseStudiesPanel() {
     )
   }
 
+  if (mode === 'ai') {
+    return (
+      <div className="space-y-6">
+        <AdminCaseStudyAiAssist
+          onApply={applyAiDraft}
+          onCancel={() => setMode('list')}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-border bg-surface p-6">
@@ -329,7 +415,10 @@ export function AdminCaseStudiesPanel() {
             <h2 className="text-lg font-semibold text-ink">Case studies</h2>
             <p className="mt-1 max-w-2xl text-sm text-ink-muted">
               Firestore collection <code className="text-xs">caseStudies</code>.
-              Homepage first paint uses a published snapshot in{' '}
+              Use <strong>AI Assist</strong> to draft copy and images from a
+              short brief, or create manually. Tag studies to services and
+              solutions for page linking. Homepage first paint uses a published
+              snapshot in{' '}
               <code className="text-xs">Site Content / case-studies-home</code>{' '}
               (one document read). Visitors load more only when they click{' '}
               <strong>Show more</strong>.
@@ -361,6 +450,15 @@ export function AdminCaseStudiesPanel() {
             >
               <Eye className="h-4 w-4" />
               Preview homepage
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={startAiAssist}
+              className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 bg-brand-light px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/15 disabled:opacity-60"
+            >
+              <Sparkles className="h-4 w-4" />
+              AI Assist
             </button>
             <button
               type="button"
@@ -652,12 +750,13 @@ export function AdminCaseStudiesPanel() {
                 </span>
               )}
             </div>
-            {form.image && (
+            {(pendingPreviewUrl || form.image) && (
               <div className="relative h-28 w-full overflow-hidden rounded-md border border-border sm:col-span-2">
                 <Image
-                  src={form.image}
+                  src={pendingPreviewUrl || form.image}
                   alt=""
                   fill
+                  unoptimized={Boolean(pendingPreviewUrl)}
                   className="object-cover"
                   sizes="600px"
                 />
@@ -710,6 +809,64 @@ export function AdminCaseStudiesPanel() {
                 placeholder="Excel, VBA, SQL DB"
               />
             </label>
+
+            <fieldset className="sm:col-span-2">
+              <legend className="text-sm font-medium text-ink">
+                Linked solutions
+              </legend>
+              <p className="mt-1 text-xs text-ink-muted">
+                Used to surface this study on Solutions pages.
+              </p>
+              <div className="mt-2 grid max-h-48 gap-1.5 overflow-y-auto rounded-md border border-border bg-surface-raised p-3 sm:grid-cols-2">
+                {solutionPages.map((s) => {
+                  const checked = (form.solutionSlugs ?? []).includes(s.slug)
+                  return (
+                    <label
+                      key={s.slug}
+                      className="inline-flex items-start gap-2 text-xs text-ink"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSlug('solutionSlugs', s.slug)}
+                        className="mt-0.5"
+                      />
+                      <span>{s.title}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset className="sm:col-span-2">
+              <legend className="text-sm font-medium text-ink">
+                Linked services
+              </legend>
+              <p className="mt-1 text-xs text-ink-muted">
+                Service path tags (without leading slash).
+              </p>
+              <div className="mt-2 grid max-h-48 gap-1.5 overflow-y-auto rounded-md border border-border bg-surface-raised p-3 sm:grid-cols-2">
+                {servicePages.map((s) => {
+                  const slug = s.href.replace(/^\//, '')
+                  const checked = (form.serviceSlugs ?? []).includes(slug)
+                  return (
+                    <label
+                      key={s.href}
+                      className="inline-flex items-start gap-2 text-xs text-ink"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSlug('serviceSlugs', slug)}
+                        className="mt-0.5"
+                      />
+                      <span>{s.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </fieldset>
+
             <label className="inline-flex items-center gap-2 text-sm text-ink">
               <input
                 type="checkbox"

@@ -176,6 +176,8 @@ export type EnquiryMergeContext = {
   hear: string
   concernsPlain: string
   concernsHtml: string
+  service: string
+  solution: string
   enquiryType: string
   when: string
   method: string
@@ -235,10 +237,22 @@ export const MERGE_TAGS: MergeTagDefinition[] = [
   },
   {
     tag: '<concerns>',
-    aliases: ['concerns', 'services', 'interests'],
-    description: 'Multi-list of selected services / concerns',
+    aliases: ['concerns', 'interests', 'task_concerns'],
+    description: 'Multi-list of selected task concerns',
     field: 'concernsPlain',
     htmlField: 'concernsHtml',
+  },
+  {
+    tag: '<service>',
+    aliases: ['service', 'selected_service', 'service_page'],
+    description: 'Selected service catalogue page (optional)',
+    field: 'service',
+  },
+  {
+    tag: '<solution>',
+    aliases: ['solution', 'selected_solution', 'solution_page'],
+    description: 'Selected solution catalogue page (optional)',
+    field: 'solution',
   },
   {
     tag: '<Enquiry Type>',
@@ -469,6 +483,8 @@ Email: {{email}}<br />
 Phone: {{phone}}</p>
 <p><strong>What you selected:</strong></p>
 {{concerns}}
+<p><strong>Service:</strong> {{service}}<br />
+<strong>Solution:</strong> {{solution}}</p>
 <p><strong>About your project:</strong></p>
 <p>{{about}}</p>
 <p>Kind regards,<br />{{from}}</p>

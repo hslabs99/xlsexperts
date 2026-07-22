@@ -270,9 +270,28 @@ export const DISCOVERY_CONFIRMATION_INSERT_BLOCK: EmailInsertBlock = {
 
   <!-- Services / concerns -->
   <tr>
-    <td style="padding:18px 24px;background-color:#ffffff;font-family:${FONT};">
+    <td style="padding:18px 24px;background-color:#ffffff;border-bottom:1px solid #f0f0f0;font-family:${FONT};">
       <p style="margin:0 0 8px 0;padding:0;font-size:8pt;font-weight:bold;letter-spacing:0.12em;text-transform:uppercase;color:#1a6b3c;font-family:${FONT};">Areas of interest</p>
       <div style="font-family:${FONT};font-size:10pt;line-height:1.5;color:#374151;">{{concerns}}</div>
+    </td>
+  </tr>
+
+  <!-- Service / solution catalogue -->
+  <tr>
+    <td style="padding:18px 24px;background-color:#ffffff;font-family:${FONT};">
+      <p style="margin:0 0 8px 0;padding:0;font-size:8pt;font-weight:bold;letter-spacing:0.12em;text-transform:uppercase;color:#1a6b3c;font-family:${FONT};">Catalogue interest</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="padding:0 0 4px 0;font-family:${FONT};font-size:10pt;line-height:1.45;color:#374151;">
+            <strong style="color:#111827;">Service:</strong> {{service}}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0;font-family:${FONT};font-size:10pt;line-height:1.45;color:#374151;">
+            <strong style="color:#111827;">Solution:</strong> {{solution}}
+          </td>
+        </tr>
+      </table>
     </td>
   </tr>
 

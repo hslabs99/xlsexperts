@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   CalendarDays,
-  CheckSquare,
   Loader2,
   MessageSquare,
   Phone,
@@ -16,9 +16,22 @@ import {
 import {
   CONTACT_HEAR_OPTIONS,
   CONTACT_SERVICE_OPTIONS,
+  CONTACT_SERVICE_PAGE_OPTIONS,
+  CONTACT_SOLUTION_OPTIONS,
 } from '@/lib/contact-options'
+import {
+  buildThankYouPath,
+  markLeadConversionPending,
+} from '@/lib/lead-conversion'
+import {
+  contactLabelForService,
+  contactLabelForServicePath,
+} from '@/lib/service-pages'
+import { contactLabelForSolutionSlug } from '@/lib/solutions'
 
-const serviceOptions = [...CONTACT_SERVICE_OPTIONS]
+const concernOptions = [...CONTACT_SERVICE_OPTIONS]
+const servicePageOptions = [...CONTACT_SERVICE_PAGE_OPTIONS]
+const solutionOptions = [...CONTACT_SOLUTION_OPTIONS]
 const hearOptions = [...CONTACT_HEAR_OPTIONS]
 
 const BOOKING_STATUS_MESSAGES = [
@@ -29,7 +42,7 @@ const BOOKING_STATUS_MESSAGES = [
   'Almost done — hang tight…',
 ]
 
-type FormStep = 'form' | 'calendar' | 'booking' | 'done'
+type FormStep = 'form' | 'calendar' | 'booking'
 
 interface FormErrors {
   name?: string
@@ -41,6 +54,7 @@ interface FormErrors {
 type BookedSlotSummary = { day: string; time: string; method: string }
 
 export function Contact() {
+  const router = useRouter()
   const [selected, setSelected] = useState<string[]>([])
   const [step, setStep] = useState<FormStep>('form')
   const [bookedSlot, setBookedSlot] = useState<BookedSlotSummary | null>(null)
@@ -57,6 +71,8 @@ export function Contact() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
+  const [service, setService] = useState('')
+  const [solution, setSolution] = useState('')
   const [hear, setHear] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
 
@@ -76,6 +92,28 @@ export function Contact() {
     })()
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  // Prefill Service / Solution dropdowns from query params or current page path.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const path = window.location.pathname
+
+      const solutionFromQuery = contactLabelForSolutionSlug(params.get('solution'))
+      const solutionFromPath = contactLabelForSolutionSlug(
+        path.match(/^\/solutions\/([^/]+)\/?$/)?.[1]
+      )
+      const solutionLabel = solutionFromQuery || solutionFromPath
+      if (solutionLabel) setSolution(solutionLabel)
+
+      const serviceFromQuery = contactLabelForService(params.get('service'))
+      const serviceFromPath = contactLabelForServicePath(path)
+      const serviceLabel = serviceFromQuery || serviceFromPath
+      if (serviceLabel) setService(serviceLabel)
+    } catch {
+      // Ignore URL parsing failures
     }
   }, [])
 
@@ -119,7 +157,17 @@ export function Contact() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
-        body: JSON.stringify({ name, company, email, phone, message, services: selected, hear }),
+        body: JSON.stringify({
+          name,
+          company,
+          email,
+          phone,
+          message,
+          services: selected,
+          service,
+          solution,
+          hear,
+        }),
       })
       const data = (await res.json().catch(() => ({}))) as {
         success?: boolean
@@ -128,7 +176,8 @@ export function Contact() {
       if (!res.ok || data.success === false) {
         throw new Error(data.error || 'Could not send enquiry. Please try again.')
       }
-      setStep('done')
+      markLeadConversionPending('enquiry')
+      router.push(buildThankYouPath({ type: 'enquiry' }))
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setSubmitError('Sending timed out. Please try again in a moment.')
@@ -163,9 +212,10 @@ export function Contact() {
     }
     setBookedSlot(summary)
     setStep('booking')
+    setSubmitError(null)
 
     try {
-      await fetch('/api/booking', {
+      const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -175,6 +225,8 @@ export function Contact() {
           phone,
           message,
           services: selected,
+          service,
+          solution,
           hear,
           day: payload.day,
           date: payload.date,
@@ -183,8 +235,27 @@ export function Contact() {
           slotId: payload.slotId,
         }),
       })
-    } finally {
-      setStep('done')
+      const data = (await res.json().catch(() => ({}))) as {
+        success?: boolean
+        error?: string
+      }
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || 'Could not book this slot. Please try again.')
+      }
+      markLeadConversionPending('discovery')
+      router.push(
+        buildThankYouPath({
+          type: 'discovery',
+          day: payload.day,
+          time: payload.time,
+          method: payload.method,
+        })
+      )
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Could not complete booking.'
+      )
+      setStep('calendar')
     }
   }
 
@@ -192,7 +263,7 @@ export function Contact() {
     <section id="contact" className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
 
-        {/* Section header — changes once the action is complete */}
+        {/* Section header — changes while booking is processing */}
         <div className="mx-auto max-w-2xl text-center">
           {step === 'booking' && bookedSlot ? (
             <>
@@ -205,34 +276,6 @@ export function Contact() {
               <p className="mt-4 text-base leading-relaxed text-gray-500">
                 {bookedSlot.day} at {bookedSlot.time} via {bookedSlot.method}. This usually takes a
                 moment — please wait while we confirm everything.
-              </p>
-            </>
-          ) : step === 'done' && bookedSlot ? (
-            <>
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#1a6b3c' }}>
-                You&apos;re all set
-              </span>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                {bookedSlot.method === 'Phone call'
-                  ? 'We will call you then.'
-                  : 'Great — look forward to connecting with you.'}
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-gray-500">
-                {bookedSlot.method === 'Phone call'
-                  ? `We will call you on ${bookedSlot.day} at ${bookedSlot.time}. Keep your phone handy.`
-                  : `Keep an eye on your inbox — a ${bookedSlot.method} meeting request for ${bookedSlot.day} at ${bookedSlot.time} will be on its way shortly.`}
-              </p>
-            </>
-          ) : step === 'done' ? (
-            <>
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#1a6b3c' }}>
-                {confirmation.eyebrow}
-              </span>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                {confirmation.heading}
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-gray-500">
-                {confirmation.subheading}
               </p>
             </>
           ) : (
@@ -341,45 +384,31 @@ export function Contact() {
                   </span>
                 </p>
                 <p className="text-xs text-gray-500">
-                  Please don&apos;t close this page — confirmation is next.
+                  Please don&apos;t close this page — we will take you to a
+                  confirmation screen next.
                 </p>
-              </div>
-            )}
-
-            {/* DONE state */}
-            {step === 'done' && (
-              <div
-                className="flex flex-col items-center justify-center gap-4 p-12 text-center"
-                style={{ backgroundColor: '#e8f5ee' }}
-              >
-                <CheckSquare className="h-10 w-10" style={{ color: '#1a6b3c' }} />
-                {bookedSlot ? (
-                  <>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Discovery call requested — {bookedSlot.day} at {bookedSlot.time}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Thanks for letting us know your preferred time. We will be in touch to confirm the call via{' '}
-                      <span className="font-semibold">{bookedSlot.method}</span> — usually same business day.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      {confirmation.panelHeading}
-                    </h3>
-                    <p className="text-sm text-gray-600">{confirmation.panelBody}</p>
-                  </>
-                )}
               </div>
             )}
 
             {/* CALENDAR state */}
             {step === 'calendar' && (
-              <BookingCalendar
-                onConfirm={handleCalendarConfirm}
-                onBack={() => setStep('form')}
-              />
+              <>
+                {submitError && (
+                  <p
+                    className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                    role="alert"
+                  >
+                    {submitError}
+                  </p>
+                )}
+                <BookingCalendar
+                  onConfirm={handleCalendarConfirm}
+                  onBack={() => {
+                    setSubmitError(null)
+                    setStep('form')
+                  }}
+                />
+              </>
             )}
 
             {/* FORM state */}
@@ -452,14 +481,14 @@ export function Contact() {
                   </div>
                 </div>
 
-                {/* Service checkboxes */}
+                {/* Task concern checkboxes */}
                 <div className="flex flex-col gap-2.5">
                   <span className="text-xs font-bold uppercase tracking-widest text-gray-600">
                     What does your task concern?{' '}
                     <span className="font-normal normal-case text-gray-400">(select all that apply)</span>
                   </span>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {serviceOptions.map((opt) => (
+                    {concernOptions.map((opt) => (
                       <button
                         key={opt}
                         type="button"
@@ -488,6 +517,48 @@ export function Contact() {
                         {opt}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Service + Solution dropdowns */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="service" className="text-xs font-bold uppercase tracking-widest text-gray-600">
+                      Service{' '}
+                      <span className="font-normal normal-case text-gray-400">(optional)</span>
+                    </label>
+                    <select
+                      id="service"
+                      value={service}
+                      onChange={(e) => setService(e.target.value)}
+                      className="border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none transition focus:border-gray-400 focus:bg-white"
+                    >
+                      <option value="">Select a service…</option>
+                      {servicePageOptions.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="solution" className="text-xs font-bold uppercase tracking-widest text-gray-600">
+                      Solution{' '}
+                      <span className="font-normal normal-case text-gray-400">(optional)</span>
+                    </label>
+                    <select
+                      id="solution"
+                      value={solution}
+                      onChange={(e) => setSolution(e.target.value)}
+                      className="border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-700 outline-none transition focus:border-gray-400 focus:bg-white"
+                    >
+                      <option value="">Select a solution…</option>
+                      {solutionOptions.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

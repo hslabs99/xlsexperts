@@ -37,6 +37,12 @@ function validateContactPayload(body: ContactPayload): string | null {
   if (body.hear && body.hear.length > 100) {
     return 'Invalid hear field.'
   }
+  if (body.service && body.service.length > 200) {
+    return 'Invalid service.'
+  }
+  if (body.solution && body.solution.length > 200) {
+    return 'Invalid solution.'
+  }
   if (body.services && (!Array.isArray(body.services) || body.services.length > 20)) {
     return 'Invalid services.'
   }
@@ -67,6 +73,8 @@ export async function POST(request: Request) {
         phone: body.phone,
         message: body.message,
         services: body.services,
+        service: body.service,
+        solution: body.solution,
         hear: body.hear,
         emailNotified: false,
       }),

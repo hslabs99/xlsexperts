@@ -42,6 +42,10 @@ export interface CaseStudy {
   solution: string
   outcome: string
   tags: string[]
+  /** Service page path segments without leading slash, e.g. excel-vba-development */
+  serviceSlugs?: string[]
+  /** Solution page slugs, e.g. dashboards-business-intelligence */
+  solutionSlugs?: string[]
 }
 
 /**
@@ -54,7 +58,12 @@ export interface ContactPayload {
   email: string
   phone: string
   message: string
+  /** Task-concern checkboxes (Macros / VBA, etc.) */
   services: string[]
+  /** Optional service-catalogue dropdown selection */
+  service: string
+  /** Optional solution-catalogue dropdown selection */
+  solution: string
   hear: string
 }
 
@@ -68,7 +77,12 @@ export interface BookingPayload {
   email: string
   phone: string
   message: string
+  /** Task-concern checkboxes (Macros / VBA, etc.) */
   services: string[]
+  /** Optional service-catalogue dropdown selection */
+  service: string
+  /** Optional solution-catalogue dropdown selection */
+  solution: string
   hear: string
   day: string
   date: string
