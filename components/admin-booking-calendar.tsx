@@ -1,14 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Minus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
+  buildSeedTimeWindows,
   formatDateKey,
-  formatDayLabel,
+  formatMinutesToTime,
+  getCalendarWeekDays,
   getMondayOfWeek,
-  getWeekDays,
-  groupSlotsByDate,
-  parseTimeToMinutes,
   type BookingSlot,
 } from '@/lib/booking-slots'
 
@@ -27,6 +26,8 @@ const MONTH_NAMES = [
   'December',
 ]
 
+const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
+
 function aucklandToday(): Date {
   const key = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Pacific/Auckland',
@@ -40,116 +41,123 @@ function aucklandToday(): Date {
   return date
 }
 
-function statusStyles(status: BookingSlot['status'], selected: boolean) {
+function cellStyles(status: BookingSlot['status'] | null): string {
+  if (!status) {
+    return 'border-transparent bg-transparent text-stone-300'
+  }
   if (status === 'booked') {
-    return selected
-      ? 'border-sky-600 bg-sky-600 text-white'
-      : 'border-sky-300 bg-sky-50 text-sky-900 hover:border-sky-500'
+    return 'border-sky-300 bg-sky-50 text-sky-900 hover:border-sky-500'
   }
   if (status === 'unavailable') {
-    return selected
-      ? 'border-stone-500 bg-stone-500 text-white'
-      : 'border-stone-300 bg-stone-100 text-stone-600 hover:border-stone-400'
+    return 'border-stone-300 bg-stone-100 text-stone-600 hover:border-stone-400'
   }
-  return selected
-    ? 'border-brand bg-brand text-white'
-    : 'border-border bg-surface-raised text-ink hover:border-brand/50'
+  return 'border-emerald-300 bg-emerald-50 text-emerald-900 hover:border-emerald-500'
 }
 
 type Props = {
   slots: BookingSlot[]
   loading?: boolean
   busy?: boolean
-  onRemove?: (id: string) => void | Promise<void>
-  onMarkOccupied?: (slot: BookingSlot) => void | Promise<void>
+  /** Toggle available ↔ unavailable, or reopen booked. */
+  onToggleStatus: (slot: BookingSlot) => void | Promise<void>
+  /** Mark every available slot in the list as unavailable. */
+  onDisableSlots: (slots: BookingSlot[]) => void | Promise<void>
 }
 
 /**
- * Admin week calendar matching the public discovery layout.
- * Shows available / unavailable / booked; hover booked cells for details.
- * X removes a slot; − marks an available slot as occupied (unavailable).
+ * Admin week grid: 7 day columns × 30-minute rows.
+ * Same start time sits on one row so staff can disable a whole time
+ * (e.g. all 10:00s) or one day cell (e.g. Friday afternoon).
  */
 export function AdminBookingCalendar({
   slots,
   loading,
   busy,
-  onRemove,
-  onMarkOccupied,
+  onToggleStatus,
+  onDisableSlots,
 }: Props) {
   const today = useMemo(() => aucklandToday(), [])
   const [weekMonday, setWeekMonday] = useState<Date>(() =>
     getMondayOfWeek(aucklandToday())
   )
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
 
-  const byDate = useMemo(() => groupSlotsByDate(slots), [slots])
-  const weekDays = getWeekDays(weekMonday)
+  const timeRows = useMemo(() => buildSeedTimeWindows(), [])
+  const weekDays = useMemo(
+    () => getCalendarWeekDays(weekMonday),
+    [weekMonday]
+  )
+  const weekDateKeys = useMemo(
+    () => weekDays.map((d) => formatDateKey(d)),
+    [weekDays]
+  )
 
-  const daySlots = useMemo(() => {
-    if (!selectedDate) return []
-    return [...(byDate[selectedDate] ?? [])].sort(
-      (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time)
-    )
-  }, [byDate, selectedDate])
+  /** Lookup: `${date}|${time}` → slot */
+  const byKey = useMemo(() => {
+    const map = new Map<string, BookingSlot>()
+    for (const slot of slots) {
+      map.set(`${slot.date}|${slot.time}`, slot)
+    }
+    return map
+  }, [slots])
 
-  const selectedSlot =
-    slots.find((s) => s.id === selectedSlotId) ?? null
+  const todayKey = formatDateKey(today)
 
   const weekLabel = (() => {
-    const end = weekDays[4]
+    const end = weekDays[6]
     if (weekMonday.getMonth() === end.getMonth()) {
       return `${weekMonday.getDate()} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`
     }
     return `${weekMonday.getDate()} ${MONTH_NAMES[weekMonday.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`
   })()
 
-  function daySummary(dateKey: string) {
-    const list = byDate[dateKey] ?? []
-    return {
-      total: list.length,
-      available: list.filter((s) => s.status === 'available').length,
-      booked: list.filter((s) => s.status === 'booked').length,
-      unavailable: list.filter((s) => s.status === 'unavailable').length,
-    }
+  function slotsAtTime(startMinutes: number): BookingSlot[] {
+    const time = formatMinutesToTime(startMinutes)
+    return weekDateKeys
+      .map((date) => byKey.get(`${date}|${time}`))
+      .filter((s): s is BookingSlot => Boolean(s))
+  }
+
+  function slotsOnDate(dateKey: string): BookingSlot[] {
+    return timeRows
+      .map((win) =>
+        byKey.get(`${dateKey}|${formatMinutesToTime(win.startMinutes)}`)
+      )
+      .filter((s): s is BookingSlot => Boolean(s))
   }
 
   function prevWeek() {
     const prev = new Date(weekMonday)
     prev.setDate(prev.getDate() - 7)
     setWeekMonday(prev)
-    setSelectedDate(null)
-    setSelectedSlotId(null)
   }
 
   function nextWeek() {
     const next = new Date(weekMonday)
     next.setDate(next.getDate() + 7)
     setWeekMonday(next)
-    setSelectedDate(null)
-    setSelectedSlotId(null)
   }
 
   function jumpToThisWeek() {
     setWeekMonday(getMondayOfWeek(today))
-    setSelectedDate(null)
-    setSelectedSlotId(null)
   }
 
   return (
     <div className="rounded-lg border border-border bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-ink">Calendar view</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Same week layout as the public discovery calendar. Hover a booked
-            time to see booking details. Use × to delete a slot, or − to mark it
-            occupied.
+          <h2 className="text-lg font-semibold text-ink">
+            Availability week grid
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
+            Seven columns (Mon–Sun), one row per 30-minute start. Click a cell
+            to toggle available / occupied. Use a row or day control to block a
+            whole time (e.g. all 10:00s) or a whole day (e.g. Friday) when you
+            have a meeting. Booked cells stay blocked until reopened.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-brand" /> Available
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Available
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> Booked
@@ -157,17 +165,16 @@ export function AdminBookingCalendar({
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-stone-400" /> Occupied
           </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-stone-200" /> Empty
+          </span>
         </div>
       </div>
 
       {loading ? (
         <p className="mt-4 text-sm text-ink-muted">Loading calendar…</p>
-      ) : slots.length === 0 ? (
-        <p className="mt-4 text-sm text-ink-muted">
-          No slots to show yet. Add or seed booking slots first.
-        </p>
       ) : (
-        <div className="mt-5 flex flex-col gap-5">
+        <div className="mt-5 flex flex-col gap-4">
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
@@ -197,216 +204,149 @@ export function AdminBookingCalendar({
             </button>
           </div>
 
-          <div className="grid grid-cols-5 gap-2">
-            {weekDays.map((day) => {
-              const dateKey = formatDateKey(day)
-              const label = formatDayLabel(dateKey)
-              const summary = daySummary(dateKey)
-              const isSelected = selectedDate === dateKey
-              const isToday = dateKey === formatDateKey(today)
-              const hasSlots = summary.total > 0
-              return (
-                <button
-                  key={dateKey}
-                  type="button"
-                  disabled={!hasSlots}
-                  onClick={() => {
-                    setSelectedDate(dateKey)
-                    setSelectedSlotId(null)
-                  }}
-                  className="flex flex-col items-center gap-1 rounded-md border py-3 text-center transition disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{
-                    borderColor: isSelected
-                      ? '#1a6b3c'
-                      : isToday
-                        ? '#86efac'
-                        : '#e5e7eb',
-                    backgroundColor: isSelected
-                      ? '#e8f5ee'
-                      : isToday
-                        ? '#f0fdf4'
-                        : 'white',
-                  }}
-                >
-                  <span
-                    className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: isSelected ? '#1a6b3c' : '#6b7280' }}
-                  >
-                    {label}
-                  </span>
-                  <span
-                    className="text-lg font-bold"
-                    style={{ color: isSelected ? '#1a6b3c' : '#111827' }}
-                  >
-                    {day.getDate()}
-                  </span>
-                  <span className="text-[10px] leading-tight text-ink-muted">
-                    {summary.available} open · {summary.booked} booked
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {selectedDate && (
-            <div className="flex flex-col gap-3">
-              <span className="text-xs font-bold uppercase tracking-widest text-ink-muted">
-                Times — {formatDayLabel(selectedDate)}{' '}
-                {parseInt(selectedDate.slice(8), 10)}
-              </span>
-              {daySlots.length === 0 ? (
-                <p className="text-sm text-ink-muted">No slots on this day.</p>
-              ) : (
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
-                  {daySlots.map((slot) => {
-                    const isChosen = selectedSlotId === slot.id
-                    const booked = slot.status === 'booked'
-                    const canOccupy =
-                      slot.status === 'available' && Boolean(onMarkOccupied)
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 z-10 border-b border-border bg-surface px-2 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Time
+                  </th>
+                  {weekDays.map((day, i) => {
+                    const dateKey = weekDateKeys[i]
+                    const isToday = dateKey === todayKey
+                    const daySlots = slotsOnDate(dateKey)
+                    const available = daySlots.filter(
+                      (s) => s.status === 'available'
+                    )
                     return (
-                      <div key={slot.id} className="group relative">
+                      <th
+                        key={dateKey}
+                        className={`border-b border-border px-1.5 py-2 text-center ${
+                          isToday ? 'bg-emerald-50/60' : ''
+                        }`}
+                      >
+                        <div className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                          {DAY_SHORT[i]}
+                        </div>
+                        <div
+                          className={`text-base font-bold ${
+                            isToday ? 'text-brand' : 'text-ink'
+                          }`}
+                        >
+                          {day.getDate()}
+                        </div>
                         <button
                           type="button"
-                          onClick={() =>
-                            setSelectedSlotId(isChosen ? null : slot.id)
-                          }
-                          className={`w-full rounded-md border px-3 py-2.5 pr-9 text-left text-xs font-semibold transition ${statusStyles(
-                            slot.status,
-                            isChosen
-                          )}`}
+                          disabled={busy || available.length === 0}
+                          onClick={() => void onDisableSlots(available)}
                           title={
-                            booked
-                              ? undefined
-                              : `${slot.status} · ${slot.durationMinutes} min`
+                            available.length === 0
+                              ? 'No available slots this day'
+                              : `Occupy all ${available.length} available slot(s) on this day`
                           }
+                          className="mt-1 rounded border border-border bg-white px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          <span className="block">{slot.time}</span>
-                          <span
-                            className={`mt-0.5 block text-[10px] font-medium ${
-                              isChosen ? 'text-white/80' : 'opacity-70'
-                            }`}
-                          >
-                            {slot.status === 'booked'
-                              ? 'Booked'
-                              : slot.status === 'unavailable'
-                                ? 'Occupied'
-                                : `${slot.durationMinutes} min`}
-                          </span>
+                          Block day
                         </button>
-
-                        <div className="absolute right-1 top-1 flex flex-col gap-0.5">
-                          {onRemove ? (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                void onRemove(slot.id)
-                              }}
-                              className="inline-flex h-5 w-5 items-center justify-center rounded bg-white/90 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                              title="Delete slot"
-                              aria-label={`Delete ${slot.time} slot`}
-                            >
-                              <X className="h-3 w-3" strokeWidth={2.5} />
-                            </button>
-                          ) : null}
-                          {canOccupy ? (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                void onMarkOccupied?.(slot)
-                              }}
-                              className="inline-flex h-5 w-5 items-center justify-center rounded bg-white/90 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:bg-stone-100 hover:text-stone-800 disabled:opacity-50"
-                              title="Mark occupied"
-                              aria-label={`Mark ${slot.time} as occupied`}
-                            >
-                              <Minus className="h-3 w-3" strokeWidth={2.5} />
-                            </button>
-                          ) : null}
-                        </div>
-
-                        {booked ? (
-                          <div
-                            className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-64 -translate-x-1/2 rounded-md border border-sky-200 bg-white p-3 text-left shadow-lg group-hover:block group-focus-within:block"
-                            role="tooltip"
-                          >
-                            <BookingHoverCard slot={slot} />
-                          </div>
-                        ) : null}
-                      </div>
+                      </th>
                     )
                   })}
-                </div>
-              )}
-            </div>
-          )}
+                </tr>
+              </thead>
+              <tbody>
+                {timeRows.map((win) => {
+                  const time = formatMinutesToTime(win.startMinutes)
+                  const rowSlots = slotsAtTime(win.startMinutes)
+                  const rowAvailable = rowSlots.filter(
+                    (s) => s.status === 'available'
+                  )
+                  return (
+                    <tr key={win.startMinutes} className="group">
+                      <th className="sticky left-0 z-10 whitespace-nowrap border-b border-border/70 bg-surface px-2 py-1 text-left align-middle">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-ink">
+                            {time}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={busy || rowAvailable.length === 0}
+                            onClick={() => void onDisableSlots(rowAvailable)}
+                            title={
+                              rowAvailable.length === 0
+                                ? `No available ${time} slots this week`
+                                : `Occupy all available ${time} slots this week`
+                            }
+                            className="rounded border border-border bg-white px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted opacity-70 transition hover:bg-stone-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            Block
+                          </button>
+                        </div>
+                      </th>
+                      {weekDateKeys.map((dateKey) => {
+                        const slot = byKey.get(`${dateKey}|${time}`) ?? null
+                        const isToday = dateKey === todayKey
+                        if (!slot) {
+                          return (
+                            <td
+                              key={`${dateKey}|${time}`}
+                              className={`border-b border-border/70 px-1 py-1 text-center ${
+                                isToday ? 'bg-emerald-50/30' : ''
+                              }`}
+                            >
+                              <span className="inline-flex h-9 w-full items-center justify-center rounded-md text-[10px] text-stone-300">
+                                —
+                              </span>
+                            </td>
+                          )
+                        }
+                        const title =
+                          slot.status === 'booked'
+                            ? `Booked${
+                                slot.booking?.name
+                                  ? ` — ${slot.booking.name}`
+                                  : ''
+                              } (click to reopen)`
+                            : slot.status === 'unavailable'
+                              ? 'Occupied — click to make available'
+                              : 'Available — click to occupy'
+                        return (
+                          <td
+                            key={slot.id}
+                            className={`border-b border-border/70 px-1 py-1 text-center ${
+                              isToday ? 'bg-emerald-50/30' : ''
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              disabled={busy}
+                              title={title}
+                              onClick={() => void onToggleStatus(slot)}
+                              className={`inline-flex h-9 w-full min-w-[3.25rem] items-center justify-center rounded-md border text-[11px] font-semibold transition disabled:opacity-60 ${cellStyles(
+                                slot.status
+                              )}`}
+                            >
+                              {slot.status === 'booked'
+                                ? 'B'
+                                : slot.status === 'unavailable'
+                                  ? 'Off'
+                                  : 'On'}
+                            </button>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
 
-          {selectedSlot && (
-            <div className="rounded-md border border-border bg-surface-raised p-4 text-sm">
-              <p className="font-semibold text-ink">
-                {formatDayLabel(selectedSlot.date)} · {selectedSlot.time} ·{' '}
-                <span className="capitalize">{selectedSlot.status}</span>
-              </p>
-              {selectedSlot.status === 'booked' ? (
-                <BookingDetailsBody slot={selectedSlot} />
-              ) : (
-                <p className="mt-1 text-ink-muted">
-                  No booking details — slot is {selectedSlot.status}.
-                </p>
-              )}
-            </div>
-          )}
+          <p className="text-xs text-ink-muted">
+            Tip: use week arrows to cover the next fortnight. Empty cells (—)
+            mean nothing was seeded for that day/time.
+          </p>
         </div>
       )}
     </div>
-  )
-}
-
-function BookingHoverCard({ slot }: { slot: BookingSlot }) {
-  return (
-    <div className="space-y-1 text-xs text-ink">
-      <p className="font-semibold text-sky-900">
-        {slot.booking?.name || 'Booked (no name)'}
-      </p>
-      <BookingDetailsBody slot={slot} compact />
-    </div>
-  )
-}
-
-function BookingDetailsBody({
-  slot,
-  compact = false,
-}: {
-  slot: BookingSlot
-  compact?: boolean
-}) {
-  const b = slot.booking
-  const rows = [
-    b?.company ? `Company: ${b.company}` : null,
-    b?.email ? `Email: ${b.email}` : null,
-    b?.phone ? `Phone: ${b.phone}` : null,
-    b?.method ? `Method: ${b.method}` : null,
-    b?.message ? `Message: ${b.message}` : null,
-    b?.services?.length ? `Services: ${b.services.join(', ')}` : null,
-  ].filter(Boolean) as string[]
-
-  if (rows.length === 0) {
-    return (
-      <p className={compact ? 'text-ink-muted' : 'mt-1 text-ink-muted'}>
-        Booking recorded with no contact details.
-      </p>
-    )
-  }
-
-  return (
-    <ul
-      className={`${compact ? '' : 'mt-2'} space-y-0.5 ${compact ? 'text-ink-muted' : 'text-ink-muted'}`}
-    >
-      {rows.map((line) => (
-        <li key={line}>{line}</li>
-      ))}
-    </ul>
   )
 }

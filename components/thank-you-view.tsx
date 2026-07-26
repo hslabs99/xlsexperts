@@ -14,6 +14,7 @@ import {
   consumeLeadConversionToken,
   fireLeadConversionEvent,
 } from '@/lib/lead-conversion'
+import { useMarketCopy } from '@/components/market-provider'
 
 function parseLeadType(raw: string | null): ThankYouLeadType {
   return raw === 'discovery' ? 'discovery' : 'enquiry'
@@ -21,6 +22,7 @@ function parseLeadType(raw: string | null): ThankYouLeadType {
 
 export function ThankYouView() {
   const searchParams = useSearchParams()
+  const marketCopy = useMarketCopy()
   const type = parseLeadType(searchParams.get('type'))
   const day = searchParams.get('day')?.trim() || ''
   const time = searchParams.get('time')?.trim() || ''
@@ -127,7 +129,7 @@ export function ThankYouView() {
                 Need us sooner?
               </h2>
               <a
-                href="tel:+6421783967"
+                href={`tel:${marketCopy.contact.phoneTel}`}
                 className="flex items-center gap-3 text-sm text-gray-600 transition-colors hover:text-gray-900"
               >
                 <Phone
@@ -135,10 +137,10 @@ export function ThankYouView() {
                   style={{ color: '#1a6b3c' }}
                   aria-hidden="true"
                 />
-                +64 21 783 967
+                {marketCopy.contact.phoneDisplay}
               </a>
               <a
-                href="https://wa.me/6421783967"
+                href={`https://wa.me/${marketCopy.contact.whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-sm text-gray-600 transition-colors hover:text-gray-900"

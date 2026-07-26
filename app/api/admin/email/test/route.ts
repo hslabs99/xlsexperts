@@ -165,7 +165,7 @@ export async function POST(request: Request) {
       message:
         'This is a sample contact-enquiry email generated from the Admin → Email tab to verify the production notification path.',
       services: ['Macros / VBA', 'Data Analysis'],
-      service: 'Excel VBA Development',
+      service: 'Excel VBA/Macro Development',
       solution: 'Dashboards & Business Intelligence',
       hear: 'Admin panel',
     }
@@ -223,7 +223,7 @@ export async function POST(request: Request) {
       message:
         'We need help automating monthly Excel reporting and a management dashboard for regional sales.',
       services: ['Macros / VBA', 'Charts & Dashboards'],
-      service: 'Excel VBA Development',
+      service: 'Excel VBA/Macro Development',
       solution: 'Dashboards & Business Intelligence',
       hear: 'Admin panel',
       day: 'Tuesday',

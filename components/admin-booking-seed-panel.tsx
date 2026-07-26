@@ -10,7 +10,10 @@ import {
   defaultSeedTemplateConfig,
   formatDateKey,
   formatDisplayDate,
+  resolveSeedWeeks,
+  seedHorizonDateKeys,
   SEED_SLOT_MINUTES,
+  SEED_WEEK_OPTIONS,
   SEED_WEEKDAYS,
   seedCellKey,
   type BookingSlot,
@@ -20,16 +23,6 @@ import {
 
 const STORAGE_KEY = 'xls-booking-seed-template-v4'
 
-/** Horizon options: from today forward. Default is 2 weeks. */
-const SEED_WEEK_OPTIONS = [1, 2, 3] as const
-
-function clampWeeks(weeks: number): number {
-  if (SEED_WEEK_OPTIONS.includes(weeks as (typeof SEED_WEEK_OPTIONS)[number])) {
-    return weeks
-  }
-  return 2
-}
-
 function loadStoredConfig(): SeedTemplateConfig {
   if (typeof window === 'undefined') return defaultSeedTemplateConfig()
   try {
@@ -38,9 +31,7 @@ function loadStoredConfig(): SeedTemplateConfig {
       window.localStorage.getItem('xls-booking-seed-template-v3')
     if (!raw) return defaultSeedTemplateConfig()
     const parsed = JSON.parse(raw) as Partial<SeedTemplateConfig>
-    const weeks = clampWeeks(
-      typeof parsed.weeks === 'number' ? Math.floor(parsed.weeks) : 2
-    )
+    const weeks = resolveSeedWeeks(parsed.weeks)
     const base = createEmptySeedEnabled()
     const enabled =
       parsed.enabled && typeof parsed.enabled === 'object'
@@ -128,10 +119,28 @@ export function AdminBookingSeedPanel({
     [config]
   )
 
+  const horizon = useMemo(
+    () => seedHorizonDateKeys(config.weeks),
+    [config.weeks]
+  )
+
   const enabledCount = useMemo(
     () => Object.values(config.enabled).filter(Boolean).length,
     [config.enabled]
   )
+
+  const enabledWeekdays = useMemo(() => {
+    const days = new Set<number>()
+    for (const { day } of SEED_WEEKDAYS) {
+      for (const win of windows) {
+        if (config.enabled[seedCellKey(day, win.startMinutes)]) {
+          days.add(day)
+          break
+        }
+      }
+    }
+    return days.size
+  }, [config.enabled, windows])
 
   const upcomingBookings = useMemo(
     () => bookedSlotsInNextTwoWeeks(slots),
@@ -202,15 +211,15 @@ export function AdminBookingSeedPanel({
             Seed discovery availability
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            20 half-hour rows from 8:00 AM–6:00 PM. Turn a whole row on/off,
-            then fine-tune individual Mon–Fri cells. Seed creates one booking
-            slot for every enabled cell from today through the weeks you choose
-            (default 2).
+            Ongoing tool to refill public discovery slots. Enable Mon–Fri
+            half-hour cells (8:00 AM–6:00 PM), then seed that pattern across a
+            rolling NZ calendar horizon (default 2 weeks = 14 days).
           </p>
         </div>
         <p className="text-xs text-ink-muted">
-          {enabledCount} cell{enabledCount === 1 ? '' : 's'} · ~{plannedCount}{' '}
-          slot{plannedCount === 1 ? '' : 's'}
+          {enabledCount} cell{enabledCount === 1 ? '' : 's'} · {enabledWeekdays}{' '}
+          weekday{enabledWeekdays === 1 ? '' : 's'} · ~{plannedCount} slot
+          {plannedCount === 1 ? '' : 's'}
         </p>
       </div>
 
@@ -225,23 +234,28 @@ export function AdminBookingSeedPanel({
           </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-ink">Weeks to seed from today</span>
+          <span className="font-medium text-ink">Horizon from today (NZ)</span>
           <select
             value={config.weeks}
             onChange={(e) =>
-              update({ ...config, weeks: clampWeeks(Number(e.target.value)) })
+              update({
+                ...config,
+                weeks: resolveSeedWeeks(Number(e.target.value)),
+              })
             }
             className="rounded-md border border-border px-3 py-2"
           >
             {SEED_WEEK_OPTIONS.map((n) => (
               <option key={n} value={n}>
-                Today + {n} week{n === 1 ? '' : 's'}
-                {n === 2 ? ' (default)' : ''}
+                {n} week{n === 1 ? '' : 's'} ({n * 7} days)
+                {n === 2 ? ' — default' : ''}
               </option>
             ))}
           </select>
           <span className="text-xs text-ink-muted">
-            Applies this Mon–Fri pattern from today through the period you pick
+            Covers {horizon.daySpan} calendar days through{' '}
+            {formatDisplayDate(horizon.lastWeekdayKey)} (weekdays only). Only
+            enabled columns get dates — e.g. Monday-only × 2 weeks = 2 dates.
           </span>
         </label>
       </div>
@@ -382,11 +396,18 @@ export function AdminBookingSeedPanel({
         >
           {busy
             ? 'Working…'
-            : `Seed today + ${config.weeks} week${config.weeks === 1 ? '' : 's'} (~${plannedCount} slots)`}
+            : `Seed ${config.weeks} week${config.weeks === 1 ? '' : 's'} through ${formatDisplayDate(horizon.lastWeekdayKey)} (~${plannedCount} slots)`}
         </button>
         {enabledCount === 0 ? (
           <p className="text-xs text-amber-700">
             Turn on at least one cell (or a whole row) before seeding.
+          </p>
+        ) : enabledWeekdays === 1 ? (
+          <p className="text-xs text-amber-700">
+            Only one weekday column is On — over {config.weeks} week
+            {config.weeks === 1 ? '' : 's'} that yields about {config.weeks}{' '}
+            calendar date{config.weeks === 1 ? '' : 's'}. Enable more days
+            (or use Enable all / a full row) for the rest of each week.
           </p>
         ) : (
           <p className="text-xs text-ink-muted">

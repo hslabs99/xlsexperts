@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import type { CaseStudy } from '@/lib/types'
+import { useMarketCopy } from '@/components/market-provider'
 
 const overlays = [
   'rgba(18, 77, 43, 0.35)',
@@ -124,6 +125,7 @@ export function CaseStudies({
   initialItems,
   initialHasMore = true,
 }: CaseStudiesProps) {
+  const copy = useMarketCopy()
   const [items, setItems] = useState(initialItems)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [error, setError] = useState<string | null>(null)
@@ -179,8 +181,7 @@ export function CaseStudies({
             Case Studies
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-500">
-            Real problems, real solutions. A sample of what we have built for NZ
-            businesses across industries.
+            {copy.caseStudies.homeIntro}
           </p>
         </div>
 

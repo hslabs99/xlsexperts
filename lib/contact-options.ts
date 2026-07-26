@@ -15,7 +15,7 @@ export const CONTACT_SERVICE_OPTIONS = [
   'Data Connections / SQL',
   'Power Query / Power Pivot',
   'Enterprise Application',
-  'A.I. Workflow Solution',
+  'AI Workflow / Process Automation',
   'Web App / .NET',
   'Data Analysis',
   'Other',

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { SolutionPageView } from '@/components/solutions/solution-page-view'
+import { marketPageMetadata } from '@/lib/seo'
 import {
-  SITE_ORIGIN,
   getSolutionBySlug,
   solutionSlugs,
 } from '@/lib/solutions'
@@ -22,17 +22,12 @@ export async function generateMetadata({
   const solution = getSolutionBySlug(slug)
   if (!solution) return {}
 
-  return {
+  return marketPageMetadata({
+    path: solution.href,
     title: solution.metaTitle,
     description: solution.metaDescription,
-    alternates: { canonical: `${SITE_ORIGIN}${solution.href}` },
-    openGraph: {
-      title: `${solution.metaTitle} | XLS Experts`,
-      description: solution.metaDescription,
-      url: `${SITE_ORIGIN}${solution.href}`,
-      images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-    },
-  }
+    ogTitle: `${solution.metaTitle} | XLS Experts`,
+  })
 }
 
 export default async function SolutionSlugPage({ params }: PageProps) {

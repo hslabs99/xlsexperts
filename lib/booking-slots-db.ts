@@ -168,6 +168,7 @@ export async function seedBookingSlots(
 ): Promise<{ created: number; skipped: number; planned: number }> {
   const existing = await fetchAllBookingSlots()
   const existingKeys = new Set(existing.map((s) => `${s.date}|${s.time}`))
+  // Always normalize weeks so a partial/missing config cannot collapse the horizon.
   const planned = buildSeedSlots(config)
 
   let created = 0

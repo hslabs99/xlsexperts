@@ -7,6 +7,7 @@ import { SolutionCapabilities } from '@/components/solutions/solution-capabiliti
 import { UseCaseGrid } from '@/components/solutions/use-case-grid'
 import { TechnologyStrip } from '@/components/solutions/technology-strip'
 import { ProcessSteps } from '@/components/solutions/process-steps'
+import { SolutionDeepContent } from '@/components/solutions/solution-deep-content'
 import { RelatedCaseStudies } from '@/components/solutions/related-case-studies'
 import { RelatedSolutions } from '@/components/solutions/related-solutions'
 import { SolutionFAQ, solutionFaqJsonLd } from '@/components/solutions/solution-faq'
@@ -14,8 +15,8 @@ import { SolutionCTA } from '@/components/solutions/solution-cta'
 import { solutionsBreadcrumbJsonLd } from '@/components/solutions/breadcrumbs'
 import { Contact } from '@/components/contact'
 import { Navbar } from '@/components/navbar'
+import { getMarketCopy } from '@/lib/market-server'
 import {
-  SITE_ORIGIN,
   contactHrefForSolution,
   getPublishedCaseStudies,
   getRelatedSolutions,
@@ -26,10 +27,21 @@ type SolutionPageViewProps = {
   solution: SolutionPage
 }
 
-export function SolutionPageView({ solution }: SolutionPageViewProps) {
+export async function SolutionPageView({ solution }: SolutionPageViewProps) {
+  const copy = await getMarketCopy()
+  const origin = copy.site.origin
+  const areaServed = copy.home.schemaAreaServed
   const related = getRelatedSolutions(solution)
   const caseStudies = getPublishedCaseStudies(solution)
   const contactHref = contactHrefForSolution(solution.slug)
+  const deepLayout = Boolean(solution.preferDeepLayout)
+  const firstDeepSectionId = solution.deepSections?.[0]?.id
+  const secondaryHref = deepLayout && firstDeepSectionId
+    ? `#${firstDeepSectionId}`
+    : '#related-solutions'
+  const secondaryLabel = deepLayout
+    ? 'Explore the platform'
+    : 'Explore related solutions'
 
   const serviceSchema = {
     '@context': 'https://schema.org',
@@ -39,17 +51,18 @@ export function SolutionPageView({ solution }: SolutionPageViewProps) {
     provider: {
       '@type': 'ProfessionalService',
       name: 'XLS Experts',
-      url: SITE_ORIGIN,
-      areaServed: { '@type': 'Country', name: 'New Zealand' },
+      url: origin,
+      areaServed: { '@type': 'Place', name: areaServed },
     },
-    url: `${SITE_ORIGIN}${solution.href}`,
-    areaServed: { '@type': 'Country', name: 'New Zealand' },
+    url: `${origin}${solution.href}`,
+    areaServed: { '@type': 'Place', name: areaServed },
     serviceType: solution.title,
   }
 
-  const breadcrumbSchema = solutionsBreadcrumbJsonLd([
-    { name: solution.title, href: solution.href },
-  ])
+  const breadcrumbSchema = solutionsBreadcrumbJsonLd(
+    [{ name: solution.title, href: solution.href }],
+    origin
+  )
 
   const faqSchema =
     solution.faqs.length > 0 ? solutionFaqJsonLd(solution.faqs) : null
@@ -73,59 +86,88 @@ export function SolutionPageView({ solution }: SolutionPageViewProps) {
       <Navbar />
       <main className="pt-16">
         <SolutionHero
-          eyebrow={solution.shortTitle}
+          breadcrumbLabel={solution.title}
           heading={solution.heroHeading}
           introduction={solution.heroIntroduction}
           primaryCta={{ label: 'Discuss your project', href: contactHref }}
           secondaryCta={{
-            label: 'Explore related solutions',
-            href: '#related-solutions',
+            label: secondaryLabel,
+            href: secondaryHref,
           }}
+          breadcrumbs={[
+            { label: 'Home', href: '/' },
+            { label: 'Solutions', href: '/solutions' },
+            { label: solution.title },
+          ]}
         />
         <SolutionIntro
           heading={solution.introHeading}
           body={solution.introBody}
         />
-        <ProblemSigns
-          heading={solution.problemsHeading}
-          problems={solution.problems}
-        />
-        <SolutionCapabilities
-          heading={solution.capabilitiesHeading}
-          capabilities={solution.capabilities}
-        />
-        <UseCaseGrid
-          heading={solution.useCasesHeading}
-          useCases={solution.useCases}
-        />
-        <TechnologyStrip
-          heading={solution.technologyHeading}
-          notes={solution.technologyNotes}
-          technologies={solution.technologies}
-        />
-        {solution.approachHeading && solution.approachBody && (
-          <section className="bg-white py-12">
-            <div className="mx-auto max-w-3xl px-6">
-              <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">
-                {solution.approachHeading}
-              </h2>
-              <div className="space-y-4">
-                {solution.approachBody.map((paragraph) => (
-                  <p
-                    key={paragraph.slice(0, 40)}
-                    className="text-base leading-relaxed text-gray-600"
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </section>
+        {deepLayout && solution.deepSections ? (
+          <SolutionDeepContent
+            sections={solution.deepSections}
+            featureGrid={solution.featureGrid}
+            whyUs={solution.whyUs}
+          />
+        ) : (
+          <>
+            <ProblemSigns
+              heading={solution.problemsHeading}
+              problems={solution.problems}
+            />
+            <SolutionCapabilities
+              heading={solution.capabilitiesHeading}
+              capabilities={solution.capabilities}
+            />
+            <UseCaseGrid
+              heading={solution.useCasesHeading}
+              useCases={solution.useCases}
+            />
+            <TechnologyStrip
+              heading={solution.technologyHeading}
+              notes={solution.technologyNotes}
+              technologies={solution.technologies}
+            />
+            {solution.approachHeading && solution.approachBody && (
+              <section className="bg-white py-12">
+                <div className="mx-auto max-w-3xl px-6">
+                  <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">
+                    {solution.approachHeading}
+                  </h2>
+                  <div className="space-y-4">
+                    {solution.approachBody.map((paragraph) => (
+                      <p
+                        key={paragraph.slice(0, 40)}
+                        className="text-base leading-relaxed text-gray-600"
+                      >
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
         )}
-        <ProcessSteps
-          heading={solution.processHeading}
-          steps={solution.processSteps}
-        />
+        {!deepLayout && (
+          <ProcessSteps
+            heading={solution.processHeading}
+            steps={solution.processSteps}
+          />
+        )}
+        {deepLayout && (
+          <>
+            <UseCaseGrid
+              heading={solution.useCasesHeading}
+              useCases={solution.useCases}
+            />
+            <ProcessSteps
+              heading={solution.processHeading}
+              steps={solution.processSteps}
+            />
+          </>
+        )}
         <RelatedCaseStudies studies={caseStudies} />
         <div id="related-solutions">
           <RelatedSolutions

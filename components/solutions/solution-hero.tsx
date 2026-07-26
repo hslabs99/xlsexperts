@@ -3,27 +3,33 @@ import { ArrowRight } from 'lucide-react'
 import { Breadcrumbs, type BreadcrumbItem } from '@/components/solutions/breadcrumbs'
 import { ALL_SOLUTIONS_HREF } from '@/lib/solutions'
 
+const SOLUTION_FRAMING =
+  'We bring deep practical experience and a proven understanding of the challenges and solutions in this area.'
+
 type SolutionHeroProps = {
-  eyebrow: string
+  /** Used for the final breadcrumb when `breadcrumbs` is not provided. */
+  breadcrumbLabel: string
   heading: string
   introduction: string
   primaryCta: { label: string; href: string }
   secondaryCta?: { label: string; href: string }
   breadcrumbs?: BreadcrumbItem[]
+  framing?: string
 }
 
 export function SolutionHero({
-  eyebrow,
+  breadcrumbLabel,
   heading,
   introduction,
   primaryCta,
   secondaryCta,
   breadcrumbs,
+  framing = SOLUTION_FRAMING,
 }: SolutionHeroProps) {
   const crumbs: BreadcrumbItem[] = breadcrumbs ?? [
     { label: 'Home', href: '/' },
     { label: 'Solutions', href: ALL_SOLUTIONS_HREF },
-    { label: eyebrow },
+    { label: breadcrumbLabel },
   ]
 
   return (
@@ -44,9 +50,9 @@ export function SolutionHero({
       />
       <div className="relative mx-auto max-w-5xl px-6">
         <Breadcrumbs items={crumbs} />
-        <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">
-          {eyebrow}
-        </span>
+        <p className="mb-5 max-w-2xl text-sm leading-relaxed text-white/75">
+          {framing}
+        </p>
         <h1 className="font-display mb-6 max-w-3xl text-4xl font-bold leading-tight text-white text-balance md:text-5xl">
           {heading}
         </h1>

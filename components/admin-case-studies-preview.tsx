@@ -29,7 +29,20 @@ function isCloudImage(src: string): boolean {
   return /^https:\/\//i.test(src.trim())
 }
 
-function CloudImageBadge({ src }: { src: string }) {
+function CloudImageBadge({
+  src,
+  fromEditorDraft,
+}: {
+  src: string
+  fromEditorDraft?: boolean
+}) {
+  if (fromEditorDraft || src.startsWith('blob:') || src.startsWith('data:')) {
+    return (
+      <span className="inline-flex rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-900 ring-1 ring-sky-200">
+        Preview: unsaved editor draft
+      </span>
+    )
+  }
   const cloud = isCloudImage(src)
   return (
     <span
@@ -168,24 +181,36 @@ export function AdminCaseStudiesPreviewShell({
   onKindChange,
   onClose,
   closeLabel,
+  /** When set (e.g. from the editor), card preview uses this instead of requiring Firestore. */
+  draft,
+  draftMeta,
 }: {
-  /** Firestore document id / slug — preview reloads this from the cloud */
+  /** Firestore document id / slug — preview reloads this from the cloud when no draft */
   slug: string
   kind: CaseStudyPreviewKind
   onKindChange: (kind: CaseStudyPreviewKind) => void
   onClose: () => void
   closeLabel?: string
+  draft?: CaseStudy | null
+  draftMeta?: Pick<
+    CaseStudyRecord,
+    'published' | 'showOnHome' | 'homeOrder'
+  > | null
 }) {
-  const [card, setCard] = useState<CaseStudy | null>(null)
+  const [card, setCard] = useState<CaseStudy | null>(draft ?? null)
   const [homeItems, setHomeItems] = useState<CaseStudy[]>([])
   const [recordMeta, setRecordMeta] = useState<CaseStudyRecord | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [usingEditorDraft, setUsingEditorDraft] = useState(Boolean(draft))
+  const [loading, setLoading] = useState(!draft)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
     async function loadCloud() {
-      setLoading(true)
+      // Editor draft can render immediately; homepage grid still needs Firestore.
+      if (!draft) {
+        setLoading(true)
+      }
       setError(null)
       try {
         const listRes = await fetch('/api/admin/case-studies')
@@ -224,7 +249,18 @@ export function AdminCaseStudiesPreviewShell({
 
         if (cancelled) return
         setHomeItems(home)
+
+        // Prefer the live editor draft for single-card preview so unsaved work
+        // never hits a "slug not found" dead end.
+        if (draft) {
+          setCard(draft)
+          setRecordMeta(record)
+          setUsingEditorDraft(true)
+          return
+        }
+
         if (record) {
+          setUsingEditorDraft(false)
           setRecordMeta(record)
           setCard({
             slug: record.slug,
@@ -241,18 +277,24 @@ export function AdminCaseStudiesPreviewShell({
         }
         setCard(null)
         setRecordMeta(null)
+        setUsingEditorDraft(false)
         if (kind === 'card') {
           setError(
-            slug
-              ? `No Firestore document for slug “${slug}”. Save to Firebase first.`
-              : 'Missing case study slug. Save to Firestore, then preview.'
+            'Nothing to preview yet. Fill in the editor fields, then try again.'
           )
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : 'Failed to load cloud preview'
-          )
+          // Still show the editor draft if we have one — don't trap the user.
+          if (draft) {
+            setCard(draft)
+            setUsingEditorDraft(true)
+            setError(null)
+          } else {
+            setError(
+              err instanceof Error ? err.message : 'Failed to load cloud preview'
+            )
+          }
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -262,7 +304,7 @@ export function AdminCaseStudiesPreviewShell({
     return () => {
       cancelled = true
     }
-  }, [slug, kind])
+  }, [slug, kind, draft])
 
   return (
     <div className="space-y-4">
@@ -270,16 +312,24 @@ export function AdminCaseStudiesPreviewShell({
         <div>
           <h2 className="text-lg font-semibold text-ink">Case study preview</h2>
           <p className="mt-1 text-sm text-ink-muted">
-            Loaded live from Firestore (
-            <code className="text-xs">caseStudies</code>
-            {kind === 'home' ? (
+            {usingEditorDraft && kind === 'card' ? (
               <>
-                {' '}
-                + published homepage snapshot{' '}
-                <code className="text-xs">Site Content / case-studies-home</code>
+                Showing your current editor draft (including unsaved changes).
+                Matches the public homepage card layout.
               </>
-            ) : null}
-            ). Matches the public homepage card layout.
+            ) : (
+              <>
+                Loaded live from Firestore (
+                <code className="text-xs">caseStudies</code>
+                {kind === 'home' ? (
+                  <>
+                    {' '}
+                    + published homepage studies
+                  </>
+                ) : null}
+                ). Matches the public homepage card layout.
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -317,9 +367,9 @@ export function AdminCaseStudiesPreviewShell({
         </div>
       </div>
 
-      {loading ? (
+      {loading && !(kind === 'card' && card) ? (
         <p className="rounded-lg border border-border bg-surface p-6 text-sm text-ink-muted">
-          Loading from Firebase…
+          Loading preview…
         </p>
       ) : kind === 'card' ? (
         error || !card ? (
@@ -332,21 +382,40 @@ export function AdminCaseStudiesPreviewShell({
         ) : (
           <div className="space-y-4 rounded-lg border border-border bg-surface p-4 sm:p-6">
             <div className="flex flex-wrap items-center gap-2">
-              <CloudImageBadge src={card.image} />
-              {recordMeta ? (
-                <span className="text-xs text-ink-muted">
-                  slug <code className="text-[11px]">{recordMeta.slug}</code>
-                  {recordMeta.published ? ' · published' : ' · unpublished'}
-                  {recordMeta.showOnHome
-                    ? ` · on home (#${recordMeta.homeOrder})`
-                    : ''}
-                </span>
-              ) : null}
+              <CloudImageBadge
+                src={card.image}
+                fromEditorDraft={usingEditorDraft}
+              />
+              <span className="text-xs text-ink-muted">
+                slug{' '}
+                <code className="text-[11px]">
+                  {recordMeta?.slug || card.slug || 'draft'}
+                </code>
+                {usingEditorDraft
+                  ? ' · editor draft'
+                  : recordMeta
+                    ? `${recordMeta.published ? ' · published' : ' · unpublished'}${
+                        recordMeta.showOnHome
+                          ? ` · on home (#${recordMeta.homeOrder})`
+                          : ''
+                      }`
+                    : draftMeta
+                      ? `${draftMeta.published ? ' · published' : ' · unpublished'}${
+                          draftMeta.showOnHome
+                            ? ` · on home (#${draftMeta.homeOrder})`
+                            : ''
+                        }`
+                      : ''}
+              </span>
             </div>
             <div className="mx-auto max-w-xl">
               <CaseStudyCardPreview cs={card} index={0} />
             </div>
-            {!isCloudImage(card.image) ? (
+            {!usingEditorDraft &&
+            card.image &&
+            !isCloudImage(card.image) &&
+            !card.image.startsWith('blob:') &&
+            !card.image.startsWith('data:') ? (
               <p className="text-sm text-amber-900">
                 This study still uses a local{' '}
                 <code className="text-xs">/images/…</code> path. Push the hero

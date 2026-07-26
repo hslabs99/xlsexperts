@@ -5,6 +5,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   BarChart3,
+  Building2,
   CalendarRange,
   ClipboardCheck,
   FileSpreadsheet,
@@ -12,19 +13,22 @@ import {
   LayoutDashboard,
   Calculator,
   Users,
+  Wrench,
 } from 'lucide-react'
 
+/** @deprecated Use getSiteOrigin() / market copy site.origin — NZ only. */
 export const SITE_ORIGIN = 'https://www.xlsexperts.co.nz'
 export const ALL_SOLUTIONS_HREF = '/solutions'
 
 export type SolutionSlug =
-  | 'spreadsheet-process-modernisation'
   | 'dashboards-business-intelligence'
   | 'resource-planning-scheduling'
   | 'project-costing-financial-modelling'
+  | 'property-development-applications'
   | 'quoting-estimating-systems'
   | 'survey-inspection-field-apps'
   | 'client-staff-portals'
+  | 'asset-maintenance-operations-solutions'
   | 'workflow-automation-systems-integration'
 
 export type SolutionIconKey =
@@ -32,9 +36,11 @@ export type SolutionIconKey =
   | 'dashboard'
   | 'scheduling'
   | 'financial'
+  | 'property'
   | 'quoting'
   | 'field'
   | 'portal'
+  | 'maintenance'
   | 'workflow'
 
 export type SolutionCaseStudyRef = {
@@ -48,6 +54,39 @@ export type SolutionCaseStudyRef = {
 }
 
 export type SolutionFaq = { question: string; answer: string }
+
+export type SolutionDeepCard = {
+  title: string
+  description?: string
+  items?: string[]
+}
+
+export type SolutionDeepLayer = {
+  title: string
+  description: string
+}
+
+/** Long-form content blocks for in-depth solution pages. */
+export type SolutionDeepSection = {
+  id: string
+  heading: string
+  intro?: string
+  body?: string[]
+  items?: string[]
+  cards?: SolutionDeepCard[]
+  layers?: SolutionDeepLayer[]
+}
+
+export type SolutionFeatureGrid = {
+  heading: string
+  intro?: string
+  features: string[]
+}
+
+export type SolutionWhyUs = {
+  heading: string
+  body: string[]
+}
 
 export type SolutionPage = {
   slug: SolutionSlug
@@ -84,6 +123,11 @@ export type SolutionPage = {
   ctaHeading: string
   ctaBody: string
   contactOptionLabel: string
+  /** Prefer deepSections over the standard problem/capability/use-case blocks. */
+  preferDeepLayout?: boolean
+  deepSections?: SolutionDeepSection[]
+  featureGrid?: SolutionFeatureGrid
+  whyUs?: SolutionWhyUs
 }
 
 export const solutionIcons: Record<SolutionIconKey, LucideIcon> = {
@@ -91,9 +135,11 @@ export const solutionIcons: Record<SolutionIconKey, LucideIcon> = {
   dashboard: LayoutDashboard,
   scheduling: CalendarRange,
   financial: BarChart3,
+  property: Building2,
   quoting: Calculator,
   field: ClipboardCheck,
   portal: Users,
+  maintenance: Wrench,
   workflow: GitBranch,
 }
 
@@ -121,171 +167,6 @@ const processStepsDefault = [
 ] as const
 
 export const solutionPages: readonly SolutionPage[] = [
-  {
-    slug: 'spreadsheet-process-modernisation',
-    href: '/solutions/spreadsheet-process-modernisation',
-    title: 'Spreadsheet & Process Modernisation',
-    shortTitle: 'Spreadsheet modernisation',
-    navLabel: 'Spreadsheet & Process Modernisation',
-    summary:
-      'Improve, automate or replace spreadsheet-based processes that have become difficult to manage, scale or control.',
-    exampleUses: [
-      'Excel and VBA modernisation',
-      'Office Scripts and Microsoft 365 workflows',
-      'Spreadsheet-to-cloud migration',
-      'Database and API integration',
-    ],
-    icon: 'spreadsheet',
-    metaTitle: 'Spreadsheet & Process Modernisation NZ',
-    metaDescription:
-      'Improve, automate or replace fragile spreadsheet processes. Excel modernisation, Office Scripts, Microsoft 365 and cloud migration for New Zealand businesses.',
-    heroHeading: 'When a spreadsheet has outgrown its original purpose',
-    heroIntroduction:
-      'XLS Experts helps organisations improve, automate or replace spreadsheet processes that have become fragile, manual, difficult to control or unable to scale — without forcing a rebuild where Excel still works well.',
-    introHeading: 'The right level of modernisation — not a one-size answer',
-    introBody: [
-      'Excel remains a highly effective business tool when used appropriately. Many processes only need clearer structure, validation and automation. Others need a database, a shared Microsoft 365 workflow, or a full web application.',
-      'Our job is to determine the right pathway: improve the workbook, rebuild legacy VBA, introduce structured data, connect APIs, move into the cloud — or design a hybrid system where Excel stays part of the workflow.',
-    ],
-    problemsHeading: 'Business warning signs',
-    problems: [
-      'Only one person understands the spreadsheet',
-      'Multiple uncontrolled versions exist across email and shared drives',
-      'Staff repeatedly copy and paste data between files or systems',
-      'Reporting takes too long or breaks when someone changes a formula',
-      'Files are too large, slow or unstable',
-      'Formulas and macros break regularly',
-      'The spreadsheet is being used as a database',
-      'Remote or multi-user access is difficult',
-      'The process has clearly outgrown Excel',
-    ],
-    capabilitiesHeading: 'What XLS Experts can build',
-    capabilities: [
-      'Improve an existing spreadsheet with structure, validation and documentation',
-      'Rebuild legacy VBA into maintainable automation',
-      'Introduce structured data models and controlled inputs',
-      'Office Scripts and Microsoft 365 workflow automation',
-      'SharePoint and Teams-friendly collaboration patterns',
-      'Connect Excel to APIs and external systems',
-      'Move core data into a cloud database',
-      'Build a web application around the process',
-      'Design hybrid systems where Excel remains the analysis layer',
-    ],
-    useCasesHeading: 'Example applications',
-    useCases: [
-      {
-        title: 'Stabilise a critical workbook',
-        description:
-          'Clean structure, named logic, protected inputs and clearer ownership so the file can be supported by more than one person.',
-      },
-      {
-        title: 'Automate a repetitive Excel process',
-        description:
-          'Replace copy-paste routines with VBA, Office Scripts or Power Automate so reports and exports run consistently.',
-      },
-      {
-        title: 'Migrate spreadsheet workflows into Microsoft 365',
-        description:
-          'Keep familiar Excel interfaces where useful while moving shared lists, approvals and documents into SharePoint.',
-      },
-      {
-        title: 'Graduate to a cloud application',
-        description:
-          'When multi-user access, permissions and scale matter, we move the process onto a database-backed web app — often still with Excel reporting.',
-      },
-    ],
-    technologyHeading: 'Excel, Microsoft 365 or a cloud application?',
-    technologyNotes: [
-      'Architecture depends on your existing environment, number of users, security needs, collaboration patterns, process complexity, budget and internal capability.',
-      'We do not assume every spreadsheet should be replaced. We choose the simplest reliable option that fits how your team works.',
-    ],
-    technologies: [
-      'Microsoft Excel',
-      'VBA',
-      'Office Scripts',
-      'Microsoft 365',
-      'SharePoint',
-      'Power Automate',
-      'APIs',
-      'SQL Server / PostgreSQL',
-      'Next.js / React',
-    ],
-    processHeading: 'How we approach modernisation',
-    processSteps: [...processStepsDefault],
-    faqs: [
-      {
-        question: 'Do you always replace the existing spreadsheet?',
-        answer:
-          'No. Many projects succeed by improving the workbook, adding validation and automation, or connecting it to better data sources. Replacement is recommended when Excel is being asked to do something it cannot do reliably — such as multi-user transactional work or acting as a system of record.',
-      },
-      {
-        question: 'Can a system begin in Excel and move to the cloud later?',
-        answer:
-          'Yes. We often design an intermediate solution that solves the immediate problem in Excel or Microsoft 365, then plan a later migration once requirements and usage patterns are clearer.',
-      },
-      {
-        question: 'Can you work with our existing Microsoft 365 environment?',
-        answer:
-          'Yes. We regularly build solutions that fit within your existing Microsoft 365 tenancy, SharePoint sites, security policies and licensing.',
-      },
-      {
-        question: 'How do you decide which technology to use?',
-        answer:
-          'We start with the business process, then weigh user count, collaboration needs, data volume, integration requirements, IT constraints and total cost of ownership — not a preferred technology stack.',
-      },
-      {
-        question: 'Do you support systems after launch?',
-        answer:
-          'Yes. We can provide documentation, training and ongoing enhancement support so the solution continues to match how your business operates.',
-      },
-    ],
-    relatedSlugs: [
-      'workflow-automation-systems-integration',
-      'dashboards-business-intelligence',
-      'client-staff-portals',
-    ],
-    relatedLinkLabels: {
-      'workflow-automation-systems-integration':
-        'Connect systems and automate hand-offs',
-      'dashboards-business-intelligence':
-        'Turn cleaned data into trusted reporting',
-      'client-staff-portals':
-        'Give teams secure access without shared files',
-    },
-    caseStudies: [
-      {
-        slug: 'range-planning-max-fashion',
-        title: 'Range Planning & Open To Buy Automation',
-        client: 'Max Fashion',
-        sector: 'Fashion Retail',
-        summary:
-          'Moved linked workbook planning onto a SQL backend while keeping familiar spreadsheets for buyers — with live POS data and more accurate Open To Buy reporting.',
-        published: true,
-      },
-      {
-        slug: 'valet-parking-pullman',
-        title: 'Valet Parking Hybrid App',
-        client: 'Pullman Hotel Auckland',
-        sector: 'Hospitality',
-        summary:
-          'Enhanced an Excel admin console and added a mobile web app on a shared SQL database — a practical hybrid rather than a full platform rewrite.',
-        published: true,
-      },
-      {
-        slug: 'enterprise-data-contact-energy',
-        title: 'Enterprise Data Analysis Platform',
-        client: 'Contact Energy',
-        sector: 'Energy',
-        summary:
-          'VBA, pivots and SharePoint integration delivered enterprise analysis inside familiar Excel tooling.',
-        published: true,
-      },
-    ],
-    ctaHeading: 'Tell us about your current process',
-    ctaBody:
-      'Describe what the spreadsheet does today, what is breaking, who uses it, and what outcome you need. You do not need to know the technology — we will recommend the right level of modernisation.',
-    contactOptionLabel: 'Spreadsheet & Process Modernisation',
-  },
   {
     slug: 'dashboards-business-intelligence',
     href: '/solutions/dashboards-business-intelligence',
@@ -448,9 +329,9 @@ export const solutionPages: readonly SolutionPage[] = [
   {
     slug: 'resource-planning-scheduling',
     href: '/solutions/resource-planning-scheduling',
-    title: 'Resource Planning & Scheduling',
+    title: 'Resource Planning Tools & Scheduling Systems',
     shortTitle: 'Resource planning',
-    navLabel: 'Resource Planning & Scheduling',
+    navLabel: 'Resource Planning Tools & Scheduling Systems',
     summary:
       'Plan staff, equipment, workloads and delivery timelines through purpose-built scheduling and forecasting systems.',
     exampleUses: [
@@ -460,7 +341,7 @@ export const solutionPages: readonly SolutionPage[] = [
       'Project and production scheduling',
     ],
     icon: 'scheduling',
-    metaTitle: 'Resource Planning & Scheduling Systems NZ',
+    metaTitle: 'Resource Planning Tools & Scheduling Systems NZ',
     metaDescription:
       'Custom resource planning and scheduling systems for New Zealand teams — staff scheduling, capacity planning, utilisation and production allocation.',
     heroHeading: 'Plan people, equipment and time with a clear system',
@@ -557,11 +438,14 @@ export const solutionPages: readonly SolutionPage[] = [
       },
     ],
     relatedSlugs: [
+      'asset-maintenance-operations-solutions',
       'dashboards-business-intelligence',
       'client-staff-portals',
       'workflow-automation-systems-integration',
     ],
     relatedLinkLabels: {
+      'asset-maintenance-operations-solutions':
+        'Asset maintenance operations and ERP extensions',
       'dashboards-business-intelligence':
         'Report utilisation and capacity to management',
       'client-staff-portals':
@@ -592,14 +476,14 @@ export const solutionPages: readonly SolutionPage[] = [
     ctaHeading: 'Discuss your planning challenge',
     ctaBody:
       'Tell us who you schedule, what conflicts keep appearing, and what a good week of allocation would look like. We will suggest a practical planning approach.',
-    contactOptionLabel: 'Resource Planning & Scheduling',
+    contactOptionLabel: 'Resource Planning Tools & Scheduling Systems',
   },
   {
     slug: 'project-costing-financial-modelling',
     href: '/solutions/project-costing-financial-modelling',
-    title: 'Project Costing & Financial Modelling',
+    title: 'Project Costing Tools & Financial Modelling',
     shortTitle: 'Financial modelling',
-    navLabel: 'Project Costing & Financial Modelling',
+    navLabel: 'Project Costing Tools & Financial Modelling',
     summary:
       'Build robust financial models and planning systems for complex projects, investments and commercial decisions.',
     exampleUses: [
@@ -609,7 +493,7 @@ export const solutionPages: readonly SolutionPage[] = [
       'Budgeting and investment evaluation',
     ],
     icon: 'financial',
-    metaTitle: 'Project Costing & Financial Modelling NZ',
+    metaTitle: 'Project Costing Tools & Financial Modelling NZ',
     metaDescription:
       'Structured project costing and financial modelling for New Zealand businesses — feasibility, cash-flow, scenarios and investment evaluation systems.',
     heroHeading: 'Financial models that also work as operational systems',
@@ -707,17 +591,14 @@ export const solutionPages: readonly SolutionPage[] = [
       },
     ],
     relatedSlugs: [
+      'property-development-applications',
       'dashboards-business-intelligence',
-      'spreadsheet-process-modernisation',
-      'resource-planning-scheduling',
     ],
     relatedLinkLabels: {
+      'property-development-applications':
+        'See our property development platform for full lifecycle projects',
       'dashboards-business-intelligence':
         'Present model outputs as management dashboards',
-      'spreadsheet-process-modernisation':
-        'Strengthen or migrate the underlying workbook',
-      'resource-planning-scheduling':
-        'Connect cost plans to delivery capacity',
     },
     caseStudies: [
       {
@@ -742,7 +623,394 @@ export const solutionPages: readonly SolutionPage[] = [
     ctaHeading: 'Discuss your modelling project',
     ctaBody:
       'Share the decision you need to support, the timeline of the project, and how assumptions change today. We will propose a model structure that is clear and maintainable.',
-    contactOptionLabel: 'Project Costing & Financial Modelling',
+    contactOptionLabel: 'Project Costing Tools & Financial Modelling',
+  },
+  {
+    slug: 'property-development-applications',
+    href: '/solutions/property-development-applications',
+    title: 'Property Development Applications',
+    shortTitle: 'Property development',
+    navLabel: 'Property Development Applications',
+    summary:
+      'Property development financial models, Excel automation and cloud applications spanning feasibility, financing, construction, sales and portfolio reporting — built around how developers actually work.',
+    exampleUses: [
+      'Excel feasibility and cash-flow models',
+      'Development automation in Excel',
+      'Scenario comparison',
+      'Cloud escalation when collaboration demands it',
+    ],
+    icon: 'property',
+    metaTitle:
+      'Property Development Software & Financial Modelling NZ | XLS Experts',
+    metaDescription:
+      'Property development Excel models, automation and cloud applications for New Zealand developers — feasibility, cash-flow modelling, scenario analysis and lifecycle project control.',
+    heroHeading: 'Property Development Applications',
+    heroIntroduction:
+      'Excel financial models, automations and cloud-based property development applications designed around the complete lifecycle of a development project—from initial concept through to construction, sales and financial completion.',
+    introHeading: 'Excel where it works — cloud when you need to escalate',
+    introBody: [
+      'XLS Experts has worked with numerous property developers over many years, building highly effective Excel-based financial models, project planning tools and development feasibility systems. Many of those models remain totally functional as the primary commercial engine for a development — and that is often the right place to stay.',
+      'If you already have Excel sheets you trust, we can develop, extend and automate them: clearer structure, stronger cash-flow logic, scenario controls, drawdown modelling and reporting packs your team already knows how to use.',
+      'As requirements grow — multi-user collaboration, governance, portfolio visibility or AI-assisted project support — we also offer a modern cloud-based Property Development Platform as an alternate or escalation pathway. It demonstrates the depth of our property development knowledge, without forcing Excel users off a tool that still serves them well.',
+      'Neither path is off-the-shelf. Each implementation is configured around the client’s own development methodology, funding structures and reporting requirements.',
+    ],
+    problemsHeading: 'Where development control usually breaks down',
+    problems: [
+      'Feasibility lives in one workbook while the programme lives in another',
+      'Cash-flow timing and funding drawdowns are hard to keep aligned',
+      'Consent or construction delays are not reflected in finance and sales forecasts',
+      'Scenario comparison means duplicating models and hoping versions stay consistent',
+      'Investors, lenders and the project team see different numbers',
+      'Assumptions are undocumented and only one person can defend the model',
+    ],
+    capabilitiesHeading: 'What we can build',
+    capabilities: [
+      'Excel property development financial models and cash-flow forecasting',
+      'Excel automation for reporting, drawdowns and scenario packs',
+      'Timeline-connected modelling across the development lifecycle',
+      'Funding, loan drawdown and interest capitalisation modelling',
+      'Scenario and sensitivity comparison',
+      'Budget tracking and variation management',
+      'Sales, settlement and rental-hold scenario tracking',
+      'Cloud Property Development Platform when collaboration requires it',
+      'Reporting dashboards for boards, lenders and project teams',
+      'AI property development assistant grounded in the project',
+    ],
+    useCasesHeading: 'Who this is for',
+    useCases: [
+      {
+        title: 'Property developers and development managers',
+        description:
+          'Strengthen or extend existing Excel feasibility models — or escalate to a connected environment as the project moves from concept to completion.',
+      },
+      {
+        title: 'Project directors and commercial managers',
+        description:
+          'See how programme changes affect cash flow, funding gaps, margins and reporting obligations.',
+      },
+      {
+        title: 'Investors, trusts and joint ventures',
+        description:
+          'Compare retain-versus-sell, staging and funding structures with clear equity and IRR outcomes.',
+      },
+      {
+        title: 'Councils and organisations delivering mixed-use projects',
+        description:
+          'Coordinate approvals, infrastructure, construction and financial completion with shared visibility.',
+      },
+    ],
+    technologyHeading: 'Technology approach',
+    technologyNotes: [
+      'Many developments are best served by a disciplined Excel model with automation — auditable, familiar and totally functional for the commercial team.',
+      'Our cloud Property Development Platform is an alternate or escalation pathway when multi-user collaboration, stronger governance or portfolio-level visibility become the constraint — not a requirement to leave Excel behind.',
+      'Either path is configured to your methodology: stages, cost codes, funding rules, GST treatment and reporting packs.',
+    ],
+    technologies: [
+      'Microsoft Excel',
+      'VBA / Excel automation',
+      'Financial modelling',
+      'Cloud web application',
+      'Timeline workbench',
+      'AI assistant',
+      'Reporting dashboards',
+      'Role-based security',
+    ],
+    preferDeepLayout: true,
+    deepSections: [
+      {
+        id: 'understanding-property-development',
+        heading: 'Understanding property development',
+        intro:
+          'Successful developments require hundreds of interrelated decisions across time. A change in consent timing, construction cost or sales velocity does not stay in one place — it ripples through funding, cash flow, risk and reporting.',
+        body: [
+          'Our property development applications — whether advanced Excel models or a connected cloud platform — are designed around the complete lifecycle of a property development, residential and mixed-use, so commercial decisions are made with the full programme in view, not a static profit figure.',
+          'Every stage affects multiple later stages. That is why we treat concept, approvals, financing, construction, sales and completion as one connected commercial system rather than separate tools.',
+        ],
+        items: [
+          'Initial Concept',
+          'Site Identification',
+          'Land Acquisition',
+          'Due Diligence',
+          'Feasibility Studies',
+          'Planning',
+          'Resource Consent',
+          'Engineering',
+          'Design',
+          'Council Approvals',
+          'Financing',
+          'Site Preparation',
+          'Procurement',
+          'Construction',
+          'Sales and Marketing',
+          'Settlements',
+          'Rental and Holding Scenarios',
+          'Project Completion',
+          'Portfolio Reporting',
+        ],
+      },
+      {
+        id: 'timeline-workbench',
+        heading: 'Timeline workbench',
+        intro:
+          'One of the core strengths of our property development applications is a timeline-based development workbench — in advanced Excel models or in the cloud platform. Every material component of a project exists on an interconnected timeline — not as isolated dates in a Gantt chart that finance never sees.',
+        body: [
+          'When a milestone moves, downstream activities, funding requirements and reporting should move with it. The workbench is built so programme change is immediately visible in commercial terms.',
+        ],
+        items: [
+          'Acquisition dates',
+          'Approvals and consent milestones',
+          'Finance drawdowns',
+          'Construction phases',
+          'Consultant milestones',
+          'Infrastructure delivery',
+          'Inspections',
+          'Practical completion',
+          'Code compliance',
+          'Settlements',
+          'Occupancy',
+        ],
+        cards: [
+          {
+            title: 'Connected programme and funding',
+            description:
+              'Changing one milestone automatically affects downstream activities, funding requirements and management reporting — so the development team is not reconciling three different plans by hand.',
+          },
+          {
+            title: 'Built for commercial control',
+            description:
+              'The timeline is not decoration. It is the spine of cash-flow forecasting, drawdown modelling and scenario comparison across the life of the project.',
+          },
+        ],
+      },
+      {
+        id: 'financial-modelling',
+        heading: 'Property development financial modelling',
+        intro:
+          'Financial modelling goes well beyond a static feasibility spreadsheet. Whether we extend your Excel model or configure a connected application, the emphasis is on understanding cash flow over time — not only a profit calculation at the end of a workbook.',
+        body: [
+          'Development feasibility software that ignores timing understates risk. Interest capitalisation, GST treatment, staged sales and funding gaps only make sense when costs and revenue sit on a real programme.',
+          'We model the commercial structure developers actually manage: land, consultants, construction, infrastructure, borrowing, contingencies, sales or rental income, margins, equity and IRR — with the ability to refresh as assumptions change.',
+        ],
+        items: [
+          'Land acquisition costs',
+          'Professional fees',
+          'Construction costs',
+          'Infrastructure',
+          'Borrowing and interest capitalisation',
+          'Contingencies',
+          'Sales revenue',
+          'Rental income',
+          'GST / VAT considerations',
+          'Developer margins',
+          'Cash-flow forecasting',
+          'Funding requirements',
+          'Loan drawdown modelling',
+          'Scenario comparisons',
+          'Sensitivity analysis',
+          'Profitability optimisation',
+          'Project IRR',
+          'Equity requirements',
+          'Funding gaps',
+        ],
+      },
+      {
+        id: 'scenario-modelling',
+        heading: 'Development scenario modelling',
+        intro:
+          'Developers constantly ask “what happens if…”. Our Excel models and cloud applications are built for rapid scenario comparison so commercial decisions are grounded in alternatives, not a single base case that becomes outdated the week after it is printed.',
+        body: [
+          'Interest rates move. Construction costs rise. Consents slip. Staging changes. Product mix shifts. The sales programme accelerates or stalls. You retain stock rather than sell. Each of those questions deserves a structured answer — not another duplicated workbook.',
+        ],
+        cards: [
+          {
+            title: 'Typical scenario questions',
+            items: [
+              'What if interest rates increase?',
+              'What if construction costs rise?',
+              'What if consents are delayed?',
+              'What if the project stages differently?',
+              'What if more townhouses are built?',
+              'What if the sales programme changes?',
+              'What if we retain rather than sell?',
+            ],
+          },
+          {
+            title: 'Commercial decision support',
+            description:
+              'Compare scenarios side by side for cash flow, funding gaps, equity requirement, margin and IRR — so boards, lenders and development managers can debate options with shared numbers.',
+          },
+        ],
+      },
+      {
+        id: 'ai-property-development-assistant',
+        heading: 'AI property development assistant',
+        intro:
+          'On the cloud pathway, the application includes a built-in AI assistant designed as a knowledgeable project assistant — not a generic chatbot. Unlike consumer AI tools, it is prompted in multiple layers so answers relate to property development, your region, your workflows and the live project.',
+        body: [
+          'Because the assistant already understands the development context, it can explain financial impacts, challenge assumptions and help with documentation in language that fits the project — rather than offering generic software advice.',
+        ],
+        layers: [
+          {
+            title: 'Property development expertise',
+            description:
+              'Foundational prompting around development lifecycle, feasibility logic, funding behaviour and commercial risk.',
+          },
+          {
+            title: 'Country and regional practice',
+            description:
+              'Regulations, terminology and development practices relevant to the jurisdiction — including New Zealand planning and delivery realities where applicable.',
+          },
+          {
+            title: 'Company-specific workflows',
+            description:
+              'Your methodology, cost structures, approval paths and reporting conventions so guidance matches how your organisation actually works.',
+          },
+          {
+            title: 'Project-specific information',
+            description:
+              'The live assumptions, programme, funding and commercial position of the development under discussion.',
+          },
+        ],
+        cards: [
+          {
+            title: 'What the assistant can help with',
+            items: [
+              'Explain financial impacts of programme or cost changes',
+              'Review assumptions and flag weak spots',
+              'Identify missing considerations',
+              'Answer project questions in context',
+              'Generate and refine reports',
+              'Assist with documentation',
+              'Provide planning guidance',
+              'Summarise project status',
+              'Help evaluate alternative approaches',
+            ],
+          },
+        ],
+      },
+    ],
+    featureGrid: {
+      heading: 'Capabilities across Excel and cloud',
+      intro:
+        'Whether we extend your Excel models or configure a cloud application, the commercial toolkit covers property development financial modelling and day-to-day project control.',
+      features: [
+        'Excel feasibility models',
+        'Excel automation',
+        'Timeline workbench',
+        'Financial modelling',
+        'Cash-flow forecasting',
+        'Scenario comparison',
+        'Budget tracking',
+        'Variation management',
+        'Consultant management',
+        'Document management',
+        'Milestone tracking',
+        'Risk register',
+        'Sales tracking',
+        'Funding management',
+        'Reporting dashboards',
+        'Resource planning',
+        'Task workflows',
+        'Approval tracking',
+        'Cloud collaboration',
+        'AI assistant',
+        'Excel integration',
+        'Role-based security',
+        'Audit trails',
+      ],
+    },
+    whyUs: {
+      heading: 'Why XLS Experts',
+      body: [
+        'We are not software vendors attempting to learn property development after the product was designed. We learned property development first — through years of consulting on Excel feasibility models, cash-flow systems and project economics. Over that time we have built several highly effective Excel models that remain totally functional for the teams that use them.',
+        'Our cloud Property Development Platform grew out of that work as an alternate or escalation pathway — useful when collaboration and governance demand it, and as proof of how deeply we understand the domain. We do not alienate Excel users who wish to stay in Excel; we develop and extend what already works.',
+        'Either path is designed around practical commercial realities: funding timing, consent risk, construction variation, sales velocity and the reporting needs of investors and lenders.',
+      ],
+    },
+    processHeading: 'How we deliver property development applications',
+    processSteps: [
+      {
+        title: 'Understand your methodology and current models',
+        description:
+          'We map how you run developments today — including existing Excel workbooks — stages, cost structures, funding rules, reporting packs and the decisions that matter most.',
+      },
+      {
+        title: 'Choose Excel extension or cloud escalation',
+        description:
+          'We recommend whether to strengthen your Excel models and automation, move selected parts into Microsoft 365, or configure a cloud platform — based on users, collaboration and risk, not a preferred product.',
+      },
+      {
+        title: 'Build, migrate logic and validate with real projects',
+        description:
+          'We preserve commercial logic that is sound, then test cash flow, drawdowns and scenarios against live or recent developments.',
+      },
+      {
+        title: 'Train the team and support ongoing use',
+        description:
+          'Development managers, commercial staff and stakeholders get practical training, with a clear path for enhancements as portfolios grow.',
+      },
+    ],
+    faqs: [
+      {
+        question: 'Do we have to leave Excel?',
+        answer:
+          'No. Many clients stay in Excel. We develop and extend existing feasibility models and automations where that is the right commercial fit. Our cloud Property Development Platform is an alternate or escalation pathway when multi-user collaboration, stronger governance or portfolio visibility becomes the constraint.',
+      },
+      {
+        question: 'Is this off-the-shelf property development software?',
+        answer:
+          'No. Whether Excel or cloud, each implementation is shaped around your methodology, funding structures and reporting requirements rather than a one-size product.',
+      },
+      {
+        question:
+          'Can you improve our existing Excel feasibility models?',
+        answer:
+          'Yes. That is often the starting point. We strengthen structure, cash-flow timing, scenario controls, documentation and automation while keeping the model familiar to your team — and only escalate to cloud when there is a clear reason.',
+      },
+      {
+        question: 'Does it handle New Zealand GST and funding structures?',
+        answer:
+          'Yes. Implementations are configured for local commercial treatment, including GST considerations, drawdown behaviour and the reporting expectations of New Zealand lenders and investors.',
+      },
+      {
+        question: 'How is the AI assistant different from ChatGPT?',
+        answer:
+          'On the cloud pathway, the assistant is layered with property development expertise, regional practice, your company workflows and project-specific data. That makes it a project assistant grounded in the development — not a generic chatbot answering from the open internet alone.',
+      },
+      {
+        question: 'Who typically uses these applications?',
+        answer:
+          'Property developers, development managers, project directors, commercial managers, investors, trusts and organisations delivering residential or mixed-use projects.',
+      },
+    ],
+    relatedSlugs: [
+      'project-costing-financial-modelling',
+      'dashboards-business-intelligence',
+      'resource-planning-scheduling',
+    ],
+    relatedLinkLabels: {
+      'project-costing-financial-modelling':
+        'Broader project costing and financial modelling systems',
+      'dashboards-business-intelligence':
+        'Executive and lender reporting dashboards',
+      'resource-planning-scheduling':
+        'Resource planning tools and scheduling systems',
+    },
+    caseStudies: [
+      {
+        slug: 'financial-modelling-amp',
+        title: 'Financial Modelling & Reporting Suite',
+        client: 'AMP Financial Services',
+        sector: 'Financial Services',
+        summary:
+          'Extensible modelling and reporting foundations that informed how we approach complex commercial systems for development stakeholders.',
+        published: true,
+      },
+    ],
+    ctaHeading: 'Discuss your development modelling or project challenges',
+    ctaBody:
+      'Tell us how you run feasibility, funding and programme control today — in Excel or elsewhere — and where the gaps appear under pressure. We will recommend whether to extend your models, add automation, or escalate to a cloud application for your next residential or mixed-use project.',
+    contactOptionLabel: 'Property Development Applications',
   },
   {
     slug: 'quoting-estimating-systems',
@@ -860,15 +1128,12 @@ export const solutionPages: readonly SolutionPage[] = [
     relatedSlugs: [
       'workflow-automation-systems-integration',
       'client-staff-portals',
-      'spreadsheet-process-modernisation',
     ],
     relatedLinkLabels: {
       'workflow-automation-systems-integration':
         'Automate quote approvals and CRM updates',
       'client-staff-portals':
         'Let clients review proposals online',
-      'spreadsheet-process-modernisation':
-        'Modernise an existing Excel estimator',
     },
     caseStudies: [
       {
@@ -1039,9 +1304,9 @@ export const solutionPages: readonly SolutionPage[] = [
   {
     slug: 'client-staff-portals',
     href: '/solutions/client-staff-portals',
-    title: 'Client & Staff Portals',
+    title: 'Client, Staff & Supplier Portals',
     shortTitle: 'Portals',
-    navLabel: 'Client & Staff Portals',
+    navLabel: 'Client, Staff & Supplier Portals',
     summary:
       'Provide clients, staff, suppliers or contractors with secure access to information, documents and workflows.',
     exampleUses: [
@@ -1051,7 +1316,7 @@ export const solutionPages: readonly SolutionPage[] = [
       'Approvals and online forms',
     ],
     icon: 'portal',
-    metaTitle: 'Client & Staff Portals NZ',
+    metaTitle: 'Client, Staff & Supplier Portals NZ',
     metaDescription:
       'Secure client, staff and supplier portals for New Zealand businesses — document access, status updates, forms and approvals without email chaos.',
     heroHeading: 'Secure access that simplifies a real process',
@@ -1181,7 +1446,307 @@ export const solutionPages: readonly SolutionPage[] = [
     ctaHeading: 'Discuss a portal for your process',
     ctaBody:
       'Tell us who needs access, what they ask for repeatedly, and what should happen inside the portal. We will keep the design focused on that process.',
-    contactOptionLabel: 'Client & Staff Portals',
+    contactOptionLabel: 'Client, Staff & Supplier Portals',
+  },
+  {
+    slug: 'asset-maintenance-operations-solutions',
+    href: '/solutions/asset-maintenance-operations-solutions',
+    title: 'Asset Maintenance Operations Solutions',
+    shortTitle: 'Asset maintenance',
+    navLabel: 'Asset Maintenance Operations Solutions',
+    summary:
+      'Custom applications, planning tools and ERP extensions for organisations managing physical assets, maintenance operations and field service delivery — not financial asset management.',
+    exampleUses: [
+      'Maintenance scheduling',
+      'ERP bolt-on applications',
+      'Operational dashboards',
+      'Simpro and ERP integration',
+    ],
+    icon: 'maintenance',
+    metaTitle:
+      'Asset Maintenance Operations & Field Service Software NZ | XLS Experts',
+    metaDescription:
+      'Asset maintenance operations solutions for New Zealand facilities, HVAC, industrial and field service organisations — ERP extensions, maintenance scheduling, reporting and operational dashboards for physical assets.',
+    heroHeading: 'Asset Maintenance Operations Solutions',
+    heroIntroduction:
+      'Custom applications, planning tools and ERP extensions for organisations managing physical assets, maintenance operations and field service delivery.',
+    introHeading: 'Extend the systems you already run — do not rip them out',
+    introBody: [
+      'Many organisations already operate sophisticated ERP and maintenance systems such as Simpro, SAP, JD Edwards, TechnologyOne, Pronto, SQL-based operational platforms and industry-specific maintenance software. Those systems usually manage core operational information well.',
+      'They often become restrictive when the business needs specialised workflows, planning tools, reporting, pricing models or customer-specific functionality that the vendor platform does not provide.',
+      'Rather than replacing these systems, XLS Experts develops complementary applications that extend them. The objective is to improve operational efficiency while allowing organisations to continue using the systems they already depend on.',
+      'This page is about physical assets — HVAC, building services, plant, infrastructure, fleets, facilities and industrial equipment — not financial asset management.',
+    ],
+    problemsHeading: 'Where maintenance operations get stuck',
+    problems: [
+      'ERP or Simpro holds the data, but planning and analysis still happen in fragile spreadsheets',
+      'Scheduling and technician allocation do not match how work is actually delivered',
+      'Preventative programmes and reactive work compete without a clear view of capacity',
+      'Contract profitability is hard to see until it is too late',
+      'Custom ERP changes are expensive, slow and difficult to maintain',
+      'Operational reporting for customers and managers takes too long to prepare',
+    ],
+    capabilitiesHeading: 'What we build',
+    capabilities: [
+      'Maintenance scheduling applications',
+      'Technician planning tools',
+      'Asset analysis and operational dashboards',
+      'Preventative maintenance planning',
+      'Contract profitability reporting',
+      'Service pricing calculators',
+      'Inspection reporting',
+      'ERP import/export automation',
+    ],
+    useCasesHeading: 'Who this is for',
+    useCases: [
+      {
+        title: 'Facilities management and building services',
+        description:
+          'HVAC, electrical, fire protection and building maintenance companies that need scheduling, site management and customer reporting beyond the ERP baseline.',
+      },
+      {
+        title: 'Industrial and manufacturing maintenance',
+        description:
+          'Plant, pumps, compressors and production equipment where history, forecasting and labour planning must stay connected to the job system.',
+      },
+      {
+        title: 'Infrastructure, utilities and councils',
+        description:
+          'Civil and utility assets with compliance inspections, planned programmes and portfolio-level operational reporting.',
+      },
+      {
+        title: 'Field service and asset owners',
+        description:
+          'Organisations that allocate technicians, manage contracts and need flexible bolt-on tools without rewriting the core platform.',
+      },
+    ],
+    technologyHeading: 'We integrate with your existing operational environment',
+    technologyNotes: [
+      'We work with the systems you already run. The list below is illustrative — the approach is to extend your environment rather than force a replacement.',
+    ],
+    technologies: [
+      'Simpro',
+      'SAP',
+      'JD Edwards',
+      'TechnologyOne',
+      'Pronto',
+      'SQL Server / PostgreSQL',
+      'Microsoft Excel',
+      'Microsoft 365',
+      'REST APIs',
+      'CSV import / export',
+    ],
+    preferDeepLayout: true,
+    deepSections: [
+      {
+        id: 'understanding-maintenance-operations',
+        heading: 'Understanding maintenance operations',
+        intro:
+          'Successful maintenance businesses need accurate information, flexible planning and efficient operational workflows. Physical asset maintenance is not a single process — it is a connected set of operational disciplines.',
+        body: [
+          'Organisations responsible for HVAC equipment, building services, plant and machinery, industrial equipment, infrastructure, utilities, civil assets, vehicles and fleets, facilities, manufacturing equipment, pumps, compressors and electrical assets live in the detail of service delivery every day.',
+          'Software only helps when it respects how preventative and reactive work, contracts, technicians and sites actually interact.',
+        ],
+        items: [
+          'Physical asset registers',
+          'Preventative maintenance',
+          'Reactive maintenance',
+          'Service scheduling',
+          'Technician allocation',
+          'Site management',
+          'Customer contracts',
+          'Planned maintenance programmes',
+          'Compliance inspections',
+          'Equipment history',
+          'Maintenance forecasting',
+          'Labour planning',
+          'Resource utilisation',
+          'Operational reporting',
+          'Contract profitability',
+        ],
+      },
+      {
+        id: 'extending-existing-erp-systems',
+        heading: 'Extending existing ERP and maintenance systems',
+        intro:
+          'One of our core strengths is building intelligent bolt-on applications around systems organisations have already invested in heavily.',
+        body: [
+          'The limitation is often not the ERP or maintenance software itself, but the difficulty of adding custom functionality. Platforms designed for broad markets make custom development expensive, slow and difficult to maintain.',
+          'Rather than modifying the ERP itself, we develop complementary tools that import operational data, validate it, support advanced analysis, scheduling, pricing, customer-specific reporting, dashboards, document generation and workflow automation — then prepare information for upload back into the ERP where appropriate.',
+          'That approach delivers flexibility without disrupting the operational systems teams already depend on.',
+        ],
+        cards: [
+          {
+            title: 'Typical ERP extension work',
+            items: [
+              'Importing operational data',
+              'Validating and cleansing data',
+              'Advanced analysis and business intelligence',
+              'Scheduling and planning tools',
+              'Pricing engines',
+              'Customer-specific reporting',
+              'Operational dashboards',
+              'Document generation',
+              'Workflow automation',
+              'Preparing upload files back into the ERP',
+            ],
+          },
+          {
+            title: 'Why bolt-on beats core customisation',
+            description:
+              'You keep vendor upgrades, core workflows and existing licences intact, while gaining specialised capability that would be costly or impractical to build inside the ERP.',
+          },
+        ],
+      },
+      {
+        id: 'working-with-operational-data',
+        heading: 'Working with operational data',
+        intro:
+          'A common requirement is exporting operational data from ERP systems into specialist tools, then returning curated results where they belong.',
+        body: [
+          'Teams need room to analyse, plan, report, schedule, price, forecast, cleanse and validate information without waiting on vendor roadmaps. Processed information can then be uploaded back into operational systems where appropriate.',
+          'This avoids expensive ERP customisation while giving the business far greater flexibility — and keeps Excel or cloud workbenches connected to the system of record rather than drifting into uncontrolled copies.',
+        ],
+        items: [
+          'Analysis',
+          'Planning',
+          'Reporting',
+          'Scheduling',
+          'Pricing',
+          'Forecasting',
+          'Data cleansing',
+          'Validation',
+          'Business intelligence',
+        ],
+      },
+      {
+        id: 'project-experience',
+        heading: 'Project experience in maintenance operations',
+        intro:
+          'We have practical experience supporting maintenance organisations — including systems that support HVAC maintenance operations.',
+        body: [
+          'That work has covered maintenance scheduling, pricing models, operational reporting, customer and site management, portfolio reporting, operational planning and integrated data processing with existing job-management platforms.',
+          'We do not discuss confidential client detail here. The point is industry understanding: how field teams, planners and commercial managers actually run physical asset maintenance day to day.',
+        ],
+      },
+    ],
+    featureGrid: {
+      heading: 'What we build for maintenance operations',
+      intro:
+        'Examples of applications and workbenches we deliver for facilities management, field service and physical asset maintenance.',
+      features: [
+        'Maintenance scheduling applications',
+        'Technician planning tools',
+        'Asset analysis dashboards',
+        'Preventative maintenance planning',
+        'Contract profitability reporting',
+        'Service pricing calculators',
+        'Inspection reporting',
+        'Equipment lifecycle analysis',
+        'Replacement forecasting',
+        'Customer reporting portals',
+        'Mobile field applications',
+        'Operational dashboards',
+        'Bulk data preparation',
+        'ERP import/export automation',
+        'Workflow automation',
+        'Document generation',
+        'Excel-based operational workbenches',
+        'Cloud-based management applications',
+      ],
+    },
+    whyUs: {
+      heading: 'Why XLS Experts',
+      body: [
+        'We understand maintenance businesses before writing software. Scheduling, service delivery, customer contracts, asset information and reporting requirements come first — technology second.',
+        'Our applications are designed around operational workflows rather than forcing organisations to change how they work, or to abandon ERP and maintenance platforms that already hold their core data.',
+      ],
+    },
+    processHeading: 'How we approach maintenance operations projects',
+    processSteps: [
+      {
+        title: 'Understand the operational environment',
+        description:
+          'We map assets, contracts, scheduling, technicians, sites and the ERP or job system already in place — including where spreadsheets fill the gaps.',
+      },
+      {
+        title: 'Design the bolt-on, not a rip-and-replace',
+        description:
+          'We identify what should stay in the ERP, what belongs in a specialist tool, and how data should flow both ways without breaking day-to-day operations.',
+      },
+      {
+        title: 'Build, validate and integrate',
+        description:
+          'Applications are tested with real operational data — scheduling rules, pricing, reporting and import/export paths included.',
+      },
+      {
+        title: 'Handover and ongoing improvement',
+        description:
+          'Training, documentation and a clear path for enhancements as contracts, asset portfolios and reporting needs change.',
+      },
+    ],
+    faqs: [
+      {
+        question: 'Is this financial asset management software?',
+        answer:
+          'No. This solution area is about physical assets and maintenance operations — equipment, facilities, plant, infrastructure and field service delivery — not investment or financial asset portfolios.',
+      },
+      {
+        question: 'Do you replace Simpro or our ERP?',
+        answer:
+          'Usually not. We typically extend systems such as Simpro, SAP, JD Edwards, TechnologyOne or Pronto with bolt-on applications, reporting and import/export automation so you keep the platform you already run.',
+      },
+      {
+        question: 'Can you work with Excel and our ERP together?',
+        answer:
+          'Yes. Many projects use Excel or cloud workbenches for planning, pricing and analysis, with structured export and upload paths back into the operational system.',
+      },
+      {
+        question: 'Who typically needs this?',
+        answer:
+          'Facilities management companies, HVAC and electrical contractors, industrial maintenance providers, manufacturers, infrastructure and utility organisations, property managers, councils, asset owners and field service businesses.',
+      },
+    ],
+    relatedSlugs: [
+      'resource-planning-scheduling',
+      'workflow-automation-systems-integration',
+      'dashboards-business-intelligence',
+      'survey-inspection-field-apps',
+    ],
+    relatedLinkLabels: {
+      'resource-planning-scheduling':
+        'Resource planning tools and scheduling systems',
+      'workflow-automation-systems-integration':
+        'Deeper ERP integration and workflow automation',
+      'dashboards-business-intelligence':
+        'Operational and management dashboards',
+      'survey-inspection-field-apps':
+        'Field inspection and compliance capture',
+    },
+    caseStudies: [
+      {
+        slug: 'maintenance-scheduling-ocs',
+        title: 'Maintenance Scheduling & Optimisation Tool',
+        client: '1M / OCS Group',
+        sector: 'Facilities Management',
+        summary:
+          'Excel add-on interfacing with SIMPRO for scheduling optimisation and exception reporting across asset classes — without changing the core platform.',
+        published: true,
+      },
+      {
+        slug: 'gps-job-reporting-cel',
+        title: 'GPS & Job Management Reporting',
+        client: 'CEL',
+        sector: 'Field Services',
+        summary:
+          'Operational reporting that connects field activity and job information for clearer delivery visibility.',
+        published: true,
+      },
+    ],
+    ctaHeading: 'Discuss your maintenance operations systems',
+    ctaBody:
+      'Tell us which ERP or job system you run today, and where better reporting, planning, automation or bolt-on applications could improve efficiency — without replacing the investment you already have.',
+    contactOptionLabel: 'Asset Maintenance Operations Solutions',
   },
   {
     slug: 'workflow-automation-systems-integration',
@@ -1298,13 +1863,13 @@ export const solutionPages: readonly SolutionPage[] = [
       },
     ],
     relatedSlugs: [
-      'spreadsheet-process-modernisation',
+      'asset-maintenance-operations-solutions',
       'client-staff-portals',
       'dashboards-business-intelligence',
     ],
     relatedLinkLabels: {
-      'spreadsheet-process-modernisation':
-        'Modernise the spreadsheet processes you automate',
+      'asset-maintenance-operations-solutions':
+        'Physical asset maintenance operations and Simpro/ERP extensions',
       'client-staff-portals':
         'Expose automated workflows through a portal',
       'dashboards-business-intelligence':

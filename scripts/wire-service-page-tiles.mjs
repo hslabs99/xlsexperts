@@ -2,18 +2,10 @@ import fs from 'fs'
 import path from 'path'
 
 const HEADINGS = {
-  'ai-workflow-automation': {
-    heading: 'AI workflow automation examples',
+  'ai-workflow-and-business-process-automation': {
+    heading: 'Automation examples',
     subheading:
-      'AI integrated into real business workflows for New Zealand organisations.',
-  },
-  'business-process-automation': {
-    heading: 'Business process automation examples',
-    subheading: 'Automation projects delivered for New Zealand organisations.',
-  },
-  'enterprise-excel-applications': {
-    heading: 'NZ Enterprise Case Studies',
-    subheading: '',
+      'AI workflow and business process automation projects for New Zealand organisations.',
   },
   'excel-dashboard-development': {
     heading: 'Dashboard examples',
@@ -25,21 +17,13 @@ const HEADINGS = {
     subheading:
       'A selection of models built for New Zealand businesses and investors.',
   },
-  'excel-macro-automation': {
-    heading: 'Macro automation examples',
-    subheading: 'Real projects delivered for New Zealand organisations.',
-  },
   'excel-spreadsheet-development': {
     heading: 'What we build for NZ businesses',
     subheading:
       'Real examples of spreadsheet development projects delivered across New Zealand.',
   },
-  'excel-sql-integration': {
-    heading: 'Excel SQL integration projects',
-    subheading: 'Live database connections built for New Zealand businesses.',
-  },
-  'excel-vba-development': {
-    heading: 'VBA projects we have delivered in NZ',
+  'excel-vba-macro-development': {
+    heading: 'VBA and macro projects we have delivered in NZ',
     subheading:
       'A sample of real automation work across New Zealand industries.',
   },

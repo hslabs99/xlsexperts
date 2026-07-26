@@ -3,12 +3,14 @@
  * Not used on the homepage — homepage case studies stay in `caseStudies`.
  */
 
+import { servicePageHrefAliases } from '@/lib/service-pages'
+
 export type ServicePageTile = {
   slug: string
   tag: string
   title: string
   detail: string
-  /** Service landing paths this tile appears on, e.g. `/excel-vba-development` */
+  /** Service landing paths this tile appears on, e.g. `/excel-vba-macro-development` */
   serviceHrefs: string[]
   published: boolean
   sortOrder: number
@@ -43,14 +45,22 @@ export function slugifyServicePageTile(value: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+function matchingServiceHrefs(serviceHref: string): string[] {
+  const href = serviceHref.startsWith('/') ? serviceHref : `/${serviceHref}`
+  const aliases = servicePageHrefAliases[href] ?? []
+  return [href, ...aliases]
+}
+
 /** Tiles assigned to a service page path, published only, sorted. */
 export function selectTilesForServicePage(
   rows: readonly ServicePageTile[],
   serviceHref: string
 ): ServicePageTile[] {
-  const href = serviceHref.startsWith('/') ? serviceHref : `/${serviceHref}`
+  const matchHrefs = new Set(matchingServiceHrefs(serviceHref))
   return rows
-    .filter((r) => r.published && r.serviceHrefs.includes(href))
+    .filter(
+      (r) => r.published && r.serviceHrefs.some((h) => matchHrefs.has(h)),
+    )
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title))
 }

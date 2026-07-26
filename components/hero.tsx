@@ -1,10 +1,7 @@
-import { ArrowRight, CheckCircle2 } from 'lucide-react'
+'use client'
 
-const trustPoints = [
-  'Fixed-price projects available',
-  'New Zealand based',
-  'Trusted by SMEs & enterprise',
-]
+import { ArrowRight, CheckCircle2 } from 'lucide-react'
+import { useMarketCopy } from '@/components/market-provider'
 
 const clientNames = [
   'AMP',
@@ -34,13 +31,19 @@ const commonProjects = [
   'E-commerce Extensions',
 ]
 
-const badges = [
-  'New Zealand Microsoft Excel Specialists',
-  'Enterprise Applications',
-  'A.I. Solutions',
-]
-
 export function Hero() {
+  const copy = useMarketCopy()
+  const trustPoints = [
+    'Fixed-price projects available',
+    copy.hero.trustBased,
+    'Trusted by SMEs & enterprise',
+  ]
+  const badges = [
+    copy.hero.badgeSpecialists,
+    copy.hero.badgeEnterprise,
+    copy.hero.badgeAi,
+  ]
+
   return (
     <section
       aria-label="Hero"
@@ -63,9 +66,9 @@ export function Hero() {
           className="mb-8 text-balance text-[1.72265625rem] font-bold uppercase leading-tight tracking-[0.12em] sm:text-[1.96875rem] lg:text-[2.625rem]"
           style={{ color: '#1a6b3c' }}
         >
-          NEW ZEALAND
+          {copy.hero.line1}
           <br />
-          BUSINESS AUTOMATION SPECIALISTS
+          {copy.hero.line2}
         </p>
 
         {/* Eyebrow badge strip */}
@@ -177,7 +180,7 @@ export function Hero() {
           {[
             { value: '350+', label: 'Projects delivered' },
             { value: '20+', label: 'Years of expertise' },
-            { value: '100% NZ', label: 'Based team, local expertise' },
+            { value: copy.hero.statValue, label: copy.hero.statLabel },
             { value: 'Fixed Price', label: 'Fixed pricing available' },
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col items-center gap-0.5 px-6 py-6 text-center" style={{ backgroundColor: '#f9fafb' }}>

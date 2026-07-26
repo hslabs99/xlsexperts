@@ -42,7 +42,7 @@ export interface CaseStudy {
   solution: string
   outcome: string
   tags: string[]
-  /** Service page path segments without leading slash, e.g. excel-vba-development */
+  /** Service page path segments without leading slash, e.g. excel-vba-macro-development */
   serviceSlugs?: string[]
   /** Solution page slugs, e.g. dashboards-business-intelligence */
   solutionSlugs?: string[]

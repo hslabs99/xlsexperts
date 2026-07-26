@@ -6,25 +6,23 @@ import { Contact } from '@/components/contact'
 import { ProcessSteps } from '@/components/solutions/process-steps'
 import { PathwayDiagram } from '@/components/solutions/pathway-diagram'
 import { SolutionCTA } from '@/components/solutions/solution-cta'
+import { marketPageMetadata, marketSiteOrigin } from '@/lib/seo'
 import {
   ALL_SOLUTIONS_HREF,
-  SITE_ORIGIN,
   solutionIcons,
   solutionPages,
 } from '@/lib/solutions'
 
-export const metadata: Metadata = {
-  title: 'Business Systems Solutions NZ',
-  description:
-    'Business systems built around the way you work — spreadsheet modernisation, dashboards, resource planning, financial modelling, quoting, field apps, portals and workflow automation for New Zealand organisations.',
-  alternates: { canonical: `${SITE_ORIGIN}${ALL_SOLUTIONS_HREF}` },
-  openGraph: {
-    title: 'Business Systems Solutions | XLS Experts',
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: ALL_SOLUTIONS_HREF,
+    title: 'Business Systems Solutions NZ',
     description:
+      'Business systems built around the way you work — dashboards, resource planning, financial modelling, property development, asset maintenance operations, quoting, field apps, portals and workflow automation for New Zealand organisations.',
+    ogTitle: 'Business Systems Solutions | XLS Experts',
+    ogDescription:
       'Practical business systems that may combine Excel, Microsoft 365, cloud applications, databases and integrations.',
-    url: `${SITE_ORIGIN}${ALL_SOLUTIONS_HREF}`,
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+  })
 }
 
 const indexApproachSteps = [
@@ -59,7 +57,8 @@ const pathwayItems = [
   'Replacing the spreadsheet entirely',
 ]
 
-export default function SolutionsIndexPage() {
+export default async function SolutionsIndexPage() {
+  const origin = await marketSiteOrigin()
   const itemListSchema = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -68,7 +67,7 @@ export default function SolutionsIndexPage() {
       '@type': 'ListItem',
       position: index + 1,
       name: solution.title,
-      url: `${SITE_ORIGIN}${solution.href}`,
+      url: `${origin}${solution.href}`,
       description: solution.summary,
     })),
   }
@@ -81,13 +80,13 @@ export default function SolutionsIndexPage() {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: `${SITE_ORIGIN}/`,
+        item: `${origin}/`,
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Solutions',
-        item: `${SITE_ORIGIN}${ALL_SOLUTIONS_HREF}`,
+        item: `${origin}${ALL_SOLUTIONS_HREF}`,
       },
     ],
   }

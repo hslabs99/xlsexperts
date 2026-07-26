@@ -2,28 +2,47 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
+import { marketLabel, type MarketId } from '@/lib/market'
 import {
-  DEFAULT_CRAWL_DOCS,
-  DEFAULT_LLMS_TXT,
-  DEFAULT_ROBOTS_TXT,
+  defaultCrawlDocs,
+  defaultCrawlDocsBundle,
+  defaultLlmsTxt,
+  defaultRobotsTxt,
   formatSitemapUrlLines,
   parseSitemapUrlLines,
+  siteOriginForMarket,
   validateCrawlDocs,
+  type CrawlDocsBundle,
   type CrawlDocsContent,
   type VerificationFile,
 } from '@/lib/crawl-docs'
+
+const MARKET_TABS: MarketId[] = ['nz', 'intl']
 
 function emptyVerification(): VerificationFile {
   return { path: '', content: '', enabled: true }
 }
 
+function cloneDocs(docs: CrawlDocsContent): CrawlDocsContent {
+  return JSON.parse(JSON.stringify(docs)) as CrawlDocsContent
+}
+
 export function AdminCrawlDocsPanel() {
-  const [form, setForm] = useState<CrawlDocsContent>(DEFAULT_CRAWL_DOCS)
-  const [sitemapLines, setSitemapLines] = useState('')
+  const [markets, setMarkets] = useState<CrawlDocsBundle>(
+    defaultCrawlDocsBundle()
+  )
+  const [activeMarket, setActiveMarket] = useState<MarketId>('nz')
+  const [sitemapByMarket, setSitemapByMarket] = useState<
+    Record<MarketId, string>
+  >({ nz: '', intl: '' })
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  const form = markets[activeMarket]
+  const sitemapLines = sitemapByMarket[activeMarket]
+  const origin = siteOriginForMarket(activeMarket)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -32,14 +51,21 @@ export function AdminCrawlDocsPanel() {
       const res = await fetch('/api/admin/crawl-docs')
       const data = (await res.json()) as {
         ok?: boolean
-        docs?: CrawlDocsContent
+        markets?: CrawlDocsBundle
         error?: string
       }
-      if (!res.ok || !data.ok || !data.docs) {
+      if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Failed to load crawl documents')
       }
-      setForm(data.docs)
-      setSitemapLines(formatSitemapUrlLines(data.docs.sitemapExtraUrls))
+      const next = {
+        nz: cloneDocs(data.markets.nz ?? defaultCrawlDocs('nz')),
+        intl: cloneDocs(data.markets.intl ?? defaultCrawlDocs('intl')),
+      }
+      setMarkets(next)
+      setSitemapByMarket({
+        nz: formatSitemapUrlLines(next.nz.sitemapExtraUrls),
+        intl: formatSitemapUrlLines(next.intl.sitemapExtraUrls),
+      })
     } catch (err) {
       setError(
         err instanceof Error
@@ -55,6 +81,13 @@ export function AdminCrawlDocsPanel() {
     void load()
   }, [load])
 
+  function setForm(updater: (prev: CrawlDocsContent) => CrawlDocsContent) {
+    setMarkets((prev) => ({
+      ...prev,
+      [activeMarket]: updater(prev[activeMarket]),
+    }))
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -63,27 +96,34 @@ export function AdminCrawlDocsPanel() {
     try {
       const next: CrawlDocsContent = {
         ...form,
-        sitemapExtraUrls: parseSitemapUrlLines(sitemapLines),
+        sitemapExtraUrls: parseSitemapUrlLines(sitemapLines, activeMarket),
       }
       const validationError = validateCrawlDocs(next)
       if (validationError) throw new Error(validationError)
       const res = await fetch('/api/admin/crawl-docs', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next),
+        body: JSON.stringify({ market: activeMarket, docs: next }),
       })
       const data = (await res.json()) as {
         ok?: boolean
-        docs?: CrawlDocsContent
+        markets?: CrawlDocsBundle
         error?: string
       }
-      if (!res.ok || !data.ok || !data.docs) {
+      if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Save failed')
       }
-      setForm(data.docs)
-      setSitemapLines(formatSitemapUrlLines(data.docs.sitemapExtraUrls))
+      const saved = {
+        nz: cloneDocs(data.markets.nz),
+        intl: cloneDocs(data.markets.intl),
+      }
+      setMarkets(saved)
+      setSitemapByMarket({
+        nz: formatSitemapUrlLines(saved.nz.sitemapExtraUrls),
+        intl: formatSitemapUrlLines(saved.intl.sitemapExtraUrls),
+      })
       setMessage(
-        'SEO crawl documents saved. Public robots/llms/sitemap/verification endpoints update immediately.'
+        `${marketLabel(activeMarket)} SEO crawl documents saved. Public robots/llms/sitemap/verification for that domain update immediately.`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
@@ -122,14 +162,37 @@ export function AdminCrawlDocsPanel() {
           SEO crawl documents
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Manage files Google and other crawlers need:{' '}
-          <code className="text-xs">sitemap.xml</code> extras,{' '}
-          <code className="text-xs">robots.txt</code>,{' '}
-          <code className="text-xs">llms.txt</code>, and Search Console
-          verification files. Stored in Firebase{' '}
+          Separate sitemap extras, robots.txt, llms.txt, and Search Console
+          verification files per domain. New Zealand and International never
+          share crawl data. Stored in Firebase{' '}
           <code className="text-xs">Site Content / crawl-documents</code>.
         </p>
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        {MARKET_TABS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => {
+              setActiveMarket(id)
+              setMessage(null)
+              setError(null)
+            }}
+            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+              activeMarket === id
+                ? 'bg-brand text-white'
+                : 'border border-border bg-white text-ink hover:bg-surface-raised'
+            }`}
+          >
+            {marketLabel(id)}
+          </button>
+        ))}
+      </div>
+
+      <p className="text-xs text-ink-muted">
+        Editing for <strong>{origin}</strong>
+      </p>
 
       {(message || error) && (
         <div
@@ -150,24 +213,21 @@ export function AdminCrawlDocsPanel() {
             Sitemap extra URLs
           </h3>
           <p className="mt-1 text-xs text-ink-muted">
-            The auto-generated sitemap (pages + blog posts) always runs. Paste
-            extra absolute URLs or paths here — one per line — to merge into{' '}
-            <a
-              href="/sitemap.xml"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              /sitemap.xml
-            </a>
-            .
+            The auto-generated sitemap (pages + blog posts) always runs for
+            this domain. Paste extra absolute URLs or paths here — one per
+            line. Relative paths resolve to {origin}.
           </p>
         </div>
         <textarea
           value={sitemapLines}
-          onChange={(e) => setSitemapLines(e.target.value)}
+          onChange={(e) =>
+            setSitemapByMarket((prev) => ({
+              ...prev,
+              [activeMarket]: e.target.value,
+            }))
+          }
           rows={5}
-          placeholder={`/case-studies/custom-landing\nhttps://www.xlsexperts.co.nz/another-page`}
+          placeholder={`/case-studies/custom-landing\n${origin}/another-page`}
           className="w-full rounded-md border border-border px-3 py-2 font-mono text-xs leading-relaxed"
           spellCheck={false}
         />
@@ -177,17 +237,9 @@ export function AdminCrawlDocsPanel() {
         <div>
           <h3 className="text-sm font-semibold text-ink">robots.txt</h3>
           <p className="mt-1 text-xs text-ink-muted">
-            Live at{' '}
-            <a
-              href="/robots.txt"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              /robots.txt
-            </a>
-            . Leave override off to keep the built-in default (allow all + AI
-            crawlers + sitemap link).
+            Served at /robots.txt on {origin}. Leave override off to keep the
+            built-in default (allow all + AI crawlers + this domain&apos;s
+            sitemap link).
           </p>
         </div>
         <label className="flex items-start gap-3 rounded-md border border-border bg-white px-4 py-3 text-sm">
@@ -228,7 +280,7 @@ export function AdminCrawlDocsPanel() {
           onClick={() =>
             setForm((prev) => ({
               ...prev,
-              robotsContent: DEFAULT_ROBOTS_TXT,
+              robotsContent: defaultRobotsTxt(origin),
             }))
           }
           className="text-xs font-medium text-brand underline"
@@ -241,16 +293,8 @@ export function AdminCrawlDocsPanel() {
         <div>
           <h3 className="text-sm font-semibold text-ink">llms.txt</h3>
           <p className="mt-1 text-xs text-ink-muted">
-            Live at{' '}
-            <a
-              href="/llms.txt"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              /llms.txt
-            </a>
-            . AI crawlers use this as a site brief.
+            Served at /llms.txt on {origin}. AI crawlers use this as a site
+            brief for this region only.
           </p>
         </div>
         <label className="flex items-start gap-3 rounded-md border border-border bg-white px-4 py-3 text-sm">
@@ -268,7 +312,7 @@ export function AdminCrawlDocsPanel() {
           <span>
             <span className="font-semibold text-ink">Use custom llms.txt</span>
             <span className="mt-0.5 block text-ink-muted">
-              When off, the site serves the built-in default.
+              When off, the site serves the built-in default for this market.
             </span>
           </span>
         </label>
@@ -288,7 +332,7 @@ export function AdminCrawlDocsPanel() {
           onClick={() =>
             setForm((prev) => ({
               ...prev,
-              llmsContent: DEFAULT_LLMS_TXT,
+              llmsContent: defaultLlmsTxt(activeMarket, origin),
             }))
           }
           className="text-xs font-medium text-brand underline"
@@ -304,10 +348,11 @@ export function AdminCrawlDocsPanel() {
               Verification files
             </h3>
             <p className="mt-1 text-xs text-ink-muted">
-              Root files for Google Search Console, Bing, etc. (e.g.{' '}
-              <code className="text-[11px]">google123.html</code>,{' '}
-              <code className="text-[11px]">BingSiteAuth.xml</code>). Served
-              at <code className="text-[11px]">/filename</code> when enabled.
+              Root files for Google Search Console, Bing, etc. for{' '}
+              <strong>{marketLabel(activeMarket)}</strong> only (e.g.{' '}
+              <code className="text-[11px]">google123.html</code>). Served at{' '}
+              <code className="text-[11px]">/filename</code> when enabled on
+              this domain.
             </p>
           </div>
           <button
@@ -331,7 +376,7 @@ export function AdminCrawlDocsPanel() {
 
         {form.verificationFiles.length === 0 ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-ink-muted">
-            No verification files yet.
+            No verification files yet for {marketLabel(activeMarket)}.
           </p>
         ) : (
           <ul className="space-y-4">
@@ -411,7 +456,7 @@ export function AdminCrawlDocsPanel() {
           disabled={busy}
           className="inline-flex items-center justify-center rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
         >
-          {busy ? 'Saving…' : 'Save crawl documents'}
+          {busy ? 'Saving…' : `Save ${marketLabel(activeMarket)} crawl documents`}
         </button>
         <button
           type="button"

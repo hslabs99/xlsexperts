@@ -67,10 +67,18 @@ export const SITE_CONTENT_COLLECTION = 'Site Content'
 /** Document id for the standard-enquiry confirmation messages */
 export const CONFIRMATION_CONTENT_DOC_ID = 'contact-confirmation'
 
-/** Document id for site analytics / marketing tag snippets */
+/**
+ * Document id for site analytics / marketing tag snippets.
+ * Shape: `{ markets: { nz: SiteTagsContent, intl: SiteTagsContent } }`.
+ * Legacy flat docs (pre market-split) are treated as NZ and copied on read.
+ */
 export const SITE_TAGS_DOC_ID = 'analytics-tags'
 
-/** Document id for SEO crawl documents (robots, llms, sitemap extras, verification) */
+/**
+ * Document id for SEO crawl documents (robots, llms, sitemap extras, verification).
+ * Shape: `{ markets: { nz: CrawlDocsContent, intl: CrawlDocsContent } }`.
+ * Legacy flat docs are treated as NZ and copied on read.
+ */
 export const CRAWL_DOCS_DOC_ID = 'crawl-documents'
 
 /** Firestore collection for admin panel user accounts */
@@ -99,3 +107,22 @@ export const SERVICE_PAGE_TILES_COLLECTION = 'servicePageTiles'
  * Homepage reads this single document instead of querying the collection.
  */
 export const CASE_STUDIES_HOME_DOC_ID = 'case-studies-home'
+
+/**
+ * Site Content doc: draft NZ / International market copy.
+ * Public site reads `data/market-copy.generated.ts` after Publish — not this doc.
+ */
+export const MARKET_COPY_DOC_ID = 'market-copy'
+
+/**
+ * Site Content doc: floating “Find out about” quick-nav labels + page links.
+ */
+export const FIND_OUT_ABOUT_DOC_ID = 'find-out-about'
+
+/**
+ * Site Content doc: live chat timeout, visitor copy, and admin quick replies.
+ */
+export const CHAT_SETTINGS_DOC_ID = 'chat-settings'
+
+/** Firestore collection for live chat sessions (messages in `messages` subcollection) */
+export const CHATS_COLLECTION = 'chats'

@@ -1,21 +1,19 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Power Query Consulting New Zealand | XLS Experts',
-  description:
-    'Expert Power Query consulting for New Zealand businesses. We build automated data pipelines in Excel and Power BI that eliminate manual data preparation and keep your reports always current.',
-  alternates: { canonical: 'https://www.xlsexperts.co.nz/power-query-consulting' },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/power-query-consulting',
     title: 'Power Query Consulting New Zealand | XLS Experts',
-    description: 'Expert Power Query consulting for NZ businesses. Automated data pipelines that eliminate manual data preparation.',
-    url: 'https://www.xlsexperts.co.nz/power-query-consulting',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+    description: 'Expert Power Query consulting for New Zealand businesses. We build automated data pipelines in Excel and Power BI that eliminate manual data preparation and keep your reports always current.',
+    ogTitle: 'Power Query Consulting New Zealand | XLS Experts',
+    ogDescription: 'Expert Power Query consulting for NZ businesses. Automated data pipelines that eliminate manual data preparation.',
+  })
 }
 
 const problems = [
@@ -56,16 +54,14 @@ const faqs = [
   { q: 'How much does Power Query consulting cost in New Zealand?', a: 'A straightforward data connection and transformation project typically starts from $1,000 NZD. More complex multi-source pipelines with automated refresh and documentation are typically $2,000 to $6,000 NZD. We provide a fixed quote after reviewing your data sources.' },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'Power Query Consulting',
-  description: 'Expert Power Query consulting for New Zealand businesses. Automated data pipelines that eliminate manual data preparation.',
-  provider: { '@type': 'ProfessionalService', name: 'XLS Experts', url: 'https://www.xlsexperts.co.nz', areaServed: { '@type': 'Country', name: 'New Zealand' } },
-  url: 'https://www.xlsexperts.co.nz/power-query-consulting',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Power Query Consulting',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/power-query-consulting',
+    name: 'Power Query Consulting',
+    description: 'Expert Power Query consulting for New Zealand businesses. Automated data pipelines that eliminate manual data preparation.',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -74,6 +70,7 @@ const faqSchema = {
 }
 
 export default async function PowerQueryConsultingPage() {
+  const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/power-query-consulting')
   return (
     <>

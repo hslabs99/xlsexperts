@@ -1,29 +1,21 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { CheckCircle, AlertTriangle, ArrowRight, XCircle } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'VBA to Office Scripts Migration | Excel Cloud Automation NZ — XLS Experts',
-  description:
-    'Migrate from Excel VBA to Office Scripts for cloud-based automation in Microsoft 365. We navigate the real limitations of Office Scripts and SharePoint deployment so your automations actually work.',
-  alternates: {
-    canonical: 'https://www.xlsexperts.co.nz/vba-to-office-scripts-migration',
-  },
-  openGraph: {
-    title: 'VBA to Office Scripts Migration | Excel Cloud Automation NZ — XLS Experts',
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/vba-to-office-scripts-migration',
+    title:
+      'VBA to Office Scripts Migration | Excel Cloud Automation NZ — XLS Experts',
     description:
-      'Expert migration from Excel VBA to Office Scripts. We handle SharePoint deployment, Power Automate integration, and the real-world limitations that catch organisations out.',
-    url: 'https://www.xlsexperts.co.nz/vba-to-office-scripts-migration',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'VBA to Office Scripts Migration NZ — XLS Experts',
-    description:
-      'Expert migration from Excel VBA to Office Scripts for Microsoft 365 and SharePoint environments.',
-    images: ['/images/og-default.png'],
-  },
+      'Migrate Excel VBA to Office Scripts for Microsoft 365 cloud automation. Modernise spreadsheet workflows with SharePoint, Power Automate and practical guidance on real Office Scripts limitations.',
+    ogTitle:
+      'VBA to Office Scripts Migration | Excel Cloud Automation NZ — XLS Experts',
+    ogDescription:
+      'Expert migration from Excel VBA to Office Scripts. Modernise spreadsheet automation for SharePoint, Power Automate and Microsoft 365 — with clear guidance on real limitations.',
+  })
 }
 
 const problems = [
@@ -42,6 +34,10 @@ const problems = [
   {
     heading: 'Version control and collaboration conflicts',
     body: 'VBA is embedded in workbook files. When multiple users share a file via SharePoint or OneDrive, VBA code cannot be version-controlled cleanly, and co-authoring is not supported in macro-enabled workbooks.',
+  },
+  {
+    heading: 'Spreadsheet workflows that need Microsoft 365, not just a rewrite',
+    body: 'Remote or multi-user access is difficult, approvals live in email, and shared lists sit in uncontrolled workbooks. Migrating automation to Office Scripts is often part of a wider move into SharePoint and Teams-friendly collaboration — not only a language change.',
   },
 ]
 
@@ -134,6 +130,14 @@ const faqs = [
     a: 'No. Office Scripts have no UI capability. If your VBA relies on userforms or dialogs, the replacement is either an Office Add-in task pane (a web-based interface), a Power Apps canvas app, or a redesigned workflow that eliminates the need for user input at runtime.',
   },
   {
+    q: 'Can you work with our existing Microsoft 365 environment?',
+    a: 'Yes. We regularly migrate spreadsheet automation into Office Scripts and Power Automate within your existing Microsoft 365 tenancy, SharePoint sites, security policies and licensing — including organisational script sharing where IT enables it.',
+  },
+  {
+    q: 'Can we keep Excel interfaces while moving shared work into SharePoint?',
+    a: 'Yes. A common modernisation path is to keep familiar Excel workbooks for analysis while moving shared lists, approvals, documents and scheduled automation into SharePoint and Power Automate with Office Scripts.',
+  },
+  {
     q: 'Do all Microsoft 365 licences include Office Scripts?',
     a: 'No. Office Scripts are included in Microsoft 365 Business Standard, Business Premium, E3, and E5. They are not available in Microsoft 365 Business Basic or Microsoft 365 Apps for Business. Running scripts via Power Automate also requires a qualifying Power Automate licence.',
   },
@@ -151,22 +155,14 @@ const faqs = [
   },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'VBA to Office Scripts Migration',
-  description:
-    'Expert migration from Excel VBA to Office Scripts for Microsoft 365 cloud automation. Covers SharePoint deployment, Power Automate integration, licensing requirements, and practical limitations of the Office Scripts platform.',
-  provider: {
-    '@type': 'ProfessionalService',
-    name: 'XLS Experts',
-    url: 'https://www.xlsexperts.co.nz',
-    areaServed: { '@type': 'Country', name: 'New Zealand' },
-  },
-  url: 'https://www.xlsexperts.co.nz/vba-to-office-scripts-migration',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Excel Automation Migration',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/vba-to-office-scripts-migration',
+    name: 'VBA to Office Scripts Migration',
+    description: 'Expert migration from Excel VBA to Office Scripts for Microsoft 365 cloud automation. Covers SharePoint deployment, Power Automate integration, licensing requirements, and practical limitations of the Office Scripts platform.',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -190,7 +186,8 @@ const severityLabel: Record<string, string> = {
   low: 'Low impact',
 }
 
-export default function VBAToOfficeScriptsMigrationPage() {
+export default async function VBAToOfficeScriptsMigrationPage() {
+  const serviceSchema = await buildServiceSchema()
   return (
     <>
       <script
@@ -228,7 +225,8 @@ export default function VBAToOfficeScriptsMigrationPage() {
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
               Moving Excel automation to the cloud is not a simple rewrite. Office Scripts
               have real limitations that catch organisations out — especially in SharePoint
-              environments. We navigate the nuances so your automations actually work.
+              environments. We migrate VBA where it belongs in Microsoft 365, and help you
+              modernise spreadsheet workflows so automations actually work.
             </p>
             <a
               href="#contact"
@@ -317,8 +315,31 @@ export default function VBAToOfficeScriptsMigrationPage() {
           </div>
         </section>
 
-        {/* When to use what — comparison */}
+        {/* Spreadsheet workflow modernisation */}
         <section className="bg-gray-50 py-20">
+          <div className="mx-auto max-w-3xl px-6">
+            <h2 className="font-display mb-4 text-center text-3xl font-bold text-gray-900">
+              Modernising spreadsheet workflows in Microsoft 365
+            </h2>
+            <p className="mb-4 text-base leading-relaxed text-gray-600">
+              Office Scripts migration is often one step in spreadsheet process
+              modernisation — not the whole answer. We rebuild legacy VBA into
+              maintainable cloud automation where it adds value, and design
+              SharePoint and Teams-friendly patterns so shared work is not stuck
+              in email attachments and uncontrolled file copies.
+            </p>
+            <p className="text-base leading-relaxed text-gray-600">
+              Where Excel remains the right analysis layer, we keep it. Where
+              approvals, scheduled runs and multi-user access matter, we move
+              those parts into Power Automate, SharePoint libraries and Office
+              Scripts — configured for your tenancy, licensing and security
+              policies.
+            </p>
+          </div>
+        </section>
+
+        {/* When to use what — comparison */}
+        <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">
               VBA vs Office Scripts — when to use which
@@ -366,7 +387,7 @@ export default function VBAToOfficeScriptsMigrationPage() {
         </section>
 
         {/* Process */}
-        <section className="bg-white py-20">
+        <section className="bg-gray-50 py-20">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">
               How we approach migration
@@ -390,7 +411,7 @@ export default function VBAToOfficeScriptsMigrationPage() {
         </section>
 
         {/* FAQs */}
-        <section className="bg-gray-50 py-20">
+        <section className="bg-white py-20">
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">
               Frequently asked questions

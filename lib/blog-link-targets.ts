@@ -11,8 +11,8 @@ export const BLOG_SITE_PAGES: readonly BlogLinkTarget[] = [
   { label: 'All services', href: '/services' },
   { label: 'Blog', href: '/blog' },
   {
-    label: 'Enterprise Excel VBA Development',
-    href: '/enterprise-excel-vba-development',
+    label: 'Excel in Enterprise Operational Applications',
+    href: '/enterprise',
   },
   ...servicePages.map((p) => ({ label: p.label, href: p.href })),
 ]

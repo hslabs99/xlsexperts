@@ -8,13 +8,18 @@ import { ALL_SOLUTIONS_HREF, solutionPages } from '@/lib/solutions'
 
 const navLinks = [
   { label: 'How We Work', href: '#how-we-work' },
-  { label: 'Solutions', href: ALL_SOLUTIONS_HREF, dropdown: 'solutions' as const },
   { label: 'Services', href: '#services', dropdown: 'services' as const },
+  { label: 'Solutions', href: ALL_SOLUTIONS_HREF, dropdown: 'solutions' as const },
   { label: 'Case Studies', href: '#case-studies' },
-  { label: 'Enterprise', href: '/enterprise-excel-vba-development' },
+  { label: 'Enterprise', href: '/enterprise' },
   { label: 'About', href: '#about' },
   { label: 'Blog', href: '/blog' },
 ]
+
+const DROPDOWN_SUMMARIES = {
+  services: 'We supply the following technical services.',
+  solutions: 'We have knowledge of, and experience in delivering the following solutions.',
+} as const
 
 /**
  * Home section anchors only exist on `/` (and `#contact` on pages with Contact).
@@ -87,6 +92,7 @@ export function Navbar() {
     ref: RefObject<HTMLDivElement | null>,
   ) {
     const open = desktopOpen === kind
+    const summary = DROPDOWN_SUMMARIES[kind]
     return (
       <div key={buttonLabel} className="relative flex items-center" ref={ref}>
         <button
@@ -114,11 +120,16 @@ export function Navbar() {
           >
             <a
               href={overviewHref}
-              className="block border-b border-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
+              className="block border-b border-gray-100 px-4 py-2.5 transition-colors hover:bg-gray-50"
               role="menuitem"
               onClick={() => setDesktopOpen(null)}
             >
-              {overviewLabel}
+              <span className="block text-sm font-semibold text-gray-900">
+                {overviewLabel}
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed text-gray-500">
+                {summary}
+              </span>
             </a>
             <div className="max-h-[70vh] overflow-y-auto py-1">
               {items.map((item) => (
@@ -147,6 +158,7 @@ export function Navbar() {
     items: { href: string; label: string }[],
   ) {
     const open = mobileOpenMenu === kind
+    const summary = DROPDOWN_SUMMARIES[kind]
     return (
       <div key={buttonLabel}>
         <button
@@ -167,10 +179,15 @@ export function Navbar() {
           <div className="mb-1 ml-2 border-l border-gray-200 pl-3">
             <a
               href={overviewHref}
-              className="block rounded-md px-2 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
+              className="block rounded-md px-2 py-2 transition-colors hover:bg-gray-50"
               onClick={() => setMobileOpen(false)}
             >
-              {overviewLabel}
+              <span className="block text-sm font-semibold text-gray-900">
+                {overviewLabel}
+              </span>
+              <span className="mt-1 block text-xs leading-relaxed text-gray-500">
+                {summary}
+              </span>
             </a>
             {items.map((item) => (
               <a
@@ -187,7 +204,6 @@ export function Navbar() {
       </div>
     )
   }
-
   const solutionItems = solutionPages.map((s) => ({
     href: s.href,
     label: s.navLabel,
@@ -225,6 +241,16 @@ export function Navbar() {
 
         <nav aria-label="Main navigation" className="hidden items-center gap-6 lg:flex">
           {links.map((link) => {
+            if (link.dropdown === 'services') {
+              return renderDesktopDropdown(
+                'services',
+                'Services',
+                servicesOverviewHref,
+                'All Services',
+                serviceItems,
+                servicesRef,
+              )
+            }
             if (link.dropdown === 'solutions') {
               return renderDesktopDropdown(
                 'solutions',
@@ -233,16 +259,6 @@ export function Navbar() {
                 'All Solutions',
                 solutionItems,
                 solutionsRef,
-              )
-            }
-            if (link.dropdown === 'services') {
-              return renderDesktopDropdown(
-                'services',
-                'Services',
-                servicesOverviewHref,
-                'All services overview',
-                serviceItems,
-                servicesRef,
               )
             }
             return (
@@ -280,6 +296,15 @@ export function Navbar() {
         <div className="border-t border-gray-100 bg-white px-6 pb-5 pt-3 lg:hidden">
           <nav className="flex flex-col gap-1" aria-label="Mobile navigation">
             {links.map((link) => {
+              if (link.dropdown === 'services') {
+                return renderMobileDropdown(
+                  'services',
+                  'Services',
+                  servicesOverviewHref,
+                  'All Services',
+                  serviceItems,
+                )
+              }
               if (link.dropdown === 'solutions') {
                 return renderMobileDropdown(
                   'solutions',
@@ -287,15 +312,6 @@ export function Navbar() {
                   ALL_SOLUTIONS_HREF,
                   'All Solutions',
                   solutionItems,
-                )
-              }
-              if (link.dropdown === 'services') {
-                return renderMobileDropdown(
-                  'services',
-                  'Services',
-                  servicesOverviewHref,
-                  'All services overview',
-                  serviceItems,
                 )
               }
               return (

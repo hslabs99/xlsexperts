@@ -2,15 +2,11 @@ import fs from 'fs'
 import path from 'path'
 
 const dirs = [
-  'ai-workflow-automation',
-  'business-process-automation',
-  'enterprise-excel-applications',
+  'ai-workflow-and-business-process-automation',
   'excel-dashboard-development',
   'excel-financial-modelling',
-  'excel-macro-automation',
   'excel-spreadsheet-development',
-  'excel-sql-integration',
-  'excel-vba-development',
+  'excel-vba-macro-development',
   'google-sheets-development',
   'power-query-consulting',
   'spreadsheet-auditing',

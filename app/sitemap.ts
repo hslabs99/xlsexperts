@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getAllBlogPosts } from '@/lib/blog'
 import { fetchCrawlDocs } from '@/lib/crawl-docs-db'
-import { SITE_BASE_URL } from '@/lib/crawl-docs'
+import { getMarket, getSiteOrigin } from '@/lib/market-server'
 import { servicePageHrefs } from '@/lib/service-pages'
 import { ALL_SOLUTIONS_HREF, solutionPageHrefs } from '@/lib/solutions'
 
@@ -9,7 +9,8 @@ import { ALL_SOLUTIONS_HREF, solutionPageHrefs } from '@/lib/solutions'
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = SITE_BASE_URL
+  const market = await getMarket()
+  const base = await getSiteOrigin()
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -19,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     },
     {
-      url: `${base}/enterprise-excel-vba-development`,
+      url: `${base}/enterprise`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.9,
@@ -60,12 +61,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let extraPages: MetadataRoute.Sitemap = []
   try {
-    const crawlDocs = await fetchCrawlDocs()
+    const crawlDocs = await fetchCrawlDocs(market)
     const seen = new Set(
       [...staticPages, ...blogPages].map((p) => p.url.toLowerCase())
     )
+    const originHost = new URL(base).host.toLowerCase()
     extraPages = crawlDocs.sitemapExtraUrls
-      .filter((entry) => !seen.has(entry.loc.toLowerCase()))
+      .filter((entry) => {
+        if (seen.has(entry.loc.toLowerCase())) return false
+        try {
+          // Never leak the other market's absolute URLs into this sitemap.
+          return new URL(entry.loc).host.toLowerCase() === originHost
+        } catch {
+          return false
+        }
+      })
       .map((entry) => ({
         url: entry.loc,
         lastModified: entry.lastModified

@@ -6,110 +6,109 @@ import { HowWeWork } from '@/components/how-we-work'
 import { CaseStudiesSection } from '@/components/case-studies-section'
 import { About } from '@/components/about'
 import { Contact } from '@/components/contact'
+import { getMarketCopy } from '@/lib/market-server'
 
 /** Cache homepage (incl. case-study snapshot) briefly — admin “Publish homepage” is the source of truth. */
 export const revalidate = 120
 
-export const metadata: Metadata = {
-  title: {
-    absolute:
-      'Excel Experts, Excel Data Analysis, Consulting & Solutions in New Zealand',
-  },
-  description:
-    'Spreadsheet experts in Auckland, New Zealand ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.',
-  alternates: {
-    canonical: 'https://www.xlsexperts.co.nz',
-  },
-  openGraph: {
-    title:
-      'Excel Experts, Excel Data Analysis, Consulting & Solutions in New Zealand',
-    description:
-      'Spreadsheet experts in Auckland, New Zealand ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.',
-    url: 'https://www.xlsexperts.co.nz',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getMarketCopy()
+  return {
+    title: {
+      absolute: copy.home.metaTitle,
+    },
+    description: copy.home.metaDescription,
+    alternates: {
+      canonical: copy.site.origin,
+    },
+    openGraph: {
+      title: copy.home.metaTitle,
+      description: copy.home.metaDescription,
+      url: copy.site.origin,
+      images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
+    },
+  }
 }
 
-const localBusinessSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'ProfessionalService',
-  name: 'XLS Experts',
-  description:
-    'New Zealand\'s leading Excel and spreadsheet consulting firm. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.',
-  url: 'https://www.xlsexperts.co.nz',
-  logo: 'https://www.xlsexperts.co.nz/images/xls-experts-logo.png',
-  areaServed: {
-    '@type': 'Country',
-    name: 'New Zealand',
-  },
-  address: {
-    '@type': 'PostalAddress',
-    addressCountry: 'NZ',
-    addressLocality: 'Auckland',
-  },
-  knowsAbout: [
-    'Excel VBA development',
-    'Spreadsheet automation',
-    'Excel dashboard development',
-    'Financial modelling',
-    'Power Query',
-    'Business process automation',
-    'Excel consulting',
-    'Data analysis',
-  ],
-  sameAs: [
-    'https://www.xlsexperts.co.nz',
-  ],
-}
+export default async function Page() {
+  const copy = await getMarketCopy()
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'What does an Excel consultant do?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'An Excel consultant designs and builds custom spreadsheet solutions including VBA automation, dashboards, financial models, and data pipelines. They help businesses replace manual processes with reliable, automated tools that save time and reduce errors.',
-      },
+  const localBusinessSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfessionalService',
+    name: 'XLS Experts',
+    description: copy.home.schemaDescription,
+    url: copy.site.origin,
+    logo: `${copy.site.origin}/images/xls-experts-logo.png`,
+    areaServed: {
+      '@type': 'Country',
+      name: copy.home.schemaAreaServed,
     },
-    {
-      '@type': 'Question',
-      name: 'How much does Excel consulting cost in New Zealand?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'XLS Experts projects typically start from $1,000 NZD for small automation tasks. Most projects fall in the $2,000–$10,000 range depending on complexity. We provide a clear scope and fixed price before starting any work.',
-      },
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: copy.home.schemaAddressCountry,
+      addressLocality: copy.home.schemaAddressLocality,
     },
-    {
-      '@type': 'Question',
-      name: 'Can Excel connect to SQL databases?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. Excel can connect directly to SQL Server, MySQL, PostgreSQL, Oracle, and other databases using Power Query or VBA with ADO. This eliminates manual data exports and keeps reports automatically up to date.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'What industries do XLS Experts work with?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'XLS Experts works with businesses across finance, insurance, energy, healthcare, construction, logistics, retail, hospitality, education, and not-for-profit sectors throughout New Zealand.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Do you work with businesses outside Auckland?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. We work with businesses across all of New Zealand including Wellington, Christchurch, Hamilton, Tauranga, and other regions. Most project work can be delivered remotely.',
-      },
-    },
-  ],
-}
+    knowsAbout: [
+      'Excel VBA development',
+      'Spreadsheet automation',
+      'Excel dashboard development',
+      'Financial modelling',
+      'Power Query',
+      'Business process automation',
+      'Excel consulting',
+      'Data analysis',
+    ],
+    sameAs: [copy.site.origin],
+  }
 
-export default function Page() {
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What does an Excel consultant do?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'An Excel consultant designs and builds custom spreadsheet solutions including VBA automation, dashboards, financial models, and data pipelines. They help businesses replace manual processes with reliable, automated tools that save time and reduce errors.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: copy.home.faqCostQuestion,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: copy.home.faqCostAnswer,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Can Excel connect to SQL databases?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Yes. Excel can connect directly to SQL Server, MySQL, PostgreSQL, Oracle, and other databases using Power Query or VBA with ADO. This eliminates manual data exports and keeps reports automatically up to date.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What industries do XLS Experts work with?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: copy.home.faqIndustriesAnswer,
+        },
+      },
+      {
+        '@type': 'Question',
+        name: copy.home.faqOutsideQuestion,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: copy.home.faqOutsideAnswer,
+        },
+      },
+    ],
+  }
+
   return (
     <>
       <script

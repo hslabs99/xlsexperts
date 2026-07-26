@@ -1,9 +1,25 @@
 /**
  * SEO crawl documents editable from the Marketing admin tab.
- * Stored in Firestore Site Content / crawl-documents.
+ * Stored in Firestore Site Content / crawl-documents — one set per market
+ * so NZ and International SEO campaigns never share sitemap/robots/llms data.
  */
 
-export const SITE_BASE_URL = 'https://www.xlsexperts.co.nz'
+import {
+  DEFAULT_MARKET,
+  MARKET_IDS,
+  isMarketId,
+  type MarketId,
+} from '@/lib/market'
+
+export const NZ_SITE_ORIGIN = 'https://www.xlsexperts.co.nz'
+export const INTL_SITE_ORIGIN = 'https://www.xlsexperts.com'
+
+/** @deprecated Use marketSiteOrigin() / getSiteOrigin() — NZ only. */
+export const SITE_BASE_URL = NZ_SITE_ORIGIN
+
+export function siteOriginForMarket(market: MarketId): string {
+  return market === 'intl' ? INTL_SITE_ORIGIN : NZ_SITE_ORIGIN
+}
 
 export type SitemapChangeFrequency =
   | 'always'
@@ -48,7 +64,10 @@ export interface CrawlDocsContent {
   verificationFiles: VerificationFile[]
 }
 
-export const DEFAULT_ROBOTS_TXT = `User-agent: *
+export type CrawlDocsBundle = Record<MarketId, CrawlDocsContent>
+
+export function defaultRobotsTxt(origin: string): string {
+  return `User-agent: *
 Allow: /
 
 User-agent: GPTBot
@@ -78,21 +97,57 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-Sitemap: ${SITE_BASE_URL}/sitemap.xml
+Sitemap: ${origin}/sitemap.xml
 `
+}
 
-export const DEFAULT_LLMS_TXT = `# XLS Experts — Excel & Spreadsheet Consulting, New Zealand
+export function defaultLlmsTxt(market: MarketId, origin: string): string {
+  if (market === 'intl') {
+    return `# XLS Experts — Excel & Spreadsheet Consulting
+
+XLS Experts is a business systems consultancy serving clients internationally. We design and build practical systems that may combine Excel, Microsoft 365, cloud applications, databases and integrations — helping organisations improve, automate or replace spreadsheet-driven processes.
+
+## What we do
+
+- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
+- **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
+- **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and AI-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
+- **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
+- **Financial Modelling**: Budget vs actual reporting, cash flow forecasting, scenario analysis, and management reporting tools for finance teams.
+- **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
+- **SQL Database Connectivity**: Connecting Excel directly to SQL Server, MySQL, PostgreSQL, Oracle, and cloud databases to eliminate manual exports.
+- **ERP Integration**: Building the analytical layer on top of SAP, Oracle, Microsoft Dynamics, MYOB Acumatica, Epicor, and other ERP platforms.
+
+## Who we work with
+
+We work with businesses and organisations across industries internationally, including finance, insurance, energy, construction, retail, healthcare, logistics, hospitality, not-for-profit, government, and professional services.
+
+## Key pages
+
+- Homepage: ${origin}
+- Solutions: ${origin}/solutions
+- Excel in Enterprise Operational Applications: ${origin}/enterprise
+- Web Applications: ${origin}/web-applications
+- Blog: ${origin}/blog
+
+## Contact
+
+Website: ${origin}
+`
+  }
+
+  return `# XLS Experts — Excel & Spreadsheet Consulting, New Zealand
 
 XLS Experts is a New Zealand business systems consultancy. We design and build practical systems that may combine Excel, Microsoft 365, cloud applications, databases and integrations — helping organisations improve, automate or replace spreadsheet-driven processes.
 
 ## What we do
 
-- **Business systems solutions**: Spreadsheet modernisation, dashboards & BI, resource planning, financial modelling, quoting systems, field apps, client/staff portals, and workflow automation — see ${SITE_BASE_URL}/solutions
+- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
 - **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
+- **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and AI-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
 - **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
 - **Financial Modelling**: Budget vs actual reporting, cash flow forecasting, scenario analysis, and management reporting tools for finance teams.
 - **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
-- **Enterprise Excel Applications**: Governance-grade solutions for large organisations including pricing tools, forecasting models, project controls, and reporting automation.
 - **SQL Database Connectivity**: Connecting Excel directly to SQL Server, MySQL, PostgreSQL, Oracle, and cloud databases to eliminate manual exports.
 - **ERP Integration**: Building the analytical layer on top of SAP, Oracle, Microsoft Dynamics, MYOB Acumatica, Epicor, and other NZ ERP platforms.
 
@@ -137,24 +192,42 @@ VBA (Visual Basic for Applications) is Excel's built-in programming language. VB
 
 ## Key pages
 
-- Homepage: ${SITE_BASE_URL}
-- Solutions: ${SITE_BASE_URL}/solutions
-- Enterprise Excel VBA Development: ${SITE_BASE_URL}/enterprise-excel-vba-development
-- Blog: ${SITE_BASE_URL}/blog
+- Homepage: ${origin}
+- Solutions: ${origin}/solutions
+- Excel in Enterprise Operational Applications: ${origin}/enterprise
+- Web Applications: ${origin}/web-applications
+- Blog: ${origin}/blog
 
 ## Contact
 
-Website: ${SITE_BASE_URL}
+Website: ${origin}
 Location: Auckland, New Zealand (serving all of NZ)
 `
+}
 
-export const DEFAULT_CRAWL_DOCS: CrawlDocsContent = {
-  robotsOverride: false,
-  robotsContent: DEFAULT_ROBOTS_TXT,
-  llmsOverride: false,
-  llmsContent: DEFAULT_LLMS_TXT,
-  sitemapExtraUrls: [],
-  verificationFiles: [],
+/** NZ defaults — kept for callers that still import the old constants. */
+export const DEFAULT_ROBOTS_TXT = defaultRobotsTxt(NZ_SITE_ORIGIN)
+export const DEFAULT_LLMS_TXT = defaultLlmsTxt('nz', NZ_SITE_ORIGIN)
+
+export function defaultCrawlDocs(market: MarketId = DEFAULT_MARKET): CrawlDocsContent {
+  const origin = siteOriginForMarket(market)
+  return {
+    robotsOverride: false,
+    robotsContent: defaultRobotsTxt(origin),
+    llmsOverride: false,
+    llmsContent: defaultLlmsTxt(market, origin),
+    sitemapExtraUrls: [],
+    verificationFiles: [],
+  }
+}
+
+export const DEFAULT_CRAWL_DOCS: CrawlDocsContent = defaultCrawlDocs('nz')
+
+export function defaultCrawlDocsBundle(): CrawlDocsBundle {
+  return {
+    nz: defaultCrawlDocs('nz'),
+    intl: defaultCrawlDocs('intl'),
+  }
 }
 
 const CHANGE_FREQS = new Set<SitemapChangeFrequency>([
@@ -174,25 +247,32 @@ export const RESERVED_CRAWL_PATHS = new Set([
   'sitemap.xml',
 ])
 
-function normalizeLoc(raw: string): string {
+function normalizeLoc(raw: string, origin: string): string {
   const trimmed = raw.trim()
   if (!trimmed) return ''
   if (/^https?:\/\//i.test(trimmed)) return trimmed
   const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
-  return `${SITE_BASE_URL}${path}`
+  return `${origin}${path}`
 }
 
 function normalizeVerificationPath(raw: string): string {
-  return raw
-    .trim()
-    .replace(/^\/+/, '')
-    .replace(/\\/g, '/')
-    .split('/')
-    .filter(Boolean)
-    .pop() ?? ''
+  return (
+    raw
+      .trim()
+      .replace(/^\/+/, '')
+      .replace(/\\/g, '/')
+      .split('/')
+      .filter(Boolean)
+      .pop() ?? ''
+  )
 }
 
-export function normalizeCrawlDocs(raw: unknown): CrawlDocsContent {
+export function normalizeCrawlDocs(
+  raw: unknown,
+  market: MarketId = DEFAULT_MARKET
+): CrawlDocsContent {
+  const origin = siteOriginForMarket(market)
+  const defaults = defaultCrawlDocs(market)
   const data =
     raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
 
@@ -202,12 +282,12 @@ export function normalizeCrawlDocs(raw: unknown): CrawlDocsContent {
     ? data.sitemapExtraUrls
         .map((entry) => {
           if (typeof entry === 'string') {
-            const loc = normalizeLoc(entry)
+            const loc = normalizeLoc(entry, origin)
             return loc ? { loc } : null
           }
           if (!entry || typeof entry !== 'object') return null
           const row = entry as Record<string, unknown>
-          const loc = normalizeLoc(String(row.loc ?? ''))
+          const loc = normalizeLoc(String(row.loc ?? ''), origin)
           if (!loc) return null
           const freq = String(row.changeFrequency ?? '') as SitemapChangeFrequency
           const priorityRaw = row.priority
@@ -255,15 +335,60 @@ export function normalizeCrawlDocs(raw: unknown): CrawlDocsContent {
     robotsContent:
       typeof data.robotsContent === 'string' && data.robotsContent.length > 0
         ? data.robotsContent
-        : DEFAULT_ROBOTS_TXT,
+        : defaults.robotsContent,
     llmsOverride: Boolean(data.llmsOverride),
     llmsContent:
       typeof data.llmsContent === 'string' && data.llmsContent.length > 0
         ? data.llmsContent
-        : DEFAULT_LLMS_TXT,
+        : defaults.llmsContent,
     sitemapExtraUrls,
     verificationFiles,
   }
+}
+
+/**
+ * Accepts `{ markets: { nz, intl } }` or a legacy flat crawl-documents doc
+ * (mapped to NZ; intl starts from international defaults).
+ */
+export function normalizeCrawlDocsBundle(raw: unknown): CrawlDocsBundle {
+  const bundle = defaultCrawlDocsBundle()
+  if (!raw || typeof raw !== 'object') return bundle
+
+  const data = raw as Record<string, unknown>
+  const markets =
+    data.markets && typeof data.markets === 'object'
+      ? (data.markets as Record<string, unknown>)
+      : null
+
+  if (markets) {
+    for (const id of MARKET_IDS) {
+      if (markets[id] != null) {
+        bundle[id] = normalizeCrawlDocs(markets[id], id)
+      }
+    }
+    return bundle
+  }
+
+  if (
+    'robotsOverride' in data ||
+    'robotsContent' in data ||
+    'llmsOverride' in data ||
+    'llmsContent' in data ||
+    'sitemapExtraUrls' in data ||
+    'verificationFiles' in data
+  ) {
+    bundle.nz = normalizeCrawlDocs(data, 'nz')
+  }
+
+  return bundle
+}
+
+export function pickCrawlDocs(
+  bundle: CrawlDocsBundle,
+  market: MarketId | string | null | undefined
+): CrawlDocsContent {
+  const id = isMarketId(market) ? market : DEFAULT_MARKET
+  return normalizeCrawlDocs(bundle[id] ?? bundle[DEFAULT_MARKET], id)
 }
 
 export function validateCrawlDocs(docs: CrawlDocsContent): string | null {
@@ -308,20 +433,34 @@ export function validateCrawlDocs(docs: CrawlDocsContent): string | null {
   return null
 }
 
+export function validateCrawlDocsBundle(bundle: CrawlDocsBundle): string | null {
+  for (const id of MARKET_IDS) {
+    const err = validateCrawlDocs(bundle[id])
+    if (err) return `${id === 'nz' ? 'New Zealand' : 'International'}: ${err}`
+  }
+  return null
+}
+
 /** Effective robots.txt body for public serving. */
-export function resolveRobotsTxt(docs: CrawlDocsContent): string {
+export function resolveRobotsTxt(
+  docs: CrawlDocsContent,
+  market: MarketId = DEFAULT_MARKET
+): string {
   if (docs.robotsOverride && docs.robotsContent.trim()) {
     return docs.robotsContent.replace(/\r\n/g, '\n')
   }
-  return DEFAULT_ROBOTS_TXT
+  return defaultRobotsTxt(siteOriginForMarket(market))
 }
 
 /** Effective llms.txt body for public serving. */
-export function resolveLlmsTxt(docs: CrawlDocsContent): string {
+export function resolveLlmsTxt(
+  docs: CrawlDocsContent,
+  market: MarketId = DEFAULT_MARKET
+): string {
   if (docs.llmsOverride && docs.llmsContent.trim()) {
     return docs.llmsContent.replace(/\r\n/g, '\n')
   }
-  return DEFAULT_LLMS_TXT
+  return defaultLlmsTxt(market, siteOriginForMarket(market))
 }
 
 export function findVerificationFile(
@@ -350,13 +489,17 @@ export function contentTypeForCrawlPath(path: string): string {
  * Parse a multiline paste of sitemap URLs into structured extras
  * (one absolute URL or path per line; blank lines ignored).
  */
-export function parseSitemapUrlLines(text: string): SitemapExtraUrl[] {
+export function parseSitemapUrlLines(
+  text: string,
+  market: MarketId = DEFAULT_MARKET
+): SitemapExtraUrl[] {
+  const origin = siteOriginForMarket(market)
   return text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const loc = normalizeLoc(line)
+      const loc = normalizeLoc(line, origin)
       return loc ? { loc } : null
     })
     .filter((e): e is SitemapExtraUrl => Boolean(e))

@@ -14,6 +14,7 @@ import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   HOME_CASE_STUDIES_LIMIT,
   publishHomeCaseStudiesSnapshot,
+  stripArchivedServiceSlugsFromCms,
   updateCaseStudyFields,
 } from '@/lib/case-studies-db'
 import { uploadCaseStudyImageAdmin } from '@/lib/case-studies-storage-admin'
@@ -140,6 +141,8 @@ export async function seedCaseStudiesFromArchive(options?: {
     await publishHomeCaseStudiesSnapshot()
     homePublished = true
   }
+
+  await stripArchivedServiceSlugsFromCms()
 
   const hint =
     uploadImages && imagesFailed > 0 && imagesUploaded === 0

@@ -1,18 +1,27 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { marketLabel, type MarketId } from '@/lib/market'
 import {
   DEFAULT_SITE_TAGS,
+  cloneSiteTags,
+  defaultSiteTagsBundle,
   validateSiteTags,
+  type SiteTagsBundle,
   type SiteTagsContent,
 } from '@/lib/site-tags'
 
+const MARKET_TABS: MarketId[] = ['nz', 'intl']
+
 export function AdminSiteTagsPanel() {
-  const [form, setForm] = useState<SiteTagsContent>(DEFAULT_SITE_TAGS)
+  const [markets, setMarkets] = useState<SiteTagsBundle>(defaultSiteTagsBundle())
+  const [activeMarket, setActiveMarket] = useState<MarketId>('nz')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  const form = markets[activeMarket]
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -21,13 +30,16 @@ export function AdminSiteTagsPanel() {
       const res = await fetch('/api/admin/site-tags')
       const data = (await res.json()) as {
         ok?: boolean
-        tags?: SiteTagsContent
+        markets?: SiteTagsBundle
         error?: string
       }
-      if (!res.ok || !data.ok || !data.tags) {
+      if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Failed to load analytics tags')
       }
-      setForm(data.tags)
+      setMarkets({
+        nz: cloneSiteTags(data.markets.nz ?? DEFAULT_SITE_TAGS),
+        intl: cloneSiteTags(data.markets.intl ?? DEFAULT_SITE_TAGS),
+      })
     } catch (err) {
       setError(
         err instanceof Error
@@ -43,6 +55,13 @@ export function AdminSiteTagsPanel() {
     void load()
   }, [load])
 
+  function setForm(updater: (prev: SiteTagsContent) => SiteTagsContent) {
+    setMarkets((prev) => ({
+      ...prev,
+      [activeMarket]: updater(prev[activeMarket]),
+    }))
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -54,16 +73,24 @@ export function AdminSiteTagsPanel() {
       const res = await fetch('/api/admin/site-tags', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ market: activeMarket, tags: form }),
       })
-      const data = (await res.json()) as { ok?: boolean; error?: string }
-      if (!res.ok || !data.ok) {
+      const data = (await res.json()) as {
+        ok?: boolean
+        markets?: SiteTagsBundle
+        error?: string
+      }
+      if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Save failed')
       }
+      setMarkets({
+        nz: cloneSiteTags(data.markets.nz),
+        intl: cloneSiteTags(data.markets.intl),
+      })
       setMessage(
         form.enabled
-          ? 'Analytics tags saved and enabled on the public site.'
-          : 'Analytics tags saved (currently disabled — turn on “Enable tags” to publish).'
+          ? `${marketLabel(activeMarket)} analytics tags saved and enabled.`
+          : `${marketLabel(activeMarket)} analytics tags saved (currently disabled).`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
@@ -90,11 +117,34 @@ export function AdminSiteTagsPanel() {
           Analytics & marketing tags
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Inject Google Tag Manager, Google Analytics, or any vendor tag snippets
-          into the live site. Stored in Firebase{' '}
-          <code className="text-xs">Site Content / analytics-tags</code>. Tags
-          do not run on the admin panel.
+          Separate Google Tag Manager / Analytics and vendor snippets for each
+          domain. New Zealand tags run only on{' '}
+          <code className="text-xs">xlsexperts.co.nz</code>; International tags
+          only on <code className="text-xs">xlsexperts.com</code>. Stored in
+          Firebase <code className="text-xs">Site Content / analytics-tags</code>
+          . Tags do not run on the admin panel.
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {MARKET_TABS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => {
+              setActiveMarket(id)
+              setMessage(null)
+              setError(null)
+            }}
+            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+              activeMarket === id
+                ? 'bg-brand text-white'
+                : 'border border-border bg-white text-ink hover:bg-surface-raised'
+            }`}
+          >
+            {marketLabel(id)}
+          </button>
+        ))}
       </div>
 
       {(message || error) && (
@@ -120,9 +170,12 @@ export function AdminSiteTagsPanel() {
           className="mt-0.5 h-4 w-4 rounded border-border"
         />
         <span>
-          <span className="font-semibold text-ink">Enable tags on the public site</span>
+          <span className="font-semibold text-ink">
+            Enable tags on {marketLabel(activeMarket)} public site
+          </span>
           <span className="mt-0.5 block text-ink-muted">
-            When off, saved snippets stay in Firebase but are not injected.
+            When off, saved snippets stay in Firebase but are not injected for
+            this region.
           </span>
         </span>
       </label>
@@ -201,7 +254,8 @@ export function AdminSiteTagsPanel() {
           spellCheck={false}
         />
         <span className="text-xs text-ink-muted">
-          Injected near the start of <code className="text-[11px]">&lt;body&gt;</code>.
+          Injected near the start of{' '}
+          <code className="text-[11px]">&lt;body&gt;</code>.
         </span>
       </label>
 
@@ -211,7 +265,7 @@ export function AdminSiteTagsPanel() {
           disabled={busy}
           className="inline-flex items-center justify-center rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
         >
-          {busy ? 'Saving…' : 'Save tags'}
+          {busy ? 'Saving…' : `Save ${marketLabel(activeMarket)} tags`}
         </button>
         <button
           type="button"

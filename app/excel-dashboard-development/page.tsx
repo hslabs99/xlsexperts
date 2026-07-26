@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -6,17 +7,14 @@ import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Excel Dashboard Development New Zealand | XLS Experts',
-  description:
-    'Custom Excel dashboard development for New Zealand businesses. Interactive, automated dashboards that give your leadership team clear visibility without the cost of enterprise BI tools.',
-  alternates: { canonical: 'https://www.xlsexperts.co.nz/excel-dashboard-development' },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/excel-dashboard-development',
     title: 'Excel Dashboard Development New Zealand | XLS Experts',
-    description: 'Custom Excel dashboards for NZ businesses. Interactive, automated and formatted for decision-making — without the cost of enterprise BI tools.',
-    url: 'https://www.xlsexperts.co.nz/excel-dashboard-development',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+    description: 'Custom Excel dashboard development for New Zealand businesses. Interactive, automated dashboards that give your leadership team clear visibility without the cost of enterprise BI tools.',
+    ogTitle: 'Excel Dashboard Development New Zealand | XLS Experts',
+    ogDescription: 'Custom Excel dashboards for NZ businesses. Interactive, automated and formatted for decision-making — without the cost of enterprise BI tools.',
+  })
 }
 
 const problems = [
@@ -57,16 +55,14 @@ const faqs = [
   { q: 'Can you refresh and maintain our existing dashboards?', a: 'Yes. Dashboard maintenance and quarterly refresh services are available. We can also modernise existing dashboards that have become outdated or hard to maintain.' },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'Excel Dashboard Development',
-  description: 'Custom Excel dashboard development for New Zealand businesses. Interactive, automated dashboards for decision-making.',
-  provider: { '@type': 'ProfessionalService', name: 'XLS Experts', url: 'https://www.xlsexperts.co.nz', areaServed: { '@type': 'Country', name: 'New Zealand' } },
-  url: 'https://www.xlsexperts.co.nz/excel-dashboard-development',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Excel Dashboard Development',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/excel-dashboard-development',
+    name: 'Excel Dashboard Development',
+    description: 'Custom Excel dashboard development for New Zealand businesses. Interactive, automated dashboards for decision-making.',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -75,6 +71,7 @@ const faqSchema = {
 }
 
 export default async function ExcelDashboardDevelopmentPage() {
+  const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-dashboard-development')
   return (
     <>

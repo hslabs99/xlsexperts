@@ -1,21 +1,19 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Google Sheets Development New Zealand | XLS Experts',
-  description:
-    'Custom Google Sheets development for New Zealand businesses. Apps Script automation, connected dashboards, form integrations and collaborative tools built by Google Sheets specialists.',
-  alternates: { canonical: 'https://www.xlsexperts.co.nz/google-sheets-development' },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/google-sheets-development',
     title: 'Google Sheets Development New Zealand | XLS Experts',
-    description: 'Custom Google Sheets development for NZ businesses. Apps Script automation, connected dashboards and collaborative tools.',
-    url: 'https://www.xlsexperts.co.nz/google-sheets-development',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+    description: 'Custom Google Sheets development for New Zealand businesses. Apps Script automation, connected dashboards, form integrations and collaborative tools built by Google Sheets specialists.',
+    ogTitle: 'Google Sheets Development New Zealand | XLS Experts',
+    ogDescription: 'Custom Google Sheets development for NZ businesses. Apps Script automation, connected dashboards and collaborative tools.',
+  })
 }
 
 const problems = [
@@ -56,16 +54,14 @@ const faqs = [
   { q: 'Do you work with Google Workspace businesses outside Auckland?', a: 'Yes. Google Sheets development is fully remote by nature. We work with Google Workspace businesses throughout New Zealand and can deliver solutions to any region.' },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'Google Sheets Development',
-  description: 'Custom Google Sheets development for New Zealand businesses. Apps Script automation, connected dashboards and collaborative tools.',
-  provider: { '@type': 'ProfessionalService', name: 'XLS Experts', url: 'https://www.xlsexperts.co.nz', areaServed: { '@type': 'Country', name: 'New Zealand' } },
-  url: 'https://www.xlsexperts.co.nz/google-sheets-development',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Google Sheets Development',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/google-sheets-development',
+    name: 'Google Sheets Development',
+    description: 'Custom Google Sheets development for New Zealand businesses. Apps Script automation, connected dashboards and collaborative tools.',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -74,6 +70,7 @@ const faqSchema = {
 }
 
 export default async function GoogleSheetsDevelopmentPage() {
+  const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/google-sheets-development')
   return (
     <>

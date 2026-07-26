@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -6,17 +7,14 @@ import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Excel Spreadsheet Development Services New Zealand | XLS Experts',
-  description:
-    'Custom Excel spreadsheet development for New Zealand businesses. We design, build and optimise spreadsheets that replace manual processes, reduce errors and scale with your business.',
-  alternates: { canonical: 'https://www.xlsexperts.co.nz/excel-spreadsheet-development' },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/excel-spreadsheet-development',
     title: 'Excel Spreadsheet Development Services New Zealand | XLS Experts',
-    description: 'Custom Excel spreadsheet development for NZ businesses. Purpose-built spreadsheets that replace manual processes and scale with your business.',
-    url: 'https://www.xlsexperts.co.nz/excel-spreadsheet-development',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+    description: 'Custom Excel spreadsheet development for New Zealand businesses. We design, build and optimise spreadsheets that replace manual processes, reduce errors and scale with your business.',
+    ogTitle: 'Excel Spreadsheet Development Services New Zealand | XLS Experts',
+    ogDescription: 'Custom Excel spreadsheet development for NZ businesses. Purpose-built spreadsheets that replace manual processes and scale with your business.',
+  })
 }
 
 const problems = [
@@ -57,16 +55,14 @@ const faqs = [
   { q: 'What happens if we need changes after delivery?', a: 'We provide a short support period after every project. For ongoing changes and enhancements, we offer a support retainer or quote individual change requests.' },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'Excel Spreadsheet Development',
-  description: 'Custom Excel spreadsheet development for New Zealand businesses. Purpose-built spreadsheets that replace manual processes, reduce errors and scale with your business.',
-  provider: { '@type': 'ProfessionalService', name: 'XLS Experts', url: 'https://www.xlsexperts.co.nz', areaServed: { '@type': 'Country', name: 'New Zealand' } },
-  url: 'https://www.xlsexperts.co.nz/excel-spreadsheet-development',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Excel Spreadsheet Development',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/excel-spreadsheet-development',
+    name: 'Excel Spreadsheet Development',
+    description: 'Custom Excel spreadsheet development for New Zealand businesses. Purpose-built spreadsheets that replace manual processes, reduce errors and scale with your business.',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -75,6 +71,7 @@ const faqSchema = {
 }
 
 export default async function ExcelSpreadsheetDevelopmentPage() {
+  const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-spreadsheet-development')
   return (
     <>
@@ -174,8 +171,8 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
         <SolutionCrossLinks
           links={[
             {
-              href: '/solutions/spreadsheet-process-modernisation',
-              label: 'Spreadsheet & Process Modernisation',
+              href: '/ai-workflow-and-business-process-automation',
+              label: 'AI Workflow and Business Process Automation',
             },
           ]}
         />

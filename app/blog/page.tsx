@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata } from '@/lib/seo'
 import { getBlogListPosts } from '@/lib/blog'
 import { Navbar } from '@/components/navbar'
 import { BlogIndexClient } from '@/components/blog-index'
@@ -6,20 +7,14 @@ import { BlogIndexClient } from '@/components/blog-index'
 /** Always resolve posts from Firestore (not a static build snapshot). */
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Blog',
-  description:
-    'Insights, guides, and case studies on Excel consulting, VBA automation, financial modelling, and data solutions for New Zealand businesses.',
-  alternates: {
-    canonical: 'https://www.xlsexperts.co.nz/blog',
-  },
-  openGraph: {
-    title: 'Blog | XLS Experts',
-    description:
-      'Insights, guides, and case studies on Excel consulting, VBA automation, financial modelling, and data solutions for New Zealand businesses.',
-    url: 'https://www.xlsexperts.co.nz/blog',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/blog',
+    title: 'Blog',
+    description: 'Insights, guides, and case studies on Excel consulting, VBA automation, financial modelling, and data solutions for New Zealand businesses.',
+    ogTitle: 'Blog | XLS Experts',
+    ogDescription: 'Insights, guides, and case studies on Excel consulting, VBA automation, financial modelling, and data solutions for New Zealand businesses.',
+  })
 }
 
 export default async function BlogIndex() {

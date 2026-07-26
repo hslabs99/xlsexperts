@@ -1,22 +1,19 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { serviceIcons } from '@/components/service-icons'
 import { servicePages } from '@/lib/service-pages'
 
-export const metadata: Metadata = {
-  title: 'All Services | Excel & Business Automation NZ | XLS Experts',
-  description:
-    'Browse all XLS Experts services — Excel VBA, dashboards, financial modelling, Power Query, Google Sheets, AI workflow automation and more for New Zealand businesses.',
-  alternates: { canonical: 'https://www.xlsexperts.co.nz/services' },
-  openGraph: {
-    title: 'All Services | XLS Experts',
-    description:
-      'Excel, spreadsheet and business automation services for New Zealand organisations.',
-    url: 'https://www.xlsexperts.co.nz/services',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/services',
+    title: 'All Services | Excel & Business Automation NZ | XLS Experts',
+    description: 'Browse all XLS Experts services — Excel VBA, dashboards, financial modelling, Power Query, Google Sheets, AI workflow automation and more for New Zealand businesses.',
+    ogTitle: 'All Services | XLS Experts',
+    ogDescription: 'Excel, spreadsheet and business automation services for New Zealand organisations.',
+  })
 }
 
 export default function AllServicesPage() {
@@ -36,8 +33,8 @@ export default function AllServicesPage() {
               All services
             </h1>
             <p className="mt-4 text-base leading-relaxed text-gray-500">
-              Fifteen specialised services covering Excel, Google Sheets, data
-              integration, web applications, enterprise Excel and AI-powered
+              {servicePages.length} specialised services covering Excel, Google
+              Sheets, data integration, web applications and AI-powered
               workflow automation. Click a tile to learn more.
             </p>
           </div>

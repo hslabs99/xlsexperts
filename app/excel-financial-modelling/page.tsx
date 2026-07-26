@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -6,17 +7,14 @@ import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Excel Financial Modelling Services New Zealand | XLS Experts',
-  description:
-    'Professional Excel financial modelling for New Zealand businesses. Three-statement models, budgets, forecasts, valuations and scenario analysis built to best practice standards.',
-  alternates: { canonical: 'https://www.xlsexperts.co.nz/excel-financial-modelling' },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/excel-financial-modelling',
     title: 'Excel Financial Modelling Services New Zealand | XLS Experts',
-    description: 'Professional Excel financial modelling for NZ businesses. Three-statement models, forecasts, valuations and scenario analysis to best practice standards.',
-    url: 'https://www.xlsexperts.co.nz/excel-financial-modelling',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+    description: 'Professional Excel financial modelling for New Zealand businesses. Three-statement models, budgets, forecasts, valuations and scenario analysis built to best practice standards.',
+    ogTitle: 'Excel Financial Modelling Services New Zealand | XLS Experts',
+    ogDescription: 'Professional Excel financial modelling for NZ businesses. Three-statement models, forecasts, valuations and scenario analysis to best practice standards.',
+  })
 }
 
 const problems = [
@@ -57,16 +55,14 @@ const faqs = [
   { q: 'Do you build models for fundraising and due diligence?', a: 'Yes. We have built models used in fundraising rounds, acquisitions, due diligence processes and banking relationships. We understand what investors and lenders look for and build models that hold up to scrutiny.' },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'Excel Financial Modelling',
-  description: 'Professional Excel financial modelling for New Zealand businesses. Three-statement models, forecasts, valuations and scenario analysis.',
-  provider: { '@type': 'ProfessionalService', name: 'XLS Experts', url: 'https://www.xlsexperts.co.nz', areaServed: { '@type': 'Country', name: 'New Zealand' } },
-  url: 'https://www.xlsexperts.co.nz/excel-financial-modelling',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Excel Financial Modelling',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/excel-financial-modelling',
+    name: 'Excel Financial Modelling',
+    description: 'Professional Excel financial modelling for New Zealand businesses. Three-statement models, forecasts, valuations and scenario analysis.',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -75,6 +71,7 @@ const faqSchema = {
 }
 
 export default async function ExcelFinancialModellingPage() {
+  const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-financial-modelling')
   return (
     <>
@@ -169,7 +166,7 @@ export default async function ExcelFinancialModellingPage() {
           links={[
             {
               href: '/solutions/project-costing-financial-modelling',
-              label: 'Project Costing & Financial Modelling',
+              label: 'Project Costing Tools & Financial Modelling',
             },
           ]}
         />

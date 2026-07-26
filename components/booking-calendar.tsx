@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, CheckSquare, Loader2 } from 'lucide-react'
 import { MEET_OPTIONS } from '@/lib/booking-config'
 import {
+  bookingCalendarStartMonday,
   formatDateKey,
   formatDayLabel,
-  getMondayOfWeek,
   getWeekDays,
   groupSlotsByDate,
+  nextWorkingDay,
   type BookingSlot,
 } from '@/lib/booking-slots'
 
@@ -44,9 +45,14 @@ interface BookingCalendarProps {
 
 export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
   const today = useMemo(() => aucklandToday(), [])
+  const firstWorkingDay = useMemo(() => nextWorkingDay(today), [today])
+  const earliestMonday = useMemo(
+    () => bookingCalendarStartMonday(today),
+    [today]
+  )
 
   const [weekMonday, setWeekMonday] = useState<Date>(() =>
-    getMondayOfWeek(aucklandToday())
+    bookingCalendarStartMonday(aucklandToday())
   )
   const [slots, setSlots] = useState<BookingSlot[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,6 +61,7 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const didAutoSelect = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -88,6 +95,26 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
 
   const byDate = useMemo(() => groupSlotsByDate(slots), [slots])
   const weekDays = getWeekDays(weekMonday)
+  const firstWorkingKey = formatDateKey(firstWorkingDay)
+
+  // Once slots load, open on the earliest bookable working day with availability.
+  useEffect(() => {
+    if (didAutoSelect.current || loading || slots.length === 0) return
+    const dates = Object.keys(byDate)
+      .filter((d) => d >= firstWorkingKey)
+      .sort()
+    const firstOpen = dates.find((d) => (byDate[d] ?? []).length > 0)
+    if (!firstOpen) {
+      didAutoSelect.current = true
+      return
+    }
+    const [y, m, d] = firstOpen.split('-').map(Number)
+    const day = new Date(y, m - 1, d)
+    day.setHours(0, 0, 0, 0)
+    setWeekMonday(bookingCalendarStartMonday(day))
+    setSelectedDate(firstOpen)
+    didAutoSelect.current = true
+  }, [loading, slots, byDate, firstWorkingKey])
 
   const selectedSlot = slots.find((s) => s.id === selectedSlotId) ?? null
   const daySlots = selectedDate ? byDate[selectedDate] ?? [] : []
@@ -95,7 +122,7 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
   const prevWeek = () => {
     const prev = new Date(weekMonday)
     prev.setDate(prev.getDate() - 7)
-    if (prev >= getMondayOfWeek(today)) {
+    if (prev >= earliestMonday) {
       setWeekMonday(prev)
       setSelectedDate(null)
       setSelectedSlotId(null)
@@ -120,8 +147,10 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
     return `${weekMonday.getDate()} ${MONTH_NAMES[weekMonday.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`
   })()
 
-  const isPastDay = (d: Date) => d < today
+  /** Days before the next NZ working day are not bookable. */
+  const isPastDay = (d: Date) => d < firstWorkingDay
   const canConfirm = selectedSlot && selectedMethod
+  const canGoPrev = weekMonday > earliestMonday
 
   return (
     <div className="flex flex-col gap-6">
@@ -162,7 +191,8 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
             <button
               type="button"
               onClick={prevWeek}
-              className="flex h-8 w-8 items-center justify-center border border-gray-200 text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-800"
+              disabled={!canGoPrev}
+              className="flex h-8 w-8 items-center justify-center border border-gray-200 text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Previous week"
             >
               <ChevronLeft className="h-4 w-4" />

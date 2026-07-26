@@ -40,7 +40,7 @@ export function AdminServicePageTilesPanel() {
   const [filterHref, setFilterHref] = useState<string>('all')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [previewHref, setPreviewHref] = useState(
-    servicePages[0]?.href ?? '/excel-vba-development'
+    servicePages[0]?.href ?? '/excel-vba-macro-development'
   )
 
   const load = useCallback(async () => {

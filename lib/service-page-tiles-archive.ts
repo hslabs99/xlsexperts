@@ -13,7 +13,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Invoice Data Extraction",
     "detail": "AI extracts supplier name, amount, GST, date and line items from PDF invoices and populates an Excel register automatically — replacing manual keying for 95% of invoices.",
     "serviceHrefs": [
-      "/ai-workflow-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 0
   },
@@ -23,7 +23,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Customer Feedback Classifier",
     "detail": "AI classifies incoming customer feedback by sentiment, category and urgency, populates a structured Excel tracker and flags high-priority items for immediate review.",
     "serviceHrefs": [
-      "/ai-workflow-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 1
   },
@@ -33,7 +33,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "CV Screening Assistant",
     "detail": "AI reads submitted CVs, extracts experience, qualifications and skills against a structured criteria set, and populates a ranked comparison sheet in Excel for recruiter review.",
     "serviceHrefs": [
-      "/ai-workflow-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 2
   },
@@ -43,7 +43,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Contract Review Summary Tool",
     "detail": "AI reads contract documents, extracts key clauses, dates, obligations and risk flags, and produces a structured Excel summary for legal team review.",
     "serviceHrefs": [
-      "/ai-workflow-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 3
   },
@@ -53,7 +53,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Month-End Close Automation",
     "detail": "Automated data pull from three systems, consolidation, reconciliation and report generation — a two-day process reduced to four hours with human review only at key decision points.",
     "serviceHrefs": [
-      "/business-process-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 4
   },
@@ -63,7 +63,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Onboarding Document Workflow",
     "detail": "New starter form triggers automated document generation, email sending, system provisioning requests and calendar invites — previously a 45-minute manual process per hire.",
     "serviceHrefs": [
-      "/business-process-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 5
   },
@@ -73,7 +73,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Proposal Generation System",
     "detail": "Sales team selects products and configuration from a structured Excel form; automation generates a formatted Word proposal and PDF, emails it to the client and logs to the CRM.",
     "serviceHrefs": [
-      "/business-process-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 6
   },
@@ -83,7 +83,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Supplier Invoice Processing",
     "detail": "VBA and Power Automate work together to extract invoice data, match against purchase orders, flag exceptions and route for approval — eliminating manual keying for 80% of invoices.",
     "serviceHrefs": [
-      "/business-process-automation"
+      "/ai-workflow-and-business-process-automation"
     ],
     "sortOrder": 7
   },
@@ -92,9 +92,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "tag": "Energy · VBA · SharePoint",
     "title": "Resource Planning Application",
     "detail": "Enterprise application for Contact Energy deployed via SharePoint — manages resource allocation, availability and capacity planning across multiple teams with role-based access and VBA-driven data logic.",
-    "serviceHrefs": [
-      "/enterprise-excel-applications"
-    ],
+    "serviceHrefs": [],
     "sortOrder": 8
   },
   {
@@ -102,9 +100,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "tag": "Finance · VBA · SQL",
     "title": "Fund Manager Reporting Suite",
     "detail": "AMP Financial Services: extensible reporting and workflow automation for fund management operations, integrating with EDI systems and database-backed data management.",
-    "serviceHrefs": [
-      "/enterprise-excel-applications"
-    ],
+    "serviceHrefs": [],
     "sortOrder": 9
   },
   {
@@ -112,9 +108,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "tag": "Insurance · SQL · VBA",
     "title": "Claims Analysis Platform",
     "detail": "NZI Insurance: web app front-end (.NET + SQL) feeds data into an Excel-based management analytics layer — combining familiar Excel interfaces with enterprise data infrastructure.",
-    "serviceHrefs": [
-      "/enterprise-excel-applications"
-    ],
+    "serviceHrefs": [],
     "sortOrder": 10
   },
   {
@@ -122,9 +116,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "tag": "Operations · VBA · EDI",
     "title": "SIMPRO Integration Tool",
     "detail": "Excel add-on for SIMPRO that extends the platform's capabilities for scheduling, pricing and asset management — deployed across a national maintenance business.",
-    "serviceHrefs": [
-      "/enterprise-excel-applications"
-    ],
+    "serviceHrefs": [],
     "sortOrder": 11
   },
   {
@@ -253,7 +245,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Weekly KPI Report Formatter",
     "detail": "A single button formats incoming data, applies conditional formatting, generates charts and saves a timestamped PDF — replacing 45 minutes of weekly manual work.",
     "serviceHrefs": [
-      "/excel-macro-automation"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 24
   },
@@ -263,7 +255,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Multi-File Data Consolidator",
     "detail": "Macro opens all files in a folder, extracts specific data ranges, consolidates into a master sheet and applies cleaning rules automatically.",
     "serviceHrefs": [
-      "/excel-macro-automation"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 25
   },
@@ -273,7 +265,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Invoice Batch Processor",
     "detail": "Reads invoice data from a structured input sheet, generates individual formatted invoice files, saves them to client folders and logs each one in a register.",
     "serviceHrefs": [
-      "/excel-macro-automation"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 26
   },
@@ -283,7 +275,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Meeting Pack Generator",
     "detail": "Macro pulls agenda items, attendee data and action statuses from input sheets and assembles a formatted Word document ready for distribution.",
     "serviceHrefs": [
-      "/excel-macro-automation"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 27
   },
@@ -333,7 +325,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Live GL Reporting in Excel",
     "detail": "Excel connects directly to the general ledger database via Power Query — finance team refreshes reports in one click without IT involvement.",
     "serviceHrefs": [
-      "/excel-sql-integration"
+      "/excel-integrations"
     ],
     "sortOrder": 32
   },
@@ -343,7 +335,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Production Dashboard from ERP Database",
     "detail": "VBA queries the ERP SQL database, pulls current production data and updates a formatted Excel dashboard that refreshes every morning automatically.",
     "serviceHrefs": [
-      "/excel-sql-integration"
+      "/excel-integrations"
     ],
     "sortOrder": 33
   },
@@ -353,7 +345,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Claims Analysis Tool",
     "detail": "Excel connected to the claims database via ADO — analysts can run custom queries from dropdown filters in Excel without writing SQL.",
     "serviceHrefs": [
-      "/excel-sql-integration"
+      "/excel-integrations"
     ],
     "sortOrder": 34
   },
@@ -363,7 +355,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Stock and Sales Reporting",
     "detail": "Power Query connects to the retail management SQL database, joins stock and sales tables and loads a pivot-ready dataset — replaces daily manual CSV extraction.",
     "serviceHrefs": [
-      "/excel-sql-integration"
+      "/excel-integrations"
     ],
     "sortOrder": 35
   },
@@ -373,7 +365,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Automated Month-End Reporting",
     "detail": "VBA pulls data from multiple source files, applies transformations and produces a formatted management pack — a two-hour process reduced to under five minutes.",
     "serviceHrefs": [
-      "/excel-vba-development"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 36
   },
@@ -383,7 +375,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Purchase Order Generator",
     "detail": "Staff complete a structured input form; VBA validates entries, generates a formatted PDF purchase order and saves it to the correct folder automatically.",
     "serviceHrefs": [
-      "/excel-vba-development"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 37
   },
@@ -393,7 +385,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Payroll Reconciliation Tool",
     "detail": "VBA imports payroll exports, reconciles against budget, flags variances and produces a sign-off report for finance review.",
     "serviceHrefs": [
-      "/excel-vba-development"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 38
   },
@@ -403,7 +395,7 @@ export const SERVICE_PAGE_TILES_ARCHIVE: readonly ServicePageTileArchiveItem[] =
     "title": "Route and Load Optimisation",
     "detail": "VBA processes delivery data, assigns loads to vehicles by capacity and region, and outputs a daily run sheet with driving order.",
     "serviceHrefs": [
-      "/excel-vba-development"
+      "/excel-vba-macro-development"
     ],
     "sortOrder": 39
   },

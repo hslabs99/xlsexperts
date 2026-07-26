@@ -3,6 +3,7 @@ import 'server-only'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { SERVICE_PAGE_TILES_COLLECTION } from '@/lib/firebase'
+import { withoutArchivedServiceHrefs } from '@/lib/service-pages'
 import {
   slugifyServicePageTile,
   type ServicePageTile,
@@ -15,7 +16,7 @@ function mapTile(
   data: Record<string, unknown>
 ): ServicePageTileRecord {
   const hrefs = Array.isArray(data.serviceHrefs)
-    ? data.serviceHrefs.map(String).filter(Boolean)
+    ? withoutArchivedServiceHrefs(data.serviceHrefs.map(String))
     : []
   return {
     slug: id,
@@ -55,14 +56,14 @@ function normalizeInput(input: ServicePageTileInput): {
     (input.slug?.trim() && slugifyServicePageTile(input.slug)) ||
     slugifyServicePageTile(input.title)
   if (!slug) throw new Error('slug or title is required')
-  const hrefs = [
+  const hrefs = withoutArchivedServiceHrefs([
     ...new Set(
       (input.serviceHrefs ?? [])
         .map((h) => h.trim())
         .filter(Boolean)
         .map((h) => (h.startsWith('/') ? h : `/${h}`))
     ),
-  ]
+  ])
   return {
     slug,
     data: {
@@ -149,5 +150,29 @@ export async function seedServicePageTilesFromArchive(options?: {
     else created += 1
   }
 
+  await stripArchivedServiceHrefsFromCmsTiles()
+
   return { created, updated, skipped }
+}
+
+/** Remove retired service hrefs from every CMS tile document. */
+export async function stripArchivedServiceHrefsFromCmsTiles(): Promise<number> {
+  const snap = await getAdminDb().collection(SERVICE_PAGE_TILES_COLLECTION).get()
+  let updated = 0
+  for (const doc of snap.docs) {
+    const data = doc.data() as Record<string, unknown>
+    const raw = Array.isArray(data.serviceHrefs)
+      ? data.serviceHrefs.map(String)
+      : []
+    const next = withoutArchivedServiceHrefs(raw)
+    if (next.length === raw.length && next.every((h, i) => h === raw[i])) {
+      continue
+    }
+    await doc.ref.update({
+      serviceHrefs: next,
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    updated += 1
+  }
+  return updated
 }

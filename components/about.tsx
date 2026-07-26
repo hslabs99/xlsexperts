@@ -1,5 +1,8 @@
+'use client'
+
 import Image from 'next/image'
 import { MapPin, Network, Users, Zap } from 'lucide-react'
+import { useMarketCopy } from '@/components/market-provider'
 
 const team = [
   {
@@ -40,25 +43,26 @@ const team = [
   },
 ]
 
-const pillars = [
-  {
-    icon: MapPin,
-    title: '100% New Zealand based',
-    body: 'Our entire team works from Auckland. No offshore handoffs, no timezone delays — you deal directly with the people doing the work.',
-  },
-  {
-    icon: Users,
-    title: 'SMEs to enterprise',
-    body: 'We work with solo operators, engineers, construction firms, retailers, and NZX-listed corporates alike. Every client gets the same quality of attention.',
-  },
-  {
-    icon: Zap,
-    title: 'Broad technology stack',
-    body: 'Excel, VBA, Google Sheets, Office Scripts, Apps Script, React, .NET, A.I., Zapier, and N8n — we choose the right tool for your problem, not the other way around.',
-  },
-]
-
 export function About() {
+  const copy = useMarketCopy()
+  const pillars = [
+    {
+      icon: MapPin,
+      title: copy.about.pillarBasedTitle,
+      body: copy.about.pillarBasedBody,
+    },
+    {
+      icon: Users,
+      title: 'SMEs to enterprise',
+      body: copy.about.pillarSmeBody,
+    },
+    {
+      icon: Zap,
+      title: 'Broad technology stack',
+      body: 'Excel, VBA, Google Sheets, Office Scripts, Apps Script, React, .NET, A.I., Zapier, and N8n — we choose the right tool for your problem, not the other way around.',
+    },
+  ]
+
   return (
     <section id="about" className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
@@ -72,7 +76,7 @@ export function About() {
             About Us
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-500">
-            We are an Auckland-based data automation consultancy with expertise in Excel, VBA, Google Sheets, and modern workflow automation tools. We specialise in transforming data management tasks into valuable business tools — for businesses of every size.
+            {copy.about.intro}
           </p>
         </div>
 
@@ -170,7 +174,7 @@ export function About() {
               rel="noopener noreferrer"
               className="text-sm font-semibold text-gray-700 underline-offset-2 hover:underline"
             >
-              Excel Experts NZ
+              {copy.about.brandNzLabel}
             </a>
             <span className="text-gray-300">|</span>
             <a
@@ -179,7 +183,7 @@ export function About() {
               rel="noopener noreferrer"
               className="text-sm font-semibold text-gray-700 underline-offset-2 hover:underline"
             >
-              Excel Experts USA
+              {copy.about.brandIntlLabel}
             </a>
           </div>
         </div>

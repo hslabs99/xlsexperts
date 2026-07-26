@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { renderBlogInline } from '@/lib/blog-inline-markup'
+import { getSiteOrigin } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { ArrowLeft } from 'lucide-react'
 
@@ -20,10 +21,11 @@ export async function generateMetadata({
   const post = await getBlogPost(slug)
   if (!post) return {}
 
-  const url = `https://www.xlsexperts.co.nz/blog/${post.slug}`
+  const origin = await getSiteOrigin()
+  const url = `${origin}/blog/${post.slug}`
   const imageUrl = post.image.startsWith('http')
     ? post.image
-    : `https://www.xlsexperts.co.nz${post.image}`
+    : `${origin}${post.image}`
 
   return {
     title: post.title,
@@ -58,11 +60,12 @@ export default async function BlogPost({
   const post = await getBlogPost(slug)
   if (!post) notFound()
 
+  const origin = await getSiteOrigin()
   const allPosts = await getAllBlogPosts()
   const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 2)
   const imageUrl = post.image.startsWith('http')
     ? post.image
-    : `https://www.xlsexperts.co.nz${post.image}`
+    : `${origin}${post.image}`
 
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -78,11 +81,11 @@ export default async function BlogPost({
     publisher: {
       '@type': 'Organization',
       name: 'XLS Experts',
-      url: 'https://www.xlsexperts.co.nz',
+      url: origin,
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://www.xlsexperts.co.nz/blog/${post.slug}`,
+      '@id': `${origin}/blog/${post.slug}`,
     },
   }
 

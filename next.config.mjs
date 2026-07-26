@@ -7,6 +7,46 @@ const nextConfig = {
     return [
       { source: '/post', destination: '/blog', permanent: true },
       { source: '/post/:slug*', destination: '/blog/:slug*', permanent: true },
+      {
+        source: '/ai-workflow-automation',
+        destination: '/ai-workflow-and-business-process-automation',
+        permanent: true,
+      },
+      {
+        source: '/business-process-automation',
+        destination: '/ai-workflow-and-business-process-automation',
+        permanent: true,
+      },
+      {
+        source: '/enterprise-excel-applications',
+        destination: '/enterprise',
+        permanent: true,
+      },
+      {
+        source: '/enterprise-excel-vba-development',
+        destination: '/enterprise',
+        permanent: true,
+      },
+      {
+        source: '/excel-vba-development',
+        destination: '/excel-vba-macro-development',
+        permanent: true,
+      },
+      {
+        source: '/excel-macro-automation',
+        destination: '/excel-vba-macro-development',
+        permanent: true,
+      },
+      {
+        source: '/excel-sql-integration',
+        destination: '/excel-integrations',
+        permanent: true,
+      },
+      {
+        source: '/solutions/spreadsheet-process-modernisation',
+        destination: '/ai-workflow-and-business-process-automation',
+        permanent: true,
+      },
     ]
   },
   images: {

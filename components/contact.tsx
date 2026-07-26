@@ -28,6 +28,7 @@ import {
   contactLabelForServicePath,
 } from '@/lib/service-pages'
 import { contactLabelForSolutionSlug } from '@/lib/solutions'
+import { useMarketCopy } from '@/components/market-provider'
 
 const concernOptions = [...CONTACT_SERVICE_OPTIONS]
 const servicePageOptions = [...CONTACT_SERVICE_PAGE_OPTIONS]
@@ -55,6 +56,7 @@ type BookedSlotSummary = { day: string; time: string; method: string }
 
 export function Contact() {
   const router = useRouter()
+  const marketCopy = useMarketCopy()
   const [selected, setSelected] = useState<string[]>([])
   const [step, setStep] = useState<FormStep>('form')
   const [bookedSlot, setBookedSlot] = useState<BookedSlotSummary | null>(null)
@@ -317,19 +319,22 @@ export function Contact() {
             </div>
 
             {/* Contact details */}
-            <div className="flex flex-col gap-4 border-t border-gray-100 pt-6">
+            <div
+              id="contact-details"
+              className="flex scroll-mt-28 flex-col gap-4 border-t border-gray-100 pt-6"
+            >
               <h3 className="text-sm font-bold uppercase tracking-widest text-gray-700">Contact directly</h3>
 
               <a
-                href="tel:+6421783967"
+                href={`tel:${marketCopy.contact.phoneTel}`}
                 className="flex items-center gap-3 text-sm text-gray-600 transition-colors hover:text-gray-900"
               >
                 <Phone className="h-4 w-4 shrink-0" style={{ color: '#1a6b3c' }} aria-hidden="true" />
-                +64 21 783 967
+                {marketCopy.contact.phoneDisplay}
               </a>
 
               <a
-                href="https://wa.me/6421783967"
+                href={`https://wa.me/${marketCopy.contact.whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-sm text-gray-600 transition-colors hover:text-gray-900"
@@ -339,8 +344,10 @@ export function Contact() {
               </a>
 
               <div className="flex items-start gap-3 text-sm text-gray-500">
-                <span className="mt-0.5 text-xs font-bold" style={{ color: '#1a6b3c' }}>NZ</span>
-                Auckland, New Zealand — serving clients nationwide
+                <span className="mt-0.5 text-xs font-bold" style={{ color: '#1a6b3c' }}>
+                  {marketCopy.contact.locationBadge}
+                </span>
+                {marketCopy.contact.locationLine}
               </div>
             </div>
           </div>
@@ -458,7 +465,7 @@ export function Contact() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="jane@acme.co.nz"
+                      placeholder={marketCopy.contact.emailPlaceholder}
                       className="border bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:bg-white"
                       style={{ borderColor: errors.email ? '#ef4444' : '#e5e7eb' }}
                     />
@@ -473,7 +480,7 @@ export function Contact() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+64 21 000 000"
+                      placeholder={marketCopy.contact.phonePlaceholder}
                       className="border bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:bg-white"
                       style={{ borderColor: errors.phone ? '#ef4444' : '#e5e7eb' }}
                     />

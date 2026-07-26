@@ -42,10 +42,13 @@ export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
   )
 }
 
-export function solutionsBreadcrumbJsonLd(items: {
-  name: string
-  href: string
-}[]) {
+export function solutionsBreadcrumbJsonLd(
+  items: {
+    name: string
+    href: string
+  }[],
+  origin: string
+) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -54,13 +57,13 @@ export function solutionsBreadcrumbJsonLd(items: {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://www.xlsexperts.co.nz/',
+        item: `${origin}/`,
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Solutions',
-        item: `https://www.xlsexperts.co.nz${ALL_SOLUTIONS_HREF}`,
+        item: `${origin}${ALL_SOLUTIONS_HREF}`,
       },
       ...items.map((item, index) => ({
         '@type': 'ListItem' as const,
@@ -68,7 +71,7 @@ export function solutionsBreadcrumbJsonLd(items: {
         name: item.name,
         item: item.href.startsWith('http')
           ? item.href
-          : `https://www.xlsexperts.co.nz${item.href}`,
+          : `${origin}${item.href}`,
       })),
     ],
   }

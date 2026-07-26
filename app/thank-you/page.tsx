@@ -1,19 +1,17 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata } from '@/lib/seo'
 import { Suspense } from 'react'
 import { Navbar } from '@/components/navbar'
 import { ThankYouView } from '@/components/thank-you-view'
 
-export const metadata: Metadata = {
-  title: 'Thank you',
-  description:
-    'Thank you for contacting XLS Experts. We will be in touch shortly about your Excel or spreadsheet project.',
-  robots: {
-    index: false,
-    follow: false,
-  },
-  alternates: {
-    canonical: 'https://www.xlsexperts.co.nz/thank-you',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/thank-you',
+    title: 'Thank you',
+    description:
+      'Thank you for contacting XLS Experts. We will be in touch shortly about your Excel or spreadsheet project.',
+    robots: { index: false, follow: false },
+  })
 }
 
 export default function ThankYouPage() {

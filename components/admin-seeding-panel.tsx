@@ -1,10 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
+import { useState } from 'react'
 import { AdminDialog } from '@/components/admin-dialog'
 import { AdminWixBlogSeedPanel } from '@/components/admin-wix-blog-seed-panel'
-import type { BookingSlot, SeedTemplateConfig } from '@/lib/booking-slots'
 
 type PendingConfirm =
   | { kind: 'blog-overwrite' }
@@ -16,33 +14,14 @@ type PendingConfirm =
  * Kept off Blog, Case Studies, Bookings, and Email tabs so marketing staff
  * are not shown archive import controls.
  *
+ * Discovery availability seeding lives under Bookings → Booking settings.
  * Image pushes go through Admin APIs → Firebase Storage (cloud only).
  */
 export function AdminSeedingPanel() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [slots, setSlots] = useState<BookingSlot[]>([])
   const [pending, setPending] = useState<PendingConfirm>(null)
-
-  const loadSlots = useCallback(async () => {
-    try {
-      const res = await fetch('/api/admin/booking-slots')
-      const data = (await res.json()) as {
-        ok?: boolean
-        items?: BookingSlot[]
-      }
-      if (res.ok && data.ok && Array.isArray(data.items)) {
-        setSlots(data.items)
-      }
-    } catch {
-      // non-fatal — seed panel still works
-    }
-  }, [])
-
-  useEffect(() => {
-    void loadSlots()
-  }, [loadSlots])
 
   async function seedBlogs(overwrite: boolean, uploadImages = false) {
     setBusy(true)
@@ -223,105 +202,6 @@ export function AdminSeedingPanel() {
     }
   }
 
-  async function seedBookingSlots(config: SeedTemplateConfig) {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/booking-slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'seed', config }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        created?: number
-        skipped?: number
-        planned?: number
-        error?: string
-      }
-      if (!res.ok || !data.ok) throw new Error(data.error || 'Booking seed failed')
-      setMessage(
-        `Booking slots → seeded ${data.created ?? 0}; skipped ${data.skipped ?? 0} (${data.planned ?? 0} planned).`
-      )
-      await loadSlots()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Booking seed failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function normalizeBookingDurations() {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/booking-slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'normalize-durations' }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        updated?: number
-        total?: number
-        error?: string
-      }
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Could not normalize slot durations')
-      }
-      const updated = data.updated ?? 0
-      const total = data.total ?? 0
-      setMessage(
-        updated === 0
-          ? `All ${total} booking slot${total === 1 ? '' : 's'} are already 30 minutes.`
-          : `Normalized ${updated} of ${total} slot${total === 1 ? '' : 's'} to 30 minutes.`
-      )
-      await loadSlots()
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Could not normalize slot durations'
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function clearAllBookingSlots() {
-    setBusy(true)
-    setError(null)
-    setMessage(null)
-    try {
-      const res = await fetch('/api/admin/booking-slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clear-all' }),
-      })
-      const data = (await res.json()) as {
-        ok?: boolean
-        deleted?: number
-        error?: string
-      }
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Could not empty booking slots')
-      }
-      const deleted = data.deleted ?? 0
-      setMessage(
-        deleted === 0
-          ? 'Booking slots were already empty.'
-          : `Global reset: deleted ${deleted} booking slot${deleted === 1 ? '' : 's'}.`
-      )
-      await loadSlots()
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Could not empty booking slots'
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
   async function runPendingConfirm() {
     if (pending?.kind === 'blog-overwrite') {
       setPending(null)
@@ -341,7 +221,8 @@ export function AdminSeedingPanel() {
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
           Admin-only maintenance tools for archive import and Storage push.
           Day-to-day Blog, Case Studies, Bookings, and Email tabs stay clear for
-          marketing. Prefer re-running only when you intentionally rebuild data.
+          marketing. Discovery availability seeding is under Bookings → Booking
+          settings. Prefer re-running only when you intentionally rebuild data.
         </p>
 
         {(message || error) && (
@@ -500,14 +381,6 @@ export function AdminSeedingPanel() {
           </button>
         </div>
       </section>
-
-      <AdminBookingSeedPanel
-        busy={busy}
-        slots={slots}
-        onSeed={seedBookingSlots}
-        onNormalizeDurations={normalizeBookingDurations}
-        onClearAll={clearAllBookingSlots}
-      />
 
       <AdminDialog
         open={pending != null}

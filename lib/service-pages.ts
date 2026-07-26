@@ -30,33 +30,14 @@ export type ServicePage = {
 
 export const servicePages: readonly ServicePage[] = [
   {
-    label: 'AI Workflow Automation',
-    href: '/ai-workflow-automation',
-    title: 'A.I. Workflow Solutions',
+    label: 'AI Workflow and Business Process Automation',
+    href: '/ai-workflow-and-business-process-automation',
+    title: 'AI Workflow and Business Process Automation',
     description:
-      'We integrate AI tools into your existing spreadsheet and data workflows — automated summarisation, data classification, anomaly detection, and intelligent reporting.',
-    tags: ['AI Integration', 'OpenAI', 'Automation'],
+      'End-to-end workflow automation with AI — connecting spreadsheets, cloud tools and business software. Automate summarisation, classification, approvals and reporting so your team focuses on higher-value work.',
+    tags: ['AI', 'Power Automate', 'Excel', 'Automation'],
     icon: 'ai',
     showOnHome: true,
-  },
-  {
-    label: 'Business Process Automation',
-    href: '/business-process-automation',
-    title: 'Business Process Automation',
-    description:
-      'End-to-end workflow automation connecting spreadsheets, cloud tools, and business software. Reduce manual effort, cut errors, and free your team for higher-value work.',
-    tags: ['Google Sheets', 'Airtable', 'Zapier', 'Make'],
-    icon: 'process',
-    showOnHome: true,
-  },
-  {
-    label: 'Enterprise Excel Applications',
-    href: '/enterprise-excel-applications',
-    title: 'Enterprise Excel Applications',
-    description:
-      'Purpose-built Excel applications for large organisations — governed VBA tools, SharePoint deployment and SQL-connected hybrids that scale across teams.',
-    tags: ['VBA', 'SQL', 'SharePoint'],
-    icon: 'enterprise',
   },
   {
     label: 'Excel Dashboard Development',
@@ -79,23 +60,14 @@ export const servicePages: readonly ServicePage[] = [
     showOnHome: true,
   },
   {
-    label: 'Excel Integrations',
+    label: 'Excel Integrations (SQL, API, etc.)',
     href: '/excel-integrations',
-    title: 'Data Connections & Integration',
+    title: 'Excel Integrations (SQL, API, etc.)',
     description:
-      'Connect your spreadsheets to SQL databases, REST APIs, Shopify, Xero, and other business systems. Pull live data in, push results out — no more copy-paste.',
+      'Connect Excel to SQL databases, REST APIs, Shopify, Xero and other business systems. Live refreshes, write-back and multi-user database-backed applications — no more copy-paste exports.',
     tags: ['SQL', 'APIs', 'Power Query', 'EDI'],
     icon: 'integrations',
     showOnHome: true,
-  },
-  {
-    label: 'Excel Macro Automation',
-    href: '/excel-macro-automation',
-    title: 'Excel Macro Automation',
-    description:
-      'Purpose-built macros that remove repetitive Excel tasks — formatting, report packs, file handling, and one-click process runners your team can trust.',
-    tags: ['Macros', 'Automation', 'Excel'],
-    icon: 'macro',
   },
   {
     label: 'Excel Spreadsheet Development',
@@ -108,21 +80,12 @@ export const servicePages: readonly ServicePage[] = [
     showOnHome: true,
   },
   {
-    label: 'Excel SQL Integration',
-    href: '/excel-sql-integration',
-    title: 'Excel SQL Integration',
+    label: 'Excel VBA/Macro Development',
+    href: '/excel-vba-macro-development',
+    title: 'Excel VBA/Macro Development',
     description:
-      'Connect Excel to SQL Server and other databases so reports refresh from live data. Secure queries, scheduled refreshes, and reliable enterprise data pipelines.',
-    tags: ['SQL', 'ADO', 'Power Query'],
-    icon: 'sql',
-  },
-  {
-    label: 'Excel VBA Development',
-    href: '/excel-vba-development',
-    title: 'Macros & VBA Automation',
-    description:
-      'Eliminate repetitive manual work. We write clean, well-documented VBA code that automates your workflows, generates reports, and runs processes at the click of a button.',
-    tags: ['VBA', 'Macros', 'Workflow Automation'],
+      'Eliminate repetitive manual work with clean, well-documented macros and VBA — one-click report packs, file handling, validation and automated workflows your team can trust.',
+    tags: ['VBA', 'Macros', 'Automation'],
     icon: 'vba',
     showOnHome: true,
   },
@@ -167,8 +130,8 @@ export const servicePages: readonly ServicePage[] = [
     href: '/web-applications',
     title: 'Web Applications',
     description:
-      'Browser-based apps built with Java, cloud databases and platforms like Google Cloud — to extend Excel or migrate spreadsheet tools into full multi-user web applications.',
-    tags: ['Java', 'Cloud DB', 'Google Cloud'],
+      'Custom web application development for New Zealand businesses—secure multi-user cloud apps, customer portals, field systems, hybrid Excel solutions and SaaS platforms.',
+    tags: ['Next.js', 'Cloud', 'Multi-user'],
     icon: 'web',
     showOnHome: true,
   },
@@ -176,16 +139,96 @@ export const servicePages: readonly ServicePage[] = [
 
 export const servicePageHrefs: readonly string[] = servicePages.map((p) => p.href)
 
-/** Homepage services section — 8 featured tiles in display order. */
+/** Retired service landings — not listed in nav; old URLs redirect away. */
+export const archivedServicePageHrefs = [
+  '/enterprise-excel-applications',
+] as const
+
+export const archivedServiceSlugs: readonly string[] =
+  archivedServicePageHrefs.map((href) => href.replace(/^\//, ''))
+
+export function isArchivedServiceSlug(slug: string): boolean {
+  const normalized = slug.trim().replace(/^\//, '')
+  return archivedServiceSlugs.includes(normalized)
+}
+
+export function isArchivedServiceHref(href: string): boolean {
+  const path = href.startsWith('/') ? href : `/${href}`
+  return (archivedServicePageHrefs as readonly string[]).includes(path)
+}
+
+/** Strip retired service links from case-study / tile assignments. */
+export function canonicalizeServiceSlug(slug: string): string {
+  const normalized = slug.trim().replace(/^\//, '')
+  if (!normalized) return ''
+  for (const [canonical, aliases] of Object.entries(servicePageHrefAliases)) {
+    const canonicalSlug = canonical.replace(/^\//, '')
+    if (normalized === canonicalSlug) return canonicalSlug
+    if (aliases.some((a) => a.replace(/^\//, '') === normalized)) {
+      return canonicalSlug
+    }
+  }
+  return normalized
+}
+
+export function withoutArchivedServiceSlugs(
+  slugs: readonly string[],
+): string[] {
+  return [
+    ...new Set(
+      slugs
+        .map(canonicalizeServiceSlug)
+        .filter((s) => s && !isArchivedServiceSlug(s)),
+    ),
+  ]
+}
+
+export function canonicalizeServiceHref(href: string): string {
+  const path = href.trim().startsWith('/')
+    ? href.trim()
+    : `/${href.trim()}`
+  if (path === '/') return path
+  for (const [canonical, aliases] of Object.entries(servicePageHrefAliases)) {
+    if (path === canonical || aliases.includes(path)) return canonical
+  }
+  return path
+}
+
+export function withoutArchivedServiceHrefs(
+  hrefs: readonly string[],
+): string[] {
+  return [
+    ...new Set(
+      hrefs
+        .map(canonicalizeServiceHref)
+        .filter((h) => h !== '/' && !isArchivedServiceHref(h)),
+    ),
+  ]
+}
+
+/** Former service paths that now redirect to a merged landing page. */
+export const servicePageHrefAliases: Readonly<Record<string, readonly string[]>> =
+  {
+    '/ai-workflow-and-business-process-automation': [
+      '/ai-workflow-automation',
+      '/business-process-automation',
+    ],
+    '/excel-vba-macro-development': [
+      '/excel-vba-development',
+      '/excel-macro-automation',
+    ],
+    '/excel-integrations': ['/excel-sql-integration'],
+  }
+
+/** Homepage services section — featured tiles in display order. */
 const homeHrefs = [
   '/excel-spreadsheet-development',
   '/excel-dashboard-development',
-  '/excel-vba-development',
+  '/excel-vba-macro-development',
   '/excel-integrations',
   '/web-applications',
   '/excel-financial-modelling',
-  '/business-process-automation',
-  '/ai-workflow-automation',
+  '/ai-workflow-and-business-process-automation',
 ] as const
 
 export const homeServicePages: readonly ServicePage[] = homeHrefs.map(
@@ -206,7 +249,14 @@ export function getServiceByHref(
   const raw = hrefOrSlug.trim()
   if (!raw) return undefined
   const href = raw.startsWith('/') ? raw.replace(/\/$/, '') || '/' : `/${raw.replace(/\/$/, '')}`
-  return servicePages.find((p) => p.href === href)
+  const direct = servicePages.find((p) => p.href === href)
+  if (direct) return direct
+  for (const [canonical, aliases] of Object.entries(servicePageHrefAliases)) {
+    if (aliases.includes(href)) {
+      return servicePages.find((p) => p.href === canonical)
+    }
+  }
+  return undefined
 }
 
 export function contactLabelForService(
@@ -242,7 +292,7 @@ export function pageHasContactSection(pathname: string | null): boolean {
   if (pathname === '/solutions' || pathname.startsWith('/solutions/')) {
     return true
   }
-  if (pathname.startsWith('/enterprise-excel-vba-development')) return true
+  if (pathname === '/enterprise' || pathname.startsWith('/enterprise/')) return true
   return servicePageHrefs.some(
     (href) => pathname === href || pathname.startsWith(`${href}/`),
   )

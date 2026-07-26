@@ -6,7 +6,8 @@ import { Loader2, Sparkles, ImagePlus, ArrowRight } from 'lucide-react'
 import type { CaseStudyAiDraft } from '@/lib/case-study-ai-types'
 
 type Props = {
-  onApply: (draft: CaseStudyAiDraft, imageFile: File | null) => void
+  /** Apply generated copy and/or image — either may be null if the user only wants one. */
+  onApply: (draft: CaseStudyAiDraft | null, imageFile: File | null) => void
   onCancel: () => void
 }
 
@@ -101,13 +102,17 @@ export function AdminCaseStudyAiAssist({ onApply, onCancel }: Props) {
     }
   }
 
-  function applyToEditor() {
-    if (!draft) {
-      setError('Generate copy first, then apply to the editor.')
+  function applyToEditor(includeDraft: boolean, includeImage: boolean) {
+    const nextDraft = includeDraft ? draft : null
+    const nextImage = includeImage ? imageFile : null
+    if (!nextDraft && !nextImage) {
+      setError('Generate copy and/or an image first, then apply to the editor.')
       return
     }
-    onApply(draft, imageFile)
+    onApply(nextDraft, nextImage)
   }
+
+  const canApplyAnything = Boolean(draft || imageFile)
 
   return (
     <div className="space-y-6 rounded-lg border border-border bg-surface p-6">
@@ -118,9 +123,9 @@ export function AdminCaseStudyAiAssist({ onApply, onCancel }: Props) {
             AI Assist — create case study
           </h3>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Enter the client, project name and a short brief. Generate copy with
-            OpenAI, optionally harvest an image, preview both, then apply into
-            the editor to review and save.
+            Enter the client, project name and a short brief. Generate copy
+            and/or an image with OpenAI, preview them, then send either (or both)
+            into the editor to review and save.
           </p>
         </div>
         <button
@@ -208,55 +213,85 @@ export function AdminCaseStudyAiAssist({ onApply, onCancel }: Props) {
           )}
           {busy === 'image' ? 'Generating image…' : 'Generate image'}
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-t border-border pt-4">
         <button
           type="button"
           disabled={!draft || busy !== null}
-          onClick={applyToEditor}
+          onClick={() => applyToEditor(true, false)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+        >
+          Apply copy
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          disabled={!imageFile || busy !== null}
+          onClick={() => applyToEditor(false, true)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+        >
+          Apply image
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          disabled={!canApplyAnything || busy !== null}
+          onClick={() => applyToEditor(Boolean(draft), Boolean(imageFile))}
           className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 bg-brand-light px-4 py-2.5 text-sm font-semibold text-brand-dark hover:bg-brand/15 disabled:opacity-60"
         >
-          Apply to editor
+          Apply both to editor
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
 
-      {draft && (
+      {(draft || imageDataUrl) && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-md border border-border bg-surface-raised p-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
               Copy preview
             </h4>
-            <p className="mt-3 text-sm font-semibold text-ink">{draft.title}</p>
-            <p className="text-xs text-ink-muted">
-              {draft.client} · {draft.sector} · {draft.slug}
-            </p>
-            {draft.summary && (
-              <p className="mt-3 text-sm text-ink-muted">{draft.summary}</p>
-            )}
-            <dl className="mt-4 space-y-3 text-sm">
-              <div>
-                <dt className="font-semibold text-ink">Problem</dt>
-                <dd className="text-ink-muted">{draft.problem}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-ink">Solution</dt>
-                <dd className="text-ink-muted">{draft.solution}</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-ink">Outcome</dt>
-                <dd className="text-ink-muted">{draft.outcome}</dd>
-              </div>
-            </dl>
-            {draft.tags.length > 0 && (
-              <p className="mt-3 text-xs text-ink-muted">
-                Tags: {draft.tags.join(', ')}
-              </p>
-            )}
-            {(draft.serviceSlugs.length > 0 ||
-              draft.solutionSlugs.length > 0) && (
-              <p className="mt-2 text-xs text-ink-muted">
-                Services: {draft.serviceSlugs.join(', ') || '—'}
-                <br />
-                Solutions: {draft.solutionSlugs.join(', ') || '—'}
+            {draft ? (
+              <>
+                <p className="mt-3 text-sm font-semibold text-ink">{draft.title}</p>
+                <p className="text-xs text-ink-muted">
+                  {draft.client} · {draft.sector} · {draft.slug}
+                </p>
+                {draft.summary && (
+                  <p className="mt-3 text-sm text-ink-muted">{draft.summary}</p>
+                )}
+                <dl className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <dt className="font-semibold text-ink">Problem</dt>
+                    <dd className="text-ink-muted">{draft.problem}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-ink">Solution</dt>
+                    <dd className="text-ink-muted">{draft.solution}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold text-ink">Outcome</dt>
+                    <dd className="text-ink-muted">{draft.outcome}</dd>
+                  </div>
+                </dl>
+                {draft.tags.length > 0 && (
+                  <p className="mt-3 text-xs text-ink-muted">
+                    Tags: {draft.tags.join(', ')}
+                  </p>
+                )}
+                {(draft.serviceSlugs.length > 0 ||
+                  draft.solutionSlugs.length > 0) && (
+                  <p className="mt-2 text-xs text-ink-muted">
+                    Services: {draft.serviceSlugs.join(', ') || '—'}
+                    <br />
+                    Solutions: {draft.solutionSlugs.join(', ') || '—'}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-ink-muted">
+                No copy yet. Click <strong>Generate copy</strong>, or{' '}
+                <strong>Apply image</strong> alone into the editor.
               </p>
             )}
           </div>
@@ -282,7 +317,7 @@ export function AdminCaseStudyAiAssist({ onApply, onCancel }: Props) {
                 before) generating copy.
               </p>
             )}
-            {draft.imagePrompt && (
+            {draft?.imagePrompt && (
               <p className="mt-3 text-xs text-ink-muted">
                 Image prompt: {draft.imagePrompt}
               </p>

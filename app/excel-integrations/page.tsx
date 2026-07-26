@@ -1,31 +1,21 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight, Database, Globe, RefreshCw, Users } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Excel Integration with Databases, APIs & Third-Party Software NZ — XLS Experts',
-  description:
-    'Connect Excel to SQL databases, REST APIs, cloud platforms, e-commerce pipelines, and third-party software like Simpro. We build VBA and Power Query integrations that make Excel the hub of your data ecosystem.',
-  alternates: {
-    canonical: 'https://www.xlsexperts.co.nz/excel-integrations',
-  },
-  openGraph: {
-    title: 'Excel Integration with Databases, APIs & Third-Party Software NZ — XLS Experts',
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/excel-integrations',
+    title: 'Excel Integrations (SQL, API, etc.) NZ | XLS Experts',
     description:
-      'VBA and Power Query integrations connecting Excel to SQL databases, REST APIs, e-commerce platforms, and legacy software. Multi-user database-backed Excel applications built for New Zealand businesses.',
-    url: 'https://www.xlsexperts.co.nz/excel-integrations',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Excel Integration with Databases, APIs & Third-Party Software NZ — XLS Experts',
-    description:
-      'Connect Excel to SQL databases, REST APIs, and third-party software via VBA and Power Query.',
-    images: ['/images/og-default.png'],
-  },
+      'Connect Excel to SQL databases, REST APIs, cloud platforms and third-party software. VBA and Power Query integrations with live refresh, write-back and multi-user database-backed Excel apps for New Zealand businesses.',
+    ogTitle: 'Excel Integrations (SQL, API, etc.) NZ | XLS Experts',
+    ogDescription:
+      'VBA and Power Query integrations connecting Excel to SQL databases, REST APIs, e-commerce platforms and legacy software. Multi-user database-backed Excel applications for New Zealand businesses.',
+  })
 }
 
 const problems = [
@@ -40,6 +30,10 @@ const problems = [
   {
     heading: 'Excel is isolated from live data',
     body: 'Reports and dashboards built in Excel go stale the moment they are saved. Without a live connection to the database or platform driving your business, every decision is based on yesterday\'s data. Real-time or scheduled refreshes change this.',
+  },
+  {
+    heading: 'Multiple teams pull the same data and get different numbers',
+    body: 'Separate CSV extracts, different filters and timing mean finance, operations and analysts work from conflicting figures. A shared live SQL or API connection gives everyone the same source of truth.',
   },
   {
     heading: 'Multi-user data management hits Excel\'s limits',
@@ -59,8 +53,13 @@ const integrationTypes = [
   {
     icon: Database,
     title: 'SQL Database Connectivity',
-    body: 'Direct VBA connections to SQL Server, MySQL, PostgreSQL, Oracle, and SQLite via ADO. Read, write, and update records from Excel without any manual export steps. We use parameterised queries, error handling, and connection pooling appropriate for the data volume and user count.',
-    examples: ['Live reporting dashboards pulling from SQL Server', 'Excel as a data entry front-end writing to a shared database', 'Replacing Access databases with SQL Server-backed Excel applications'],
+    body: 'Direct VBA and Power Query connections to SQL Server, MySQL, PostgreSQL, Oracle, SQLite, Azure SQL and Amazon RDS via ADO, ODBC or OLE DB. Read, write and update records from Excel without manual exports. We use parameterised queries, least-privilege accounts, error handling and connection design suited to your data volume and user count — on-premise or cloud.',
+    examples: [
+      'Live reporting dashboards pulling from SQL Server with one-click refresh',
+      'Excel as a data entry front-end writing validated results back to a shared database',
+      'Replacing Access databases with SQL Server-backed Excel applications',
+      'On-premise and cloud SQL connections coordinated with your IT firewall and ODBC setup',
+    ],
   },
   {
     icon: RefreshCw,
@@ -107,8 +106,24 @@ const steps = [
 
 const faqs = [
   {
+    q: 'Which databases can Excel connect to?',
+    a: 'Excel can connect to SQL Server, MySQL, PostgreSQL, Oracle, SQLite, Azure SQL, Amazon RDS, Google BigQuery and others via Power Query, ODBC, OLE DB or ADO. We advise on the right connection method for your specific database and environment — including on-premise networks where firewall and driver setup matter.',
+  },
+  {
     q: 'Can Excel connect directly to our SQL Server database?',
     a: 'Yes. VBA uses ADO (ActiveX Data Objects) to open a direct connection to SQL Server, MySQL, PostgreSQL, Oracle, and other databases. Excel can read, write, update, and delete records with full transactional control. Power Query provides an additional no-code layer for read-only queries where that is sufficient.',
+  },
+  {
+    q: 'Is it secure to connect Excel directly to a database?',
+    a: 'Yes, when configured correctly. We use connection strings with least-privilege database accounts, recommend read-only access for reporting connections, and can configure Windows Authentication rather than stored passwords. We document the security approach for your IT team.',
+  },
+  {
+    q: 'Can Excel write data back to a SQL database?',
+    a: 'Yes. Using VBA with ADO connections, Excel can insert, update or delete records. This is useful for data entry tools where validated data needs to flow back into a central system, and for multi-user applications where Excel is the front-end and the database is the source of truth.',
+  },
+  {
+    q: 'Will a live database connection slow Excel down?',
+    a: 'A well-designed connection uses parameterised queries that return only the data needed — this is generally faster than loading a full CSV export. We optimise queries for performance and test on your data volumes before delivery.',
   },
   {
     q: 'Simpro says we cannot access their API. What are our options?',
@@ -136,22 +151,16 @@ const faqs = [
   },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'Excel Integration with Databases, APIs and Third-Party Software',
-  description:
-    'VBA and Power Query integrations connecting Excel to SQL databases, REST APIs, cloud platforms, e-commerce pipelines, and third-party business software. Multi-user database-backed Excel applications for New Zealand businesses.',
-  provider: {
-    '@type': 'ProfessionalService',
-    name: 'XLS Experts',
-    url: 'https://www.xlsexperts.co.nz',
-    areaServed: { '@type': 'Country', name: 'New Zealand' },
-  },
-  url: 'https://www.xlsexperts.co.nz/excel-integrations',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Excel Integration Development',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/excel-integrations',
+    name: 'Excel Integrations',
+    description:
+      'Connect Excel to SQL databases, REST APIs, cloud platforms and third-party software for New Zealand businesses.',
+    serviceType: 'Excel Integrations',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -164,6 +173,7 @@ const faqSchema = {
 }
 
 export default async function ExcelIntegrationsPage() {
+  const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-integrations')
   return (
     <>
@@ -194,15 +204,16 @@ export default async function ExcelIntegrationsPage() {
           />
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">
-              Integrations
+              Excel Integrations (SQL, API, etc.)
             </span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Excel Integration with Databases, APIs and Third-Party Software
+              Connect Excel to your databases, APIs and business systems
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Your data lives in Simpro, Xero, SQL Server, Shopify, and a dozen other systems.
-              We connect Excel to all of them — so your team works in the tools they know,
-              with live data that does not require manual exports.
+              Your data lives in SQL Server, Simpro, Xero, Shopify and a dozen
+              other systems. We connect Excel to all of them — live SQL
+              refreshes, REST APIs and structured export workflows — so your
+              team works in the tools they know, without manual CSV exports.
             </p>
             <a
               href="#contact"
@@ -274,8 +285,8 @@ export default async function ExcelIntegrationsPage() {
         </section>
 
         <ServicePageExamples
-          heading="Real-world platform examples"
-          subheading="These are the specific integration patterns we build most often for New Zealand businesses."
+          heading="SQL, API and platform integration examples"
+          subheading="Live database connections and integration patterns we build most often for New Zealand businesses."
           tiles={exampleTiles}
         />
 
@@ -309,11 +320,14 @@ export default async function ExcelIntegrationsPage() {
               Excel integration consulting across New Zealand
             </h2>
             <p className="text-base leading-relaxed text-gray-500">
-              We work with New Zealand businesses in construction, field services, manufacturing, retail,
-              finance, and logistics — industries where third-party platforms hold critical data but lack
-              the flexibility to report and analyse it properly. Based in Auckland and working with clients
-              nationwide, we understand the mix of legacy tools, cloud platforms, and practical constraints
-              that NZ businesses operate within.
+              We work with New Zealand businesses in construction, field
+              services, manufacturing, retail, finance, logistics, insurance and
+              government — industries where SQL databases and third-party
+              platforms hold critical data but lack the flexibility to report and
+              analyse it properly. Based in Auckland and working with clients
+              nationwide, we connect Excel to on-premise and cloud SQL
+              environments and coordinate with your IT team on access, firewall
+              and ODBC configuration.
             </p>
           </div>
         </section>

@@ -6,6 +6,7 @@ import {
   CASE_STUDIES_HOME_DOC_ID,
   SITE_CONTENT_COLLECTION,
 } from '@/lib/firebase'
+import { withoutArchivedServiceSlugs } from '@/lib/service-pages'
 import type { CaseStudy } from '@/lib/types'
 import {
   HOME_CASE_STUDIES_LIMIT,
@@ -46,6 +47,10 @@ function mapSlugList(raw: unknown): string[] {
     .filter(Boolean)
 }
 
+function mapServiceSlugList(raw: unknown): string[] {
+  return withoutArchivedServiceSlugs(mapSlugList(raw))
+}
+
 function mapRecord(id: string, data: Record<string, unknown>): CaseStudyRecord {
   return {
     slug: String(data.slug ?? id),
@@ -57,7 +62,7 @@ function mapRecord(id: string, data: Record<string, unknown>): CaseStudyRecord {
     solution: String(data.solution ?? ''),
     outcome: String(data.outcome ?? ''),
     tags: mapTags(data.tags),
-    serviceSlugs: mapSlugList(data.serviceSlugs),
+    serviceSlugs: mapServiceSlugList(data.serviceSlugs),
     solutionSlugs: mapSlugList(data.solutionSlugs),
     published: data.published !== false,
     showOnHome: Boolean(data.showOnHome),
@@ -105,9 +110,7 @@ export async function saveCaseStudy(input: CaseStudyInput): Promise<void> {
       solution: input.solution.trim(),
       outcome: input.outcome.trim(),
       tags: input.tags.map((t) => t.trim()).filter(Boolean),
-      serviceSlugs: (input.serviceSlugs ?? [])
-        .map((t) => t.trim().replace(/^\//, ''))
-        .filter(Boolean),
+      serviceSlugs: withoutArchivedServiceSlugs(input.serviceSlugs ?? []),
       solutionSlugs: (input.solutionSlugs ?? [])
         .map((t) => t.trim().replace(/^\//, ''))
         .filter(Boolean),
@@ -141,9 +144,7 @@ export async function updateCaseStudyFields(
   if (fields.tags !== undefined)
     payload.tags = fields.tags.map((t) => t.trim()).filter(Boolean)
   if (fields.serviceSlugs !== undefined)
-    payload.serviceSlugs = fields.serviceSlugs
-      .map((t) => t.trim().replace(/^\//, ''))
-      .filter(Boolean)
+    payload.serviceSlugs = withoutArchivedServiceSlugs(fields.serviceSlugs)
   if (fields.solutionSlugs !== undefined)
     payload.solutionSlugs = fields.solutionSlugs
       .map((t) => t.trim().replace(/^\//, ''))
@@ -158,6 +159,32 @@ export async function updateCaseStudyFields(
 
 export async function deleteCaseStudy(slug: string): Promise<void> {
   await getAdminDb().collection(CASE_STUDIES_COLLECTION).doc(slug).delete()
+}
+
+/** Remove retired service slugs from every case-study document. */
+export async function stripArchivedServiceSlugsFromCms(): Promise<number> {
+  const snap = await getAdminDb().collection(CASE_STUDIES_COLLECTION).get()
+  let updated = 0
+  for (const doc of snap.docs) {
+    const data = doc.data() as Record<string, unknown>
+    const raw = Array.isArray(data.serviceSlugs)
+      ? data.serviceSlugs.map(String)
+      : []
+    const next = withoutArchivedServiceSlugs(raw)
+    const rawNorm = raw.map((s) => s.trim().replace(/^\//, '')).filter(Boolean)
+    if (
+      next.length === rawNorm.length &&
+      next.every((s, i) => s === rawNorm[i])
+    ) {
+      continue
+    }
+    await doc.ref.update({
+      serviceSlugs: next,
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    updated += 1
+  }
+  return updated
 }
 
 /**
@@ -207,7 +234,7 @@ export async function fetchHomeCaseStudiesSnapshot(): Promise<CaseStudy[]> {
         solution: String(r.solution ?? ''),
         outcome: String(r.outcome ?? ''),
         tags: mapTags(r.tags),
-        serviceSlugs: mapSlugList(r.serviceSlugs),
+        serviceSlugs: mapServiceSlugList(r.serviceSlugs),
         solutionSlugs: mapSlugList(r.solutionSlugs),
       }
     })

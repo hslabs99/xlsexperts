@@ -60,10 +60,17 @@ export const SEED_SLOT_MINUTES = 30 as const
 
 export type SeedAppointmentMinutes = 15 | 30
 
+/** Allowed seed horizons (rolling calendar weeks from Auckland today). */
+export const SEED_WEEK_OPTIONS = [1, 2, 3] as const
+export type SeedWeekOption = (typeof SEED_WEEK_OPTIONS)[number]
+
 export interface SeedTemplateConfig {
   /** Appointment / row length (always 30 for the current grid). */
   appointmentMinutes: SeedAppointmentMinutes
-  /** How many weekdays-ahead weeks to apply the template to. */
+  /**
+   * Rolling horizon in calendar weeks from Auckland today.
+   * 2 → today through today+13 days (14 calendar days / up to 10 weekdays).
+   */
   weeks: number
   /**
    * Enabled day+window cells.
@@ -152,6 +159,60 @@ export function defaultSeedTemplateConfig(): SeedTemplateConfig {
     weeks: 2,
     enabled: createEmptySeedEnabled(),
   }
+}
+
+/** Clamp / coerce weeks so missing or invalid values never shrink the horizon. */
+export function resolveSeedWeeks(weeks: unknown): SeedWeekOption {
+  const n = typeof weeks === 'number' ? weeks : Number(weeks)
+  if (
+    Number.isFinite(n) &&
+    SEED_WEEK_OPTIONS.includes(Math.floor(n) as SeedWeekOption)
+  ) {
+    return Math.floor(n) as SeedWeekOption
+  }
+  return 2
+}
+
+/** Add calendar days to a YYYY-MM-DD key (timezone-safe via UTC). */
+export function addDateKeyDays(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d + days))
+  const yy = dt.getUTCFullYear()
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0')
+  const dd = String(dt.getUTCDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}
+
+/** JS weekday 0=Sun…6=Sat for a YYYY-MM-DD calendar date. */
+export function weekdayFromDateKey(dateKey: string): number {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+}
+
+/** Inclusive Auckland start/end date keys for a seed horizon. */
+export function seedHorizonDateKeys(
+  weeks: unknown,
+  from: Date = new Date()
+): {
+  startKey: string
+  endKey: string
+  lastWeekdayKey: string
+  daySpan: number
+} {
+  const resolved = resolveSeedWeeks(weeks)
+  const daySpan = resolved * 7
+  const startKey = aucklandDateKey(from)
+  const endKey = addDateKeyDays(startKey, daySpan - 1)
+  let lastWeekdayKey = endKey
+  for (let offset = daySpan - 1; offset >= 0; offset--) {
+    const key = addDateKeyDays(startKey, offset)
+    const dow = weekdayFromDateKey(key)
+    if (dow >= 1 && dow <= 5) {
+      lastWeekdayKey = key
+      break
+    }
+  }
+  return { startKey, endKey, lastWeekdayKey, daySpan }
 }
 
 /** Times offered in the manual “Add slot” form (every 30 min, 8–6). */
@@ -251,32 +312,27 @@ export function formatDisplayDate(dateKey: string): string {
 /**
  * Build discovery slots from a weekly availability template.
  * Each enabled Mon–Fri cell becomes one 30-minute appointment start.
+ * Horizon is `weeks * 7` Auckland calendar days starting today (default 2 → 14 days).
  * Slots sooner than BOOKING_MIN_LEAD_MINUTES in NZ time are skipped.
  */
 export function buildSeedSlots(
   config: SeedTemplateConfig = defaultSeedTemplateConfig(),
   from: Date = new Date()
 ): BookingSlotInput[] {
-  const { dateKey: todayKey } = aucklandDateAndMinutes(from)
-  const [y, m, d] = todayKey.split('-').map(Number)
-  const start = new Date(y, m - 1, d)
-  start.setHours(0, 0, 0, 0)
-
+  const weeks = resolveSeedWeeks(config?.weeks)
+  const { startKey, daySpan } = seedHorizonDateKeys(weeks, from)
   const windows = buildSeedTimeWindows()
-  const daySpan = Math.max(1, config.weeks) * 7
+  const enabled = config?.enabled ?? createEmptySeedEnabled()
   const slots: BookingSlotInput[] = []
 
   for (let offset = 0; offset < daySpan; offset++) {
-    const day = new Date(start)
-    day.setDate(start.getDate() + offset)
-    const dow = day.getDay()
+    const date = addDateKeyDays(startKey, offset)
+    const dow = weekdayFromDateKey(date)
     if (dow < 1 || dow > 5) continue
 
-    const date = formatDateKey(day)
     const weekday = dow as SeedWeekday
-
     for (const win of windows) {
-      if (!config.enabled[seedCellKey(weekday, win.startMinutes)]) continue
+      if (!enabled[seedCellKey(weekday, win.startMinutes)]) continue
       const time = formatMinutesToTime(win.startMinutes)
       if (!isSlotBookableWithLead(date, time, BOOKING_MIN_LEAD_MINUTES, from)) {
         continue
@@ -335,8 +391,42 @@ export function getMondayOfWeek(date: Date): Date {
   return d
 }
 
+/**
+ * Next Mon–Fri calendar day on/after `from` (local date components).
+ * Sat → next Mon, Sun → next Mon, weekday → same day.
+ */
+export function nextWorkingDay(from: Date = new Date()): Date {
+  const d = new Date(from)
+  d.setHours(0, 0, 0, 0)
+  const dow = d.getDay()
+  if (dow === 6) {
+    d.setDate(d.getDate() + 2)
+  } else if (dow === 0) {
+    d.setDate(d.getDate() + 1)
+  }
+  return d
+}
+
+/**
+ * Monday that starts the booking week visitors should see first:
+ * the week containing the next working day (never a past Mon–Fri week
+ * when today is Sat/Sun).
+ */
+export function bookingCalendarStartMonday(from: Date = new Date()): Date {
+  return getMondayOfWeek(nextWorkingDay(from))
+}
+
 export function getWeekDays(monday: Date): Date[] {
   return Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return d
+  })
+}
+
+/** Mon–Sun (7 columns) for admin availability grids. */
+export function getCalendarWeekDays(monday: Date): Date[] {
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday)
     d.setDate(monday.getDate() + i)
     return d

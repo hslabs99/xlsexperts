@@ -2,6 +2,7 @@
 
 /**
  * Loads analytics / marketing tags from Firebase and injects them on public pages.
+ * Tags are market-scoped: .co.nz and .com never share GA/GTM/campaign snippets.
  * Skips /admin so staff browsing the CMS does not inflate marketing traffic.
  */
 
@@ -63,7 +64,10 @@ export function SiteTags() {
     let cancelled = false
     void fetch('/api/site-tags')
       .then(async (res) => {
-        const data = (await res.json()) as { ok?: boolean; tags?: SiteTagsContent }
+        const data = (await res.json()) as {
+          ok?: boolean
+          tags?: SiteTagsContent
+        }
         if (!cancelled) setTags(data.ok && data.tags ? data.tags : DEFAULT_SITE_TAGS)
       })
       .catch(() => {
@@ -86,6 +90,8 @@ export function SiteTags() {
     const key = JSON.stringify({
       head: tags.headHtml,
       body: tags.bodyHtml,
+      gtm: tags.googleTagManagerId,
+      ga: tags.googleAnalyticsId,
     })
     if (injectedKey.current === key) return
 
@@ -98,7 +104,14 @@ export function SiteTags() {
       clearInjected()
       injectedKey.current = null
     }
-  }, [onAdmin, tags.enabled, tags.headHtml, tags.bodyHtml])
+  }, [
+    onAdmin,
+    tags.enabled,
+    tags.headHtml,
+    tags.bodyHtml,
+    tags.googleTagManagerId,
+    tags.googleAnalyticsId,
+  ])
 
   if (onAdmin || !tags.enabled) return null
 

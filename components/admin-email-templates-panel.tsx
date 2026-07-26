@@ -36,7 +36,7 @@ const SAMPLE_CTX: EnquiryMergeContext = {
   hear: 'Google Search',
   concernsPlain: 'Macros / VBA, Charts & Dashboards',
   concernsHtml: '<ul><li>Macros / VBA</li><li>Charts &amp; Dashboards</li></ul>',
-  service: 'Excel VBA Development',
+  service: 'Excel VBA/Macro Development',
   solution: 'Dashboards & Business Intelligence',
   enquiryType: 'Standard enquiry',
   when: '',

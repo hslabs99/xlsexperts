@@ -1,21 +1,19 @@
 import type { Metadata } from 'next'
+import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Spreadsheet Auditing Services New Zealand | XLS Experts',
-  description:
-    'Professional spreadsheet auditing for New Zealand businesses. We independently review Excel models and spreadsheets for formula errors, structural issues and calculation risks before they cause problems.',
-  alternates: { canonical: 'https://www.xlsexperts.co.nz/spreadsheet-auditing' },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  return marketPageMetadata({
+    path: '/spreadsheet-auditing',
     title: 'Spreadsheet Auditing Services New Zealand | XLS Experts',
-    description: 'Independent spreadsheet auditing for NZ businesses. Find formula errors, structural risks and logic issues before they cause problems.',
-    url: 'https://www.xlsexperts.co.nz/spreadsheet-auditing',
-    images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-  },
+    description: 'Professional spreadsheet auditing for New Zealand businesses. We independently review Excel models and spreadsheets for formula errors, structural issues and calculation risks before they cause problems.',
+    ogTitle: 'Spreadsheet Auditing Services New Zealand | XLS Experts',
+    ogDescription: 'Independent spreadsheet auditing for NZ businesses. Find formula errors, structural risks and logic issues before they cause problems.',
+  })
 }
 
 const problems = [
@@ -56,16 +54,14 @@ const faqs = [
   { q: 'Do you fix issues found during the audit?', a: 'The audit itself produces a report of findings. We offer a separate remediation engagement to fix identified issues — this can be quoted after the audit is complete and the scope of fixes is clear.' },
 ]
 
-const serviceSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Service',
-  name: 'Spreadsheet Auditing',
-  description: 'Independent spreadsheet auditing for New Zealand businesses. Find formula errors, structural risks and logic issues.',
-  provider: { '@type': 'ProfessionalService', name: 'XLS Experts', url: 'https://www.xlsexperts.co.nz', areaServed: { '@type': 'Country', name: 'New Zealand' } },
-  url: 'https://www.xlsexperts.co.nz/spreadsheet-auditing',
-  areaServed: { '@type': 'Country', name: 'New Zealand' },
-  serviceType: 'Spreadsheet Auditing',
+async function buildServiceSchema() {
+  return marketServiceSchema({
+    path: '/spreadsheet-auditing',
+    name: 'Spreadsheet Auditing',
+    description: 'Independent spreadsheet auditing for New Zealand businesses. Find formula errors, structural risks and logic issues.',
+  })
 }
+
 
 const faqSchema = {
   '@context': 'https://schema.org',
@@ -74,6 +70,7 @@ const faqSchema = {
 }
 
 export default async function SpreadsheetAuditingPage() {
+  const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/spreadsheet-auditing')
   return (
     <>
