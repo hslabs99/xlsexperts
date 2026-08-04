@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { authenticateUser } from '@/lib/admin-users-db'
-import type { AdminSession } from '@/lib/admin-users'
+import { resolveUserAllowedTabs, type AdminSession } from '@/lib/admin-users'
 import { withTimeout } from '@/lib/with-timeout'
 
 export const dynamic = 'force-dynamic'
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       email: user.email,
       name: user.name,
       role: user.role,
+      allowedTabs: resolveUserAllowedTabs(user),
     }
 
     return NextResponse.json({ ok: true, session })

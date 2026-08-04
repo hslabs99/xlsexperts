@@ -27,47 +27,28 @@ import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
 import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
 import { AdminCrawlDocsPanel } from '@/components/admin-crawl-docs-panel'
 import { AdminMarketCopyPanel } from '@/components/admin-market-copy-panel'
+import { AdminPageSeoPanel } from '@/components/admin-page-seo-panel'
 import {
   clearAdminSession,
-  getEffectiveRole,
+  canAccessTab,
   readAdminSession,
   readAdminViewMode,
-  roleCanAccessTab,
   writeAdminViewMode,
   type AdminViewMode,
 } from '@/lib/admin-session'
-import type { AdminSession } from '@/lib/admin-users'
+import {
+  ADMIN_TABS,
+  type AdminSession,
+  type AdminTabId,
+} from '@/lib/admin-users'
 
-type AdminTab =
-  | 'bookings'
-  | 'enquiries'
-  | 'chat'
-  | 'blog'
-  | 'case-studies'
-  | 'service-tiles'
-  | 'find-out-about'
-  | 'marketing'
-  | 'international'
-  | 'email'
-  | 'seeding'
-  | 'settings'
+type AdminTab = AdminTabId
 
 type BookingSubTab = 'bookings' | 'settings'
+type SettingsSubTab = 'users' | 'thank-you'
+type CmsSubTab = 'site' | 'pages'
 
-const TABS: { id: AdminTab; label: string }[] = [
-  { id: 'bookings', label: 'Bookings' },
-  { id: 'enquiries', label: 'Inquiries' },
-  { id: 'chat', label: 'Chat' },
-  { id: 'blog', label: 'Blog' },
-  { id: 'case-studies', label: 'Case Studies' },
-  { id: 'service-tiles', label: 'Service Tiles' },
-  { id: 'find-out-about', label: 'Find out about' },
-  { id: 'marketing', label: 'Marketing' },
-  { id: 'international', label: 'International' },
-  { id: 'email', label: 'Email' },
-  { id: 'seeding', label: 'Seeding' },
-  { id: 'settings', label: 'Settings' },
-]
+const TABS = ADMIN_TABS
 
 function formatBookedAt(value: BookingSlot['booking']): string {
   const bookedAt = value?.bookedAt as unknown
@@ -152,6 +133,9 @@ export default function AdminPage() {
   const [viewMode, setViewMode] = useState<AdminViewMode>('admin')
   const [tab, setTab] = useState<AdminTab>('enquiries')
   const [bookingSubTab, setBookingSubTab] = useState<BookingSubTab>('bookings')
+  const [settingsSubTab, setSettingsSubTab] =
+    useState<SettingsSubTab>('users')
+  const [cmsSubTab, setCmsSubTab] = useState<CmsSubTab>('site')
 
   const [slots, setSlots] = useState<BookingSlot[]>([])
   const [loading, setLoading] = useState(true)
@@ -170,15 +154,10 @@ export default function AdminPage() {
     setAuthReady(true)
   }, [])
 
-  const effectiveRole = useMemo(() => {
-    if (!session) return null
-    return getEffectiveRole(session, viewMode)
-  }, [session, viewMode])
-
   const visibleTabs = useMemo(() => {
-    if (!effectiveRole) return []
-    return TABS.filter((item) => roleCanAccessTab(effectiveRole, item.id))
-  }, [effectiveRole])
+    if (!session) return []
+    return TABS.filter((item) => canAccessTab(session, item.id, viewMode))
+  }, [session, viewMode])
 
   useEffect(() => {
     if (!session || visibleTabs.length === 0) return
@@ -214,10 +193,9 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    if (!session || !effectiveRole || !roleCanAccessTab(effectiveRole, 'bookings'))
-      return
+    if (!session || !canAccessTab(session, 'bookings', viewMode)) return
     loadSlots()
-  }, [loadSlots, session, effectiveRole])
+  }, [loadSlots, session, viewMode])
 
   const bookedCount = useMemo(
     () => slots.filter((s) => s.status === 'booked').length,
@@ -580,8 +558,8 @@ export default function AdminPage() {
         </div>
 
         {tab === 'bookings' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'bookings') && (
+          session &&
+          canAccessTab(session, 'bookings', viewMode) && (
           <div className="mt-8 space-y-6" role="tabpanel">
             <div
               className="flex flex-wrap gap-1 border-b border-border"
@@ -927,92 +905,161 @@ export default function AdminPage() {
         )}
 
         {tab === 'enquiries' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'enquiries') && (
+          session &&
+          canAccessTab(session, 'enquiries', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminEnquiriesPanel />
           </div>
         )}
 
         {tab === 'chat' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'chat') && (
+          session &&
+          canAccessTab(session, 'chat', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminChatPanel />
           </div>
         )}
 
         {tab === 'blog' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'blog') && (
+          session &&
+          canAccessTab(session, 'blog', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminBlogPanel />
           </div>
         )}
 
         {tab === 'case-studies' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'case-studies') && (
+          session &&
+          canAccessTab(session, 'case-studies', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminCaseStudiesPanel />
           </div>
         )}
 
         {tab === 'service-tiles' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'service-tiles') && (
+          session &&
+          canAccessTab(session, 'service-tiles', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminServicePageTilesPanel />
           </div>
         )}
 
         {tab === 'find-out-about' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'find-out-about') && (
+          session &&
+          canAccessTab(session, 'find-out-about', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminFindOutAboutPanel />
           </div>
         )}
 
+        {tab === 'cms' &&
+          session &&
+          canAccessTab(session, 'cms', viewMode) && (
+          <div className="mt-8 space-y-6" role="tabpanel">
+            <div
+              className="flex flex-wrap gap-1 border-b border-border"
+              role="tablist"
+              aria-label="CMS sections"
+            >
+              {(
+                [
+                  { id: 'site' as const, label: 'Site CMS' },
+                  { id: 'pages' as const, label: 'Pages CMS' },
+                ] as const
+              ).map((item) => {
+                const active = cmsSubTab === item.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setCmsSubTab(item.id)}
+                    className={
+                      active
+                        ? 'border-b-2 border-brand px-4 py-2.5 text-sm font-semibold text-brand'
+                        : 'border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-ink-muted transition hover:text-ink'
+                    }
+                  >
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {cmsSubTab === 'site' && <AdminMarketCopyPanel />}
+            {cmsSubTab === 'pages' && <AdminPageSeoPanel />}
+          </div>
+        )}
+
         {tab === 'marketing' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'marketing') && (
+          session &&
+          canAccessTab(session, 'marketing', viewMode) && (
           <div className="mt-8 space-y-6" role="tabpanel">
             <AdminSiteTagsPanel />
             <AdminCrawlDocsPanel />
           </div>
         )}
 
-        {tab === 'international' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'international') && (
-          <div className="mt-8" role="tabpanel">
-            <AdminMarketCopyPanel />
-          </div>
-        )}
-
         {tab === 'email' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'email') && (
+          session &&
+          canAccessTab(session, 'email', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminEmailPanel />
           </div>
         )}
 
         {tab === 'seeding' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'seeding') && (
+          session &&
+          canAccessTab(session, 'seeding', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminSeedingPanel />
           </div>
         )}
 
         {tab === 'settings' &&
-          effectiveRole &&
-          roleCanAccessTab(effectiveRole, 'settings') && (
+          session &&
+          canAccessTab(session, 'settings', viewMode) && (
           <div className="mt-8 space-y-6" role="tabpanel">
-            <AdminUsersPanel currentUserId={session.userId} />
-            <AdminConfirmationContentPanel />
+            <div
+              className="flex flex-wrap gap-1 border-b border-border"
+              role="tablist"
+              aria-label="Settings sections"
+            >
+              {(
+                [
+                  { id: 'users' as const, label: 'Users' },
+                  { id: 'thank-you' as const, label: 'Thank you copy' },
+                ] as const
+              ).map((item) => {
+                const active = settingsSubTab === item.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setSettingsSubTab(item.id)}
+                    className={
+                      active
+                        ? 'border-b-2 border-brand px-4 py-2.5 text-sm font-semibold text-brand'
+                        : 'border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-ink-muted transition hover:text-ink'
+                    }
+                  >
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {settingsSubTab === 'users' && (
+              <AdminUsersPanel currentUserId={session.userId} />
+            )}
+
+            {settingsSubTab === 'thank-you' && (
+              <AdminConfirmationContentPanel />
+            )}
+
             <div className="rounded-lg border border-border bg-surface p-6">
               <h2 className="text-lg font-semibold text-ink">
                 Firebase storage

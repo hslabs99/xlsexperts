@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -8,13 +9,7 @@ import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/excel-dashboard-development',
-    title: 'Excel Dashboard Development New Zealand | XLS Experts',
-    description: 'Custom Excel dashboard development for New Zealand businesses. Interactive, automated dashboards that give your leadership team clear visibility without the cost of enterprise BI tools.',
-    ogTitle: 'Excel Dashboard Development New Zealand | XLS Experts',
-    ogDescription: 'Custom Excel dashboards for NZ businesses. Interactive, automated and formatted for decision-making — without the cost of enterprise BI tools.',
-  })
+  return pageSeoMetadata('/excel-dashboard-development')
 }
 
 const problems = [
@@ -71,6 +66,7 @@ const faqSchema = {
 }
 
 export default async function ExcelDashboardDevelopmentPage() {
+  const seo = await getPageSeo('/excel-dashboard-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-dashboard-development')
   return (
@@ -86,10 +82,10 @@ export default async function ExcelDashboardDevelopmentPage() {
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">Excel Dashboard Development</span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Your data deserves a dashboard your team will actually use.
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Most NZ businesses already have the data they need to make better decisions. They just do not have a clear, consistent way to see it. We build custom Excel dashboards that transform raw data into actionable insight — without the cost or complexity of enterprise BI tools.
+              {seo.heroIntro}
             </p>
             <a href="#contact" className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 shadow-md transition-all hover:bg-gray-50 hover:shadow-lg">
               Book a free consultation <ArrowRight className="h-4 w-4" />

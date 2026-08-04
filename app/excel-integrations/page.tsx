@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -7,15 +8,7 @@ import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight, Database, Globe, RefreshCw, Users } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/excel-integrations',
-    title: 'Excel Integrations (SQL, API, etc.) NZ | XLS Experts',
-    description:
-      'Connect Excel to SQL databases, REST APIs, cloud platforms and third-party software. VBA and Power Query integrations with live refresh, write-back and multi-user database-backed Excel apps for New Zealand businesses.',
-    ogTitle: 'Excel Integrations (SQL, API, etc.) NZ | XLS Experts',
-    ogDescription:
-      'VBA and Power Query integrations connecting Excel to SQL databases, REST APIs, e-commerce platforms and legacy software. Multi-user database-backed Excel applications for New Zealand businesses.',
-  })
+  return pageSeoMetadata('/excel-integrations')
 }
 
 const problems = [
@@ -173,6 +166,7 @@ const faqSchema = {
 }
 
 export default async function ExcelIntegrationsPage() {
+  const seo = await getPageSeo('/excel-integrations')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-integrations')
   return (
@@ -207,13 +201,10 @@ export default async function ExcelIntegrationsPage() {
               Excel Integrations (SQL, API, etc.)
             </span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Connect Excel to your databases, APIs and business systems
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Your data lives in SQL Server, Simpro, Xero, Shopify and a dozen
-              other systems. We connect Excel to all of them — live SQL
-              refreshes, REST APIs and structured export workflows — so your
-              team works in the tools they know, without manual CSV exports.
+              {seo.heroIntro}
             </p>
             <a
               href="#contact"

@@ -115,6 +115,12 @@ export const CASE_STUDIES_HOME_DOC_ID = 'case-studies-home'
 export const MARKET_COPY_DOC_ID = 'market-copy'
 
 /**
+ * Site Content doc: draft H1 + meta tags for service/solution pages.
+ * Public site reads `data/page-seo.generated.ts` after Publish — not this doc.
+ */
+export const PAGE_SEO_DOC_ID = 'page-seo'
+
+/**
  * Site Content doc: floating “Find out about” quick-nav labels + page links.
  */
 export const FIND_OUT_ABOUT_DOC_ID = 'find-out-about'

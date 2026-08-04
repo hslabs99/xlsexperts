@@ -10,6 +10,7 @@ import {
   ADMIN_USER_ROLES,
   type AdminUserInput,
   type AdminUserRole,
+  type AdminTabId,
 } from '@/lib/admin-users'
 import { withTimeout } from '@/lib/with-timeout'
 
@@ -19,6 +20,7 @@ function publicUser(row: Awaited<ReturnType<typeof fetchAllUsers>>[number]) {
     email: row.email,
     name: row.name,
     role: row.role,
+    allowedTabs: row.allowedTabs,
     active: row.active,
     // Never return password hashes/plaintext to the browser in admin list responses
     // when editing; we'll allow password set on write only. Keep empty string for form compat.
@@ -66,7 +68,10 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const body = (await request.json()) as Partial<AdminUserInput> & { id?: string }
+    const body = (await request.json()) as Partial<AdminUserInput> & {
+      id?: string
+      allowedTabs?: AdminTabId[] | string[]
+    }
     const id = body.id?.trim()
     if (!id) {
       return NextResponse.json({ ok: false, error: 'id is required' }, { status: 400 })

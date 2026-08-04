@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -8,13 +9,7 @@ import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/excel-spreadsheet-development',
-    title: 'Excel Spreadsheet Development Services New Zealand | XLS Experts',
-    description: 'Custom Excel spreadsheet development for New Zealand businesses. We design, build and optimise spreadsheets that replace manual processes, reduce errors and scale with your business.',
-    ogTitle: 'Excel Spreadsheet Development Services New Zealand | XLS Experts',
-    ogDescription: 'Custom Excel spreadsheet development for NZ businesses. Purpose-built spreadsheets that replace manual processes and scale with your business.',
-  })
+  return pageSeoMetadata('/excel-spreadsheet-development')
 }
 
 const problems = [
@@ -71,6 +66,7 @@ const faqSchema = {
 }
 
 export default async function ExcelSpreadsheetDevelopmentPage() {
+  const seo = await getPageSeo('/excel-spreadsheet-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-spreadsheet-development')
   return (
@@ -87,10 +83,10 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">Excel Spreadsheet Development</span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Custom Excel spreadsheets built to last — not just to work once.
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Most business spreadsheets are built under pressure and never properly engineered. We design and build custom Excel spreadsheets for New Zealand businesses that are structured, validated and maintainable — so they keep working as your business grows.
+              {seo.heroIntro}
             </p>
             <a href="#contact" className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 shadow-md transition-all hover:bg-gray-50 hover:shadow-lg">
               Book a free consultation <ArrowRight className="h-4 w-4" />

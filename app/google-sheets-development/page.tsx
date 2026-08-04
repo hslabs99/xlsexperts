@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -7,13 +8,7 @@ import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/google-sheets-development',
-    title: 'Google Sheets Development New Zealand | XLS Experts',
-    description: 'Custom Google Sheets development for New Zealand businesses. Apps Script automation, connected dashboards, form integrations and collaborative tools built by Google Sheets specialists.',
-    ogTitle: 'Google Sheets Development New Zealand | XLS Experts',
-    ogDescription: 'Custom Google Sheets development for NZ businesses. Apps Script automation, connected dashboards and collaborative tools.',
-  })
+  return pageSeoMetadata('/google-sheets-development')
 }
 
 const problems = [
@@ -70,6 +65,7 @@ const faqSchema = {
 }
 
 export default async function GoogleSheetsDevelopmentPage() {
+  const seo = await getPageSeo('/google-sheets-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/google-sheets-development')
   return (
@@ -85,10 +81,10 @@ export default async function GoogleSheetsDevelopmentPage() {
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">Google Sheets Development</span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Google Sheets built to do more than store data.
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Google Sheets is more powerful than most businesses realise. With the right structure and Apps Script automation, it can replace expensive SaaS tools, automate workflows and connect your team&apos;s data in real time. We build custom Google Sheets solutions for New Zealand businesses on Google Workspace.
+              {seo.heroIntro}
             </p>
             <a href="#contact" className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 shadow-md transition-all hover:bg-gray-50 hover:shadow-lg">
               Book a free consultation <ArrowRight className="h-4 w-4" />

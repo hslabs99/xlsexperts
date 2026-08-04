@@ -72,7 +72,16 @@ function DeviceComposition() {
   )
 }
 
-export function WebApplicationsHero() {
+export function WebApplicationsHero({
+  h1 = 'Web Applications',
+  heroIntro,
+}: {
+  h1?: string
+  heroIntro?: string
+}) {
+  const intro =
+    heroIntro?.trim() ||
+    'Whether you are replacing spreadsheets, streamlining business operations, creating a customer portal, supporting field teams, or bringing a new software product to market, XLS Experts designs and builds modern web applications that work anywhere, on any device, for multiple users—with one live source of data, cloud hosting and architecture shaped around your actual requirements.'
   return (
     <section
       id="overview"
@@ -103,17 +112,13 @@ export function WebApplicationsHero() {
               Services
             </p>
             <h1 className="font-display mb-4 text-4xl font-bold leading-tight text-white text-balance md:text-5xl">
-              Web Applications
+              {h1}
             </h1>
             <p className="font-display mb-5 text-2xl font-semibold leading-snug text-white/95 text-balance md:text-3xl">
               Transform ideas into secure, cloud-based applications.
             </p>
             <p className="mb-8 text-base leading-relaxed text-white/80 md:text-lg">
-              Whether you are replacing spreadsheets, streamlining business operations, creating a
-              customer portal, supporting field teams, or bringing a new software product to market,
-              XLS Experts designs and builds modern web applications that work anywhere, on any
-              device, for multiple users—with one live source of data, cloud hosting and
-              architecture shaped around your actual requirements.
+              {intro}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <a

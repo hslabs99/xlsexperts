@@ -3,8 +3,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import {
+  ADMIN_TABS,
   ADMIN_USER_ROLES,
   DEFAULT_ADMIN_EMAIL,
+  DEFAULT_NON_ADMIN_TABS,
+  type AdminTabId,
   type AdminUser,
   type AdminUserRole,
 } from '@/lib/admin-users'
@@ -19,6 +22,7 @@ type UserFormState = {
   email: string
   password: string
   role: AdminUserRole
+  allowedTabs: AdminTabId[]
   active: boolean
 }
 
@@ -28,6 +32,7 @@ function emptyForm(): UserFormState {
     email: '',
     password: '',
     role: 'marketing',
+    allowedTabs: [...DEFAULT_NON_ADMIN_TABS],
     active: true,
   }
 }
@@ -38,6 +43,12 @@ function formFromUser(user: AdminUser): UserFormState {
     email: user.email,
     password: user.password,
     role: user.role,
+    allowedTabs:
+      user.role === 'admin'
+        ? [...DEFAULT_NON_ADMIN_TABS]
+        : user.allowedTabs?.length
+          ? [...user.allowedTabs]
+          : [...DEFAULT_NON_ADMIN_TABS],
     active: user.active,
   }
 }
@@ -95,6 +106,18 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
     setError(null)
   }
 
+  function toggleTab(tabId: AdminTabId) {
+    setForm((prev) => {
+      const has = prev.allowedTabs.includes(tabId)
+      return {
+        ...prev,
+        allowedTabs: has
+          ? prev.allowedTabs.filter((id) => id !== tabId)
+          : [...prev.allowedTabs, tabId],
+      }
+    })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -105,6 +128,9 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
       if (!form.email.trim()) throw new Error('Email is required.')
       if (!isEditing || form.password.trim()) {
         if (!form.password.trim()) throw new Error('Password is required.')
+      }
+      if (form.role !== 'admin' && form.allowedTabs.length === 0) {
+        throw new Error('Select at least one tab for non-admin users.')
       }
 
       if (isEditing && editingId) {
@@ -120,6 +146,8 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
           email: form.email,
           role: form.role,
           active: form.active,
+          allowedTabs:
+            form.role === 'admin' ? [] : form.allowedTabs,
         }
         if (form.password.trim()) {
           payload.password = form.password
@@ -145,6 +173,8 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
             password: form.password,
             name: form.name,
             role: form.role,
+            allowedTabs:
+              form.role === 'admin' ? [] : form.allowedTabs,
             active: form.active,
           }),
         })
@@ -215,9 +245,11 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
               Plain-text passwords in Firebase collection{' '}
-              <code className="text-xs">users</code>. Roles:{' '}
-              <strong>admin</strong> (full panel) and <strong>marketing</strong>{' '}
-              (Inquiries + Blog + Marketing).
+              <code className="text-xs">users</code>.{' '}
+              <strong>Admin</strong> always sees every tab.{' '}
+              <strong>Marketing</strong> (and any non-admin) only see the tabs
+              you tick below — including CMS (Site + Pages sub-tabs) without a
+              code change.
             </p>
           </div>
           {isEditing ? (
@@ -247,99 +279,177 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
 
         <form
           onSubmit={(e) => void handleSubmit(e)}
-          className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          className="mt-5 space-y-5"
         >
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Name</span>
-            <input
-              required
-              value={form.name}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, name: e.target.value }))
-              }
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Email</span>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, email: e.target.value }))
-              }
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Password</span>
-            <input
-              type="text"
-              required={!isEditing}
-              value={form.password}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, password: e.target.value }))
-              }
-              className="rounded-md border border-border px-3 py-2 font-mono text-sm"
-              autoComplete="off"
-              placeholder={isEditing ? 'Leave blank to keep current' : undefined}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Role</span>
-            <select
-              value={form.role}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  role: e.target.value as AdminUserRole,
-                }))
-              }
-              className="rounded-md border border-border px-3 py-2 capitalize"
-            >
-              {ADMIN_USER_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Status</span>
-            <select
-              value={form.active ? 'active' : 'inactive'}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  active: e.target.value === 'active',
-                }))
-              }
-              className="rounded-md border border-border px-3 py-2"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </label>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={busy}
-              className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
-            >
-              {isEditing ? (
-                <>
-                  <Pencil className="h-4 w-4" />
-                  {busy ? 'Saving…' : 'Save changes'}
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4" />
-                  {busy ? 'Adding…' : 'Add user'}
-                </>
-              )}
-            </button>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-ink">Name</span>
+              <input
+                required
+                value={form.name}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, name: e.target.value }))
+                }
+                className="rounded-md border border-border px-3 py-2"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-ink">Email</span>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, email: e.target.value }))
+                }
+                className="rounded-md border border-border px-3 py-2"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-ink">Password</span>
+              <input
+                type="text"
+                required={!isEditing}
+                value={form.password}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, password: e.target.value }))
+                }
+                className="rounded-md border border-border px-3 py-2 font-mono text-sm"
+                autoComplete="off"
+                placeholder={isEditing ? 'Leave blank to keep current' : undefined}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-ink">Role</span>
+              <select
+                value={form.role}
+                onChange={(e) => {
+                  const role = e.target.value as AdminUserRole
+                  setForm((prev) => ({
+                    ...prev,
+                    role,
+                    allowedTabs:
+                      role === 'marketing' && prev.allowedTabs.length === 0
+                        ? [...DEFAULT_NON_ADMIN_TABS]
+                        : prev.allowedTabs,
+                  }))
+                }}
+                className="rounded-md border border-border px-3 py-2 capitalize"
+              >
+                {ADMIN_USER_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-ink">Status</span>
+              <select
+                value={form.active ? 'active' : 'inactive'}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    active: e.target.value === 'active',
+                  }))
+                }
+                className="rounded-md border border-border px-3 py-2"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={busy}
+                className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+              >
+                {isEditing ? (
+                  <>
+                    <Pencil className="h-4 w-4" />
+                    {busy ? 'Saving…' : 'Save changes'}
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    {busy ? 'Adding…' : 'Add user'}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+
+          {form.role !== 'admin' ? (
+            <fieldset className="rounded-md border border-border bg-white p-4">
+              <legend className="px-1 text-sm font-semibold text-ink">
+                Tab access
+              </legend>
+              <p className="mb-3 text-xs text-ink-muted">
+                Tick every admin tab this user may open. Defaults include CMS
+                and the usual marketing tabs; adjust per person as needed.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {ADMIN_TABS.map((tab) => {
+                  const checked = form.allowedTabs.includes(tab.id)
+                  return (
+                    <label
+                      key={tab.id}
+                      className="flex cursor-pointer items-center gap-2 rounded-md border border-border/70 px-3 py-2 text-sm text-ink hover:bg-surface-raised"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleTab(tab.id)}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                      <span className="font-medium">{tab.label}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded border border-border px-2 py-1 text-xs font-semibold text-ink hover:bg-surface-raised"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      allowedTabs: ADMIN_TABS.map((t) => t.id),
+                    }))
+                  }
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  className="rounded border border-border px-2 py-1 text-xs font-semibold text-ink hover:bg-surface-raised"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      allowedTabs: [...DEFAULT_NON_ADMIN_TABS],
+                    }))
+                  }
+                >
+                  Marketing defaults
+                </button>
+                <button
+                  type="button"
+                  className="rounded border border-border px-2 py-1 text-xs font-semibold text-ink hover:bg-surface-raised"
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, allowedTabs: [] }))
+                  }
+                >
+                  Clear
+                </button>
+              </div>
+            </fieldset>
+          ) : (
+            <p className="rounded-md border border-border bg-white px-4 py-3 text-sm text-ink-muted">
+              Admins always have access to every tab. Switch the role to
+              marketing to customise individual tab grants.
+            </p>
+          )}
         </form>
       </div>
 
@@ -351,14 +461,14 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
           <p className="mt-3 text-sm text-ink-muted">Loading…</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="w-full min-w-[920px] text-left text-sm">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wider text-ink-muted">
                   <th className="py-2 pr-3">Name</th>
                   <th className="py-2 pr-3">Email</th>
                   <th className="py-2 pr-3">Role</th>
+                  <th className="py-2 pr-3">Tabs</th>
                   <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Password</th>
                   <th className="py-2">Actions</th>
                 </tr>
               </thead>
@@ -366,6 +476,12 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
                 {users.map((user) => {
                   const isCurrent = user.id === currentUserId
                   const isRowEditing = editingId === user.id
+                  const tabSummary =
+                    user.role === 'admin'
+                      ? 'All'
+                      : user.allowedTabs?.length
+                        ? `${user.allowedTabs.length} of ${ADMIN_TABS.length}`
+                        : 'Default marketing set'
                   return (
                     <tr
                       key={user.id}
@@ -385,6 +501,9 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
                         {user.email}
                       </td>
                       <td className="py-2.5 pr-3 capitalize">{user.role}</td>
+                      <td className="py-2.5 pr-3 text-xs text-ink-muted">
+                        {tabSummary}
+                      </td>
                       <td className="py-2.5 pr-3">
                         <span
                           className={
@@ -395,9 +514,6 @@ export function AdminUsersPanel({ currentUserId }: AdminUsersPanelProps) {
                         >
                           {user.active ? 'Active' : 'Inactive'}
                         </span>
-                      </td>
-                      <td className="py-2.5 pr-3 font-mono text-xs text-ink-muted">
-                        {user.password}
                       </td>
                       <td className="py-2.5">
                         <div className="flex flex-wrap gap-2">

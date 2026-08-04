@@ -8,6 +8,10 @@ import {
   DEFAULT_ADMIN_EMAIL,
   DEFAULT_ADMIN_NAME,
   DEFAULT_ADMIN_PASSWORD,
+  DEFAULT_NON_ADMIN_TABS,
+  normalizeAllowedTabs,
+  resolveUserAllowedTabs,
+  type AdminTabId,
   type AdminUser,
   type AdminUserInput,
   type AdminUserRole,
@@ -19,12 +23,24 @@ function mapUser(id: string, data: Record<string, unknown>): AdminUser {
     ? (roleRaw as AdminUserRole)
     : 'marketing'
 
+  // Firestore may omit the field for legacy users → treat as null (defaults apply)
+  const rawTabs =
+    data.allowedTabs === undefined ? null : (data.allowedTabs as unknown)
+
+  const allowedTabs: AdminTabId[] =
+    role === 'admin'
+      ? resolveUserAllowedTabs({ role: 'admin' })
+      : rawTabs == null
+        ? [...DEFAULT_NON_ADMIN_TABS]
+        : normalizeAllowedTabs(rawTabs, { fallbackToDefault: false })
+
   return {
     id,
     email: String(data.email ?? '').trim().toLowerCase(),
     password: String(data.password ?? ''),
     name: String(data.name ?? ''),
     role,
+    allowedTabs,
     active: data.active !== false,
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
@@ -81,11 +97,20 @@ export async function createUser(input: AdminUserInput): Promise<string> {
     throw new Error('Password is required.')
   }
 
+  const role = input.role
+  const allowedTabs =
+    role === 'admin'
+      ? []
+      : input.allowedTabs != null
+        ? normalizeAllowedTabs(input.allowedTabs, { fallbackToDefault: false })
+        : [...DEFAULT_NON_ADMIN_TABS]
+
   const ref = await getAdminDb().collection(USERS_COLLECTION).add({
     email,
     password: input.password,
     name: input.name.trim() || email,
-    role: input.role,
+    role,
+    allowedTabs,
     active: input.active !== false,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
@@ -117,6 +142,19 @@ export async function updateUser(
   if (input.name !== undefined) payload.name = input.name.trim()
   if (input.role !== undefined) payload.role = input.role
   if (input.active !== undefined) payload.active = input.active
+  if (input.allowedTabs !== undefined) {
+    const role =
+      input.role ??
+      (await getAdminDb().collection(USERS_COLLECTION).doc(id).get()).data()
+        ?.role
+    if (role === 'admin') {
+      payload.allowedTabs = []
+    } else {
+      payload.allowedTabs = normalizeAllowedTabs(input.allowedTabs, {
+        fallbackToDefault: false,
+      })
+    }
+  }
 
   await getAdminDb().collection(USERS_COLLECTION).doc(id).update(payload)
 }
@@ -142,6 +180,7 @@ export async function ensureDefaultAdminUser(): Promise<{
         active: true,
         password: existing.password || DEFAULT_ADMIN_PASSWORD,
         name: existing.name || DEFAULT_ADMIN_NAME,
+        allowedTabs: [],
       })
     }
     return { created: false }
@@ -152,6 +191,7 @@ export async function ensureDefaultAdminUser(): Promise<{
     password: DEFAULT_ADMIN_PASSWORD,
     name: DEFAULT_ADMIN_NAME,
     role: 'admin',
+    allowedTabs: [],
     active: true,
   })
   return { created: true }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -7,13 +8,7 @@ import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/spreadsheet-auditing',
-    title: 'Spreadsheet Auditing Services New Zealand | XLS Experts',
-    description: 'Professional spreadsheet auditing for New Zealand businesses. We independently review Excel models and spreadsheets for formula errors, structural issues and calculation risks before they cause problems.',
-    ogTitle: 'Spreadsheet Auditing Services New Zealand | XLS Experts',
-    ogDescription: 'Independent spreadsheet auditing for NZ businesses. Find formula errors, structural risks and logic issues before they cause problems.',
-  })
+  return pageSeoMetadata('/spreadsheet-auditing')
 }
 
 const problems = [
@@ -70,6 +65,7 @@ const faqSchema = {
 }
 
 export default async function SpreadsheetAuditingPage() {
+  const seo = await getPageSeo('/spreadsheet-auditing')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/spreadsheet-auditing')
   return (
@@ -85,10 +81,10 @@ export default async function SpreadsheetAuditingPage() {
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">Spreadsheet Auditing</span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Is the spreadsheet you rely on actually correct?
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Spreadsheet errors are more common — and more costly — than most businesses realise. We provide independent spreadsheet audits for New Zealand businesses, reviewing the models and workbooks that support critical decisions before those errors surface at the wrong moment.
+              {seo.heroIntro}
             </p>
             <a href="#contact" className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 shadow-md transition-all hover:bg-gray-50 hover:shadow-lg">
               Book a free consultation <ArrowRight className="h-4 w-4" />

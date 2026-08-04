@@ -7,6 +7,7 @@ type PageSeoInput = {
   path: string
   title: string
   description: string
+  keywords?: string | string[]
   ogTitle?: string
   ogDescription?: string
   ogImage?: string
@@ -20,6 +21,7 @@ export async function marketPageMetadata({
   path,
   title,
   description,
+  keywords,
   ogTitle,
   ogDescription,
   ogImage = '/images/og-default.png',
@@ -30,9 +32,19 @@ export async function marketPageMetadata({
   const { site } = await getMarketCopy()
   const href = path.startsWith('/') ? path : `/${path}`
   const url = `${site.origin}${href === '/' ? '' : href}`
+  const keywordList =
+    typeof keywords === 'string'
+      ? keywords
+          .split(',')
+          .map((k) => k.trim())
+          .filter(Boolean)
+      : keywords
   return {
     title,
     description,
+    ...(keywordList && keywordList.length > 0
+      ? { keywords: keywordList }
+      : {}),
     ...(robots ? { robots } : {}),
     alternates: { canonical: url },
     openGraph: {

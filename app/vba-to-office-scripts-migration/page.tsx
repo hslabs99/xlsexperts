@@ -1,21 +1,12 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { CheckCircle, AlertTriangle, ArrowRight, XCircle } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/vba-to-office-scripts-migration',
-    title:
-      'VBA to Office Scripts Migration | Excel Cloud Automation NZ — XLS Experts',
-    description:
-      'Migrate Excel VBA to Office Scripts for Microsoft 365 cloud automation. Modernise spreadsheet workflows with SharePoint, Power Automate and practical guidance on real Office Scripts limitations.',
-    ogTitle:
-      'VBA to Office Scripts Migration | Excel Cloud Automation NZ — XLS Experts',
-    ogDescription:
-      'Expert migration from Excel VBA to Office Scripts. Modernise spreadsheet automation for SharePoint, Power Automate and Microsoft 365 — with clear guidance on real limitations.',
-  })
+  return pageSeoMetadata('/vba-to-office-scripts-migration')
 }
 
 const problems = [
@@ -187,6 +178,7 @@ const severityLabel: Record<string, string> = {
 }
 
 export default async function VBAToOfficeScriptsMigrationPage() {
+  const seo = await getPageSeo('/vba-to-office-scripts-migration')
   const serviceSchema = await buildServiceSchema()
   return (
     <>
@@ -220,13 +212,10 @@ export default async function VBAToOfficeScriptsMigrationPage() {
               Cloud Automation
             </span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              VBA to Office Scripts Migration
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Moving Excel automation to the cloud is not a simple rewrite. Office Scripts
-              have real limitations that catch organisations out — especially in SharePoint
-              environments. We migrate VBA where it belongs in Microsoft 365, and help you
-              modernise spreadsheet workflows so automations actually work.
+              {seo.heroIntro}
             </p>
             <a
               href="#contact"

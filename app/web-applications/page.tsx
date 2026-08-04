@@ -1,20 +1,12 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema, marketSiteOrigin } from '@/lib/seo'
+import { marketServiceSchema, marketSiteOrigin } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { WebApplicationsPageView } from '@/components/web-applications/web-applications-page-view'
 import { webAppFaqs } from '@/lib/web-applications-page'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/web-applications',
-    title: 'Web Application Development NZ | Custom Business Apps | XLS Experts',
-    description:
-      'Custom web application development for New Zealand businesses. Build secure, multi-user cloud applications, customer portals, business systems and SaaS platforms.',
-    ogTitle: 'Web Application Development NZ | Custom Business Apps | XLS Experts',
-    ogDescription:
-      'Secure, multi-user cloud applications, customer portals, business systems and SaaS platforms—built with practical business-process understanding.',
-    robots: { index: true, follow: true },
-  })
+  return pageSeoMetadata('/web-applications')
 }
 
 
@@ -31,6 +23,7 @@ const faqSchema = {
 
 export default async function WebApplicationsPage() {
   const origin = await marketSiteOrigin()
+  const seo = await getPageSeo('/web-applications')
   const serviceSchema = await marketServiceSchema({
     path: '/web-applications',
     name: 'Web Application Development',
@@ -68,7 +61,7 @@ export default async function WebApplicationsPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Navbar />
-      <WebApplicationsPageView />
+      <WebApplicationsPageView h1={seo.h1} heroIntro={seo.heroIntro} />
     </>
   )
 }

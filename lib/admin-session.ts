@@ -2,11 +2,16 @@
 
 import {
   ADMIN_SESSION_KEY,
+  ADMIN_TAB_IDS,
+  DEFAULT_NON_ADMIN_TABS,
+  isAdminTabId,
+  resolveUserAllowedTabs,
   type AdminSession,
+  type AdminTabId,
   type AdminUserRole,
 } from '@/lib/admin-users'
 
-/** Admin-only UI preview: pretend to be marketing to check their tabs. */
+/** Admin-only UI preview: pretend to be marketing to check their default tabs. */
 export const ADMIN_VIEW_MODE_KEY = 'xls-admin-view-mode'
 export type AdminViewMode = 'admin' | 'marketing'
 
@@ -17,7 +22,18 @@ export function readAdminSession(): AdminSession | null {
     if (!raw) return null
     const data = JSON.parse(raw) as AdminSession
     if (!data?.email || !data?.role || !data?.userId) return null
-    return data
+    // Normalize older sessions missing allowedTabs
+    const allowedTabs = resolveUserAllowedTabs({
+      role: data.role,
+      allowedTabs: Array.isArray(data.allowedTabs) ? data.allowedTabs : null,
+    })
+    return {
+      userId: data.userId,
+      email: data.email,
+      name: data.name ?? '',
+      role: data.role,
+      allowedTabs,
+    }
   } catch {
     return null
   }
@@ -58,27 +74,39 @@ export function getEffectiveRole(
   return viewMode === 'marketing' ? 'marketing' : 'admin'
 }
 
-export function roleCanAccessTab(
-  role: AdminUserRole,
-  tab: string
-): boolean {
-  // Seeding, Case Studies, Service Tiles, and Find out about are admin-only
-  // (also hidden when an admin “views as marketing”).
-  if (
-    tab === 'seeding' ||
-    tab === 'case-studies' ||
-    tab === 'service-tiles' ||
-    tab === 'find-out-about'
-  ) {
-    return role === 'admin'
+/**
+ * Tabs visible in the current session / view mode.
+ * - Real admin (view as admin) → all tabs
+ * - Admin “view as marketing” → default non-admin grant set (preview)
+ * - Non-admin → their saved allowedTabs from login
+ */
+export function resolveSessionAllowedTabs(
+  session: AdminSession,
+  viewMode: AdminViewMode
+): AdminTabId[] {
+  if (session.role === 'admin' && viewMode === 'admin') {
+    return [...ADMIN_TAB_IDS]
   }
+  if (session.role === 'admin' && viewMode === 'marketing') {
+    return [...DEFAULT_NON_ADMIN_TABS]
+  }
+  return resolveUserAllowedTabs(session)
+}
+
+export function canAccessTab(
+  session: AdminSession,
+  tab: string,
+  viewMode: AdminViewMode = 'admin'
+): boolean {
+  if (!isAdminTabId(tab)) return false
+  return resolveSessionAllowedTabs(session, viewMode).includes(tab)
+}
+
+/**
+ * @deprecated Prefer canAccessTab(session, tab, viewMode) for per-user grants.
+ * Kept for call sites that only have a role string (admin preview defaults).
+ */
+export function roleCanAccessTab(role: AdminUserRole, tab: string): boolean {
   if (role === 'admin') return true
-  // Marketing: Inquiries, Chat, Blog, Marketing (tags), and International copy
-  return (
-    tab === 'enquiries' ||
-    tab === 'chat' ||
-    tab === 'blog' ||
-    tab === 'marketing' ||
-    tab === 'international'
-  )
+  return (DEFAULT_NON_ADMIN_TABS as readonly string[]).includes(tab)
 }

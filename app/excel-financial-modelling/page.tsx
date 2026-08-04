@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -8,13 +9,7 @@ import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: '/excel-financial-modelling',
-    title: 'Excel Financial Modelling Services New Zealand | XLS Experts',
-    description: 'Professional Excel financial modelling for New Zealand businesses. Three-statement models, budgets, forecasts, valuations and scenario analysis built to best practice standards.',
-    ogTitle: 'Excel Financial Modelling Services New Zealand | XLS Experts',
-    ogDescription: 'Professional Excel financial modelling for NZ businesses. Three-statement models, forecasts, valuations and scenario analysis to best practice standards.',
-  })
+  return pageSeoMetadata('/excel-financial-modelling')
 }
 
 const problems = [
@@ -71,6 +66,7 @@ const faqSchema = {
 }
 
 export default async function ExcelFinancialModellingPage() {
+  const seo = await getPageSeo('/excel-financial-modelling')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-financial-modelling')
   return (
@@ -86,10 +82,10 @@ export default async function ExcelFinancialModellingPage() {
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">Excel Financial Modelling</span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Financial models that hold up when it matters most.
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Whether you are raising capital, planning for growth or presenting to a board, the quality of your financial model matters. We build Excel financial models for New Zealand businesses to professional standards — structured, auditable and built to answer the hard questions.
+              {seo.heroIntro}
             </p>
             <a href="#contact" className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 shadow-md transition-all hover:bg-gray-50 hover:shadow-lg">
               Book a free consultation <ArrowRight className="h-4 w-4" />

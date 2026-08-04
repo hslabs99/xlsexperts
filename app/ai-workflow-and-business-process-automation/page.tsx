@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -10,15 +11,7 @@ import { CheckCircle, ArrowRight } from 'lucide-react'
 const PAGE_HREF = '/ai-workflow-and-business-process-automation'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: PAGE_HREF,
-    title: 'AI Workflow and Business Process Automation NZ | XLS Experts',
-    description:
-      'Business process automation and spreadsheet process modernisation for New Zealand businesses. Automate manual work with Excel, VBA, Power Automate and AI — or improve fragile spreadsheet workflows before they break.',
-    ogTitle: 'AI Workflow and Business Process Automation NZ | XLS Experts',
-    ogDescription:
-      'Business process automation and spreadsheet modernisation for NZ businesses. Excel, VBA, Power Automate and AI — automate or improve your highest-value manual processes.',
-  })
+  return pageSeoMetadata('/ai-workflow-and-business-process-automation')
 }
 
 const problems = [
@@ -145,6 +138,7 @@ const faqSchema = {
 }
 
 export default async function AIWorkflowAndBusinessProcessAutomationPage() {
+  const seo = await getPageSeo('/ai-workflow-and-business-process-automation')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles(PAGE_HREF)
   return (
@@ -180,15 +174,10 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
               AI Workflow and Business Process Automation
             </span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Automate the work that is keeping your staff from greatness.
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Every New Zealand business has processes that consume staff time,
-              create errors and depend on someone remembering to do them — often
-              inside fragile spreadsheets that have outgrown their original
-              purpose. We identify those processes and improve or automate them
-              with the right mix of Excel, VBA, Power Automate and AI — so your
-              team focuses on work that actually needs human judgement.
+              {seo.heroIntro}
             </p>
             <a
               href="#contact"

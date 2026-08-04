@@ -167,20 +167,21 @@ export function AdminMarketCopyPanel() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-ink">
-            International / NZ copy
+            Site CMS — NZ / Global copy
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-            Edit New Zealand and International (USA / Canada / UK / Australia)
-            strings side by side. Save stores a draft in Firebase{' '}
+            Site-level content: defaults, homepage SEO, contact details, hero,
+            about and FAQs. Edit New Zealand and Global (USA / Canada / UK /
+            Australia) strings side by side. Save stores a draft in Firebase{' '}
             <code className="text-xs">Site Content / market-copy</code>.{' '}
             <strong>Publish</strong> writes{' '}
             <code className="text-xs">data/market-copy.generated.ts</code> so
             the public site never queries the database for these strings.
-            Local testing: open <code className="text-xs">/nz</code> or{' '}
+            Service and solution page H1s live under{' '}
+            <strong>CMS → Pages CMS</strong>. Local testing: open{' '}
+            <code className="text-xs">/nz</code> or{' '}
             <code className="text-xs">/usa</code> once — the choice is stored in
-            a cookie and stays for the rest of the site. Switch again anytime
-            with the other path. Plain localhost with no prior switch defaults
-            to New Zealand.
+            a cookie and stays for the rest of the site.
           </p>
           <p className="mt-2 text-xs text-ink-muted">
             Last draft update:{' '}

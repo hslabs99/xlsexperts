@@ -29,10 +29,16 @@ import {
   WebApplicationFAQ,
 } from './faq-and-cta'
 
-export function WebApplicationsPageView() {
+export function WebApplicationsPageView({
+  h1,
+  heroIntro,
+}: {
+  h1?: string
+  heroIntro?: string
+}) {
   return (
     <main className="pt-16">
-      <WebApplicationsHero />
+      <WebApplicationsHero h1={h1} heroIntro={heroIntro} />
       <CapabilityStrip />
       <PageSectionNav />
       <AccessibleSoftwareSection />

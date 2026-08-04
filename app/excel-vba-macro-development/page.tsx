@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { marketPageMetadata, marketServiceSchema } from '@/lib/seo'
+import { marketServiceSchema } from '@/lib/seo'
+import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -10,15 +11,7 @@ import { CheckCircle, ArrowRight } from 'lucide-react'
 const PAGE_HREF = '/excel-vba-macro-development'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return marketPageMetadata({
-    path: PAGE_HREF,
-    title: 'Excel VBA/Macro Development New Zealand | XLS Experts',
-    description:
-      'Excel VBA and macro development for New Zealand businesses. Custom macros and VBA applications that automate repetitive work, reduce errors and run reliably at the click of a button.',
-    ogTitle: 'Excel VBA/Macro Development New Zealand | XLS Experts',
-    ogDescription:
-      'Custom Excel VBA and macro development for NZ businesses. Automate workflows, eliminate manual work and build reliable one-click processes.',
-  })
+  return pageSeoMetadata('/excel-vba-macro-development')
 }
 
 const problems = [
@@ -111,6 +104,7 @@ const faqSchema = {
 }
 
 export default async function ExcelVbaMacroDevelopmentPage() {
+  const seo = await getPageSeo('/excel-vba-macro-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles(PAGE_HREF)
   return (
@@ -146,15 +140,10 @@ export default async function ExcelVbaMacroDevelopmentPage() {
               Excel VBA/Macro Development
             </span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
-              Stop doing manually what Excel can do automatically.
+              {seo.h1}
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
-              Macros and VBA are the same capability in Excel — automated
-              actions written in Excel&apos;s built-in programming language. In
-              the right hands they turn repetitive, error-prone work into
-              reliable one-click processes. We build macro and VBA solutions for
-              New Zealand businesses that save time, reduce errors and run
-              consistently without technical knowledge.
+              {seo.heroIntro}
             </p>
             <a
               href="#contact"
