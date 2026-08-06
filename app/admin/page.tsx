@@ -13,6 +13,7 @@ import {
 } from '@/lib/booking-slots'
 import { AdminEmailPanel } from '@/components/admin-email-panel'
 import { AdminEnquiriesPanel } from '@/components/admin-enquiries-panel'
+import { AdminAnalyticsPanel } from '@/components/admin-analytics-panel'
 import { AdminChatPanel } from '@/components/admin-chat-panel'
 import { AdminConfirmationContentPanel } from '@/components/admin-confirmation-content-panel'
 import { AdminLogin } from '@/components/admin-login'
@@ -909,6 +910,14 @@ export default function AdminPage() {
           canAccessTab(session, 'enquiries', viewMode) && (
           <div className="mt-8" role="tabpanel">
             <AdminEnquiriesPanel />
+          </div>
+        )}
+
+        {tab === 'analytics' &&
+          session &&
+          canAccessTab(session, 'analytics', viewMode) && (
+          <div className="mt-8" role="tabpanel">
+            <AdminAnalyticsPanel />
           </div>
         )}
 

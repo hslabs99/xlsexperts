@@ -2,7 +2,7 @@
  * PUBLISHED market copy — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → International, then click Publish to regenerate this file.
  *
- * Generated at 2026-07-24T06:20:27.282Z
+ * Generated at 2026-08-05T08:59:00.472Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedMarketCopyFile } from '@/lib/market-copy'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-07-24T06:20:27.282Z",
+  "publishedAt": "2026-08-05T08:59:00.472Z",
   "markets": {
     "nz": {
       "site": {
@@ -54,6 +54,9 @@ const published = {
         "badgeSpecialists": "New Zealand Microsoft Excel Specialists",
         "badgeEnterprise": "Enterprise Applications",
         "badgeAi": "A.I. Solutions",
+        "badgeSpecialistsHref": "/excel-spreadsheet-development",
+        "badgeEnterpriseHref": "/enterprise",
+        "badgeAiHref": "/ai-workflow-and-business-process-automation",
         "trustBased": "New Zealand based",
         "statValue": "100% NZ",
         "statLabel": "Based team, local expertise"
@@ -88,7 +91,7 @@ const published = {
         "phoneDisplay": "+64 21 783 967",
         "phoneTel": "+6421783967",
         "whatsapp": "6421783967",
-        "locationLine": "Serving clients across USA. Canada, United Kingdom, Auaralia",
+        "locationLine": "Serving clients across USA, Canada, United Kingdom, Australia",
         "locationBadge": "USA",
         "emailPlaceholder": "jane@acme.co.nz",
         "phonePlaceholder": "+64 21 000 000"
@@ -112,6 +115,9 @@ const published = {
         "badgeSpecialists": "Global Microsoft Excel Specialists",
         "badgeEnterprise": "Enterprise Applications",
         "badgeAi": "A.I. Solutions",
+        "badgeSpecialistsHref": "/excel-spreadsheet-development",
+        "badgeEnterpriseHref": "/enterprise",
+        "badgeAiHref": "/ai-workflow-and-business-process-automation",
         "trustBased": "Serving Global Clients",
         "statValue": "100% Global Availability",
         "statLabel": "Global Based team, local expertise"

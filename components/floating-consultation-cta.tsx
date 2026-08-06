@@ -214,6 +214,7 @@ function FloatingConsultationCtaInner({
           <div className="space-y-2 p-3">
             <a
               href={`tel:${marketCopy.contact.phoneTel}`}
+              data-funnel-cta="Call now"
               className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a6b3c]"
             >
               <Phone className="h-4 w-4 shrink-0 text-[#1a6b3c]" aria-hidden="true" />
@@ -227,6 +228,7 @@ function FloatingConsultationCtaInner({
 
             <a
               href={contactHref}
+              data-funnel-cta="Enquiry or discovery call"
               onClick={() => setOpenPanel(null)}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a6b3c] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#155a32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a6b3c]"
             >
@@ -284,6 +286,8 @@ function FloatingConsultationCtaInner({
 
         <button
           type="button"
+          data-funnel-cta="Get in touch"
+          data-funnel-href="#contact"
           aria-expanded={contactOpen}
           aria-controls={contactMenuId}
           aria-haspopup="dialog"

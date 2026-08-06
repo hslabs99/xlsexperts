@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useMarketCopy } from '@/components/market-provider'
 
@@ -31,6 +32,10 @@ const commonProjects = [
   'E-commerce Extensions',
 ]
 
+const badgeClassName =
+  'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest transition hover:brightness-95'
+const badgeStyle = { backgroundColor: '#e8f5ee', color: '#1a6b3c' }
+
 export function Hero() {
   const copy = useMarketCopy()
   const trustPoints = [
@@ -39,9 +44,18 @@ export function Hero() {
     'Trusted by SMEs & enterprise',
   ]
   const badges = [
-    copy.hero.badgeSpecialists,
-    copy.hero.badgeEnterprise,
-    copy.hero.badgeAi,
+    {
+      label: copy.hero.badgeSpecialists,
+      href: copy.hero.badgeSpecialistsHref?.trim() || '',
+    },
+    {
+      label: copy.hero.badgeEnterprise,
+      href: copy.hero.badgeEnterpriseHref?.trim() || '',
+    },
+    {
+      label: copy.hero.badgeAi,
+      href: copy.hero.badgeAiHref?.trim() || '',
+    },
   ]
 
   return (
@@ -73,16 +87,36 @@ export function Hero() {
 
         {/* Eyebrow badge strip */}
         <div className="mb-8 flex flex-col items-center gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
-          {badges.map((badge) => (
-            <span
-              key={badge}
-              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest"
-              style={{ backgroundColor: '#e8f5ee', color: '#1a6b3c' }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#1a6b3c' }} aria-hidden="true" />
-              {badge}
-            </span>
-          ))}
+          {badges.map((badge) =>
+            badge.href ? (
+              <Link
+                key={`${badge.label}-${badge.href}`}
+                href={badge.href}
+                className={badgeClassName}
+                style={badgeStyle}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: '#1a6b3c' }}
+                  aria-hidden="true"
+                />
+                {badge.label}
+              </Link>
+            ) : (
+              <span
+                key={badge.label}
+                className={badgeClassName}
+                style={badgeStyle}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: '#1a6b3c' }}
+                  aria-hidden="true"
+                />
+                {badge.label}
+              </span>
+            )
+          )}
         </div>
 
         {/* Headline */}
@@ -116,6 +150,7 @@ export function Hero() {
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <a
             href="#contact"
+            data-funnel-cta="Get a free quote"
             className="btn-primary inline-flex h-11 items-center gap-2 rounded-lg px-7 text-sm font-semibold shadow-sm"
           >
             Get a free quote

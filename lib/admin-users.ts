@@ -10,6 +10,7 @@
 export const ADMIN_TABS = [
   { id: 'bookings', label: 'Bookings' },
   { id: 'enquiries', label: 'Inquiries' },
+  { id: 'analytics', label: 'Analytics' },
   { id: 'chat', label: 'Chat' },
   { id: 'blog', label: 'Blog' },
   { id: 'case-studies', label: 'Case Studies' },
@@ -33,6 +34,7 @@ export const ADMIN_TAB_IDS: readonly AdminTabId[] = ADMIN_TABS.map((t) => t.id)
  */
 export const DEFAULT_NON_ADMIN_TABS: readonly AdminTabId[] = [
   'enquiries',
+  'analytics',
   'chat',
   'blog',
   'cms',

@@ -47,6 +47,12 @@ export type MarketCopy = {
     badgeSpecialists: string
     badgeEnterprise: string
     badgeAi: string
+    /** Optional href for badge 1 (service/solution path). Empty = no link. */
+    badgeSpecialistsHref: string
+    /** Optional href for badge 2. Empty = no link. */
+    badgeEnterpriseHref: string
+    /** Optional href for badge 3. Empty = no link. */
+    badgeAiHref: string
     trustBased: string
     statValue: string
     statLabel: string
@@ -164,17 +170,7 @@ export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
 
   { path: 'hero.line1', label: 'Hero line 1 (e.g. NEW ZEALAND)', group: 'Hero' },
   { path: 'hero.line2', label: 'Hero line 2 (e.g. BUSINESS AUTOMATION SPECIALISTS)', group: 'Hero' },
-  {
-    path: 'hero.badgeSpecialists',
-    label: 'Badge 1 — Specialists',
-    group: 'Hero',
-  },
-  {
-    path: 'hero.badgeEnterprise',
-    label: 'Badge 2 — Enterprise',
-    group: 'Hero',
-  },
-  { path: 'hero.badgeAi', label: 'Badge 3 — A.I.', group: 'Hero' },
+  // Badge label + link are edited in the dedicated Homepage hero badges panel
   { path: 'hero.trustBased', label: 'Trust point (based)', group: 'Hero' },
   { path: 'hero.statValue', label: 'Stat value (e.g. 100% NZ)', group: 'Hero' },
   { path: 'hero.statLabel', label: 'Stat label', group: 'Hero' },
@@ -261,6 +257,9 @@ export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
     badgeSpecialists: 'New Zealand Microsoft Excel Specialists',
     badgeEnterprise: 'Enterprise Applications',
     badgeAi: 'A.I. Solutions',
+    badgeSpecialistsHref: '',
+    badgeEnterpriseHref: '',
+    badgeAiHref: '',
     trustBased: 'New Zealand based',
     statValue: '100% NZ',
     statLabel: 'Based team, local expertise',
@@ -326,6 +325,10 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
     schemaAddressCountry: 'US',
     schemaAddressLocality: 'Global',
   },
+  hero: {
+    ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).hero,
+    badgeSpecialists: 'Global Microsoft Excel Specialists',
+  },
 }
 
 export type MarketCopyBundle = {
@@ -376,15 +379,28 @@ function pickString(raw: unknown, fallback: string): string {
   return typeof raw === 'string' && raw.trim() ? raw.trim() : fallback
 }
 
+/** Like pickString but preserves explicit empty strings (e.g. optional hrefs). */
+function pickStringAllowEmpty(raw: unknown, fallback: string): string {
+  if (typeof raw === 'string') return raw.trim()
+  return fallback
+}
+
 function normalizeSection<T extends Record<string, string>>(
   raw: unknown,
-  defaults: T
+  defaults: T,
+  options?: { allowEmptyKeys?: readonly string[] }
 ): T {
   const out = { ...defaults }
   if (!raw || typeof raw !== 'object') return out
   const data = raw as Record<string, unknown>
+  const allowEmpty = new Set(options?.allowEmptyKeys ?? [])
   for (const key of Object.keys(defaults) as (keyof T)[]) {
-    out[key] = pickString(data[key as string], defaults[key]) as T[keyof T]
+    const k = key as string
+    out[key] = (
+      allowEmpty.has(k)
+        ? pickStringAllowEmpty(data[k], defaults[key])
+        : pickString(data[k], defaults[key])
+    ) as T[keyof T]
   }
   return out
 }
@@ -396,7 +412,13 @@ export function normalizeMarketCopy(raw: unknown, fallback: MarketCopy): MarketC
     site: normalizeSection(data.site, fallback.site),
     contact: normalizeSection(data.contact, fallback.contact),
     home: normalizeSection(data.home, fallback.home),
-    hero: normalizeSection(data.hero, fallback.hero),
+    hero: normalizeSection(data.hero, fallback.hero, {
+      allowEmptyKeys: [
+        'badgeSpecialistsHref',
+        'badgeEnterpriseHref',
+        'badgeAiHref',
+      ],
+    }),
     about: normalizeSection(data.about, fallback.about),
     caseStudies: normalizeSection(data.caseStudies, fallback.caseStudies),
   }
@@ -429,3 +451,27 @@ export function pickMarketCopy(
 ): MarketCopy {
   return market === 'intl' ? bundle.intl : bundle.nz
 }
+
+/** Homepage hero strapline badges — text + optional service/solution link. */
+export const HERO_BADGE_DEFS = [
+  {
+    id: 'specialists',
+    label: 'Badge 1',
+    textPath: 'hero.badgeSpecialists',
+    hrefPath: 'hero.badgeSpecialistsHref',
+  },
+  {
+    id: 'enterprise',
+    label: 'Badge 2',
+    textPath: 'hero.badgeEnterprise',
+    hrefPath: 'hero.badgeEnterpriseHref',
+  },
+  {
+    id: 'ai',
+    label: 'Badge 3',
+    textPath: 'hero.badgeAi',
+    hrefPath: 'hero.badgeAiHref',
+  },
+] as const
+
+export type HeroBadgeDef = (typeof HERO_BADGE_DEFS)[number]

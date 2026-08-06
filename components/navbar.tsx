@@ -276,6 +276,7 @@ export function Navbar() {
         <div className="hidden items-center lg:flex">
           <a
             href={contactHref}
+            data-funnel-cta="Contact Us"
             className="btn-primary inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold shadow-sm"
           >
             Contact Us
@@ -329,6 +330,7 @@ export function Navbar() {
           <div className="mt-3">
             <a
               href={contactHref}
+              data-funnel-cta="Contact Us"
               className="flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white"
               style={{ backgroundColor: '#1a6b3c' }}
               onClick={() => setMobileOpen(false)}

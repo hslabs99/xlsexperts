@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  HERO_BADGE_DEFS,
   MARKET_COPY_FIELDS,
   defaultMarketCopyBundle,
   getByPath,
@@ -9,6 +10,7 @@ import {
   type MarketCopyBundle,
 } from '@/lib/market-copy'
 import { marketLabel, type MarketId } from '@/lib/market'
+import { HERO_BADGE_LINK_OPTIONS } from '@/lib/hero-badge-links'
 
 export function AdminMarketCopyPanel() {
   const [markets, setMarkets] = useState<MarketCopyBundle>(
@@ -222,6 +224,104 @@ export function AdminMarketCopyPanel() {
           {error || message}
         </div>
       )}
+
+      <div className="rounded-md border border-border bg-white p-4">
+        <h3 className="text-base font-semibold text-ink">
+          Homepage hero badges
+        </h3>
+        <p className="mt-1 text-sm text-ink-muted">
+          The three straplines under the green hero title. Set the label text
+          and optionally link each badge to a service or solution page (same
+          list as the main site nav). Save draft + Publish above writes{' '}
+          <code className="text-xs">data/market-copy.generated.ts</code> for
+          the live site.
+        </p>
+        <div className="mt-4 space-y-4">
+          {HERO_BADGE_DEFS.map((badge) => (
+            <div
+              key={badge.id}
+              className="rounded-md border border-border/80 bg-surface p-3"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                {badge.label}
+              </p>
+              <div className="mt-2 grid gap-3 lg:grid-cols-2">
+                {(['nz', 'intl'] as const).map((market) => (
+                  <div key={market} className="space-y-2">
+                    <p className="text-xs font-medium text-ink">
+                      {marketLabel(market)}
+                    </p>
+                    <label className="block space-y-1">
+                      <span className="text-xs text-ink-muted">Label text</span>
+                      <input
+                        type="text"
+                        value={getByPath(markets[market], badge.textPath)}
+                        onChange={(e) =>
+                          updateField(market, badge.textPath, e.target.value)
+                        }
+                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-ink"
+                      />
+                    </label>
+                    <label className="block space-y-1">
+                      <span className="text-xs text-ink-muted">
+                        Links to page
+                      </span>
+                      <select
+                        value={getByPath(markets[market], badge.hrefPath)}
+                        onChange={(e) =>
+                          updateField(market, badge.hrefPath, e.target.value)
+                        }
+                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-ink"
+                      >
+                        <option value="">No link</option>
+                        <optgroup label="Services">
+                          {HERO_BADGE_LINK_OPTIONS.filter(
+                            (o) => o.group === 'services'
+                          ).map((o) => (
+                            <option key={`s-${market}-${o.href}`} value={o.href}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Solutions">
+                          {HERO_BADGE_LINK_OPTIONS.filter(
+                            (o) => o.group === 'solutions'
+                          ).map((o) => (
+                            <option key={`o-${market}-${o.href}`} value={o.href}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Other">
+                          {HERO_BADGE_LINK_OPTIONS.filter(
+                            (o) => o.group === 'other'
+                          ).map((o) => (
+                            <option key={`x-${market}-${o.href}`} value={o.href}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </label>
+                    {market === 'nz' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          copyNzToIntl(badge.textPath)
+                          copyNzToIntl(badge.hrefPath)
+                        }}
+                        className="text-xs font-semibold text-brand hover:underline"
+                      >
+                        Copy NZ → Global
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input

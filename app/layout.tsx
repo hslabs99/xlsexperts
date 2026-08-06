@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { SiteTags } from '@/components/site-tags'
 import { FloatingConsultationCta } from '@/components/floating-consultation-cta'
+import { FunnelTracker } from '@/components/funnel-tracker'
 import { MarketProvider } from '@/components/market-provider'
 import { keywordsToArray } from '@/lib/market-copy'
 import { getMarket, getMarketCopy } from '@/lib/market-server'
@@ -97,6 +98,7 @@ export default async function RootLayout({
       <body className="font-sans antialiased">
         <MarketProvider market={market} copy={copy}>
           <SiteTags />
+          <FunnelTracker />
           {children}
           <FloatingConsultationCta />
         </MarketProvider>

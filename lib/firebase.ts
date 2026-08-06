@@ -61,6 +61,9 @@ export const EMAIL_TEMPLATES_COLLECTION = 'Email Templates'
 /** Firestore collection for website enquiries (standard + discovery) */
 export const ENQUIRIES_COLLECTION = 'enquiries'
 
+/** Firestore collection for light funnel events (CTA clicks, etc.) */
+export const FUNNEL_EVENTS_COLLECTION = 'funnelEvents'
+
 /** Firestore collection for editable site copy (confirmation page, etc.) */
 export const SITE_CONTENT_COLLECTION = 'Site Content'
 
