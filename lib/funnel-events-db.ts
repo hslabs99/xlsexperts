@@ -43,6 +43,8 @@ function createdAtToDate(value: unknown): Date | null {
 
 const SERVICE_LABELS = new Map<string, string>([
   [ALL_SERVICES_HREF, 'All services'],
+  ['/enterprise', 'Enterprise'],
+  ['/use-cases', 'A.I. Use Cases'],
   ...servicePages.map((p) => [p.href, p.label] as const),
 ])
 

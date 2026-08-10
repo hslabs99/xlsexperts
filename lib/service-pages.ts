@@ -293,6 +293,7 @@ export function pageHasContactSection(pathname: string | null): boolean {
     return true
   }
   if (pathname === '/enterprise' || pathname.startsWith('/enterprise/')) return true
+  if (pathname === '/use-cases' || pathname.startsWith('/use-cases/')) return true
   return servicePageHrefs.some(
     (href) => pathname === href || pathname.startsWith(`${href}/`),
   )

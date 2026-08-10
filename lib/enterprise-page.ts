@@ -255,7 +255,8 @@ export const enterpriseFaqs: EnterpriseFaq[] = [
 ]
 
 export const enterpriseRelatedLinks = [
-  { label: 'AI Workflow and Business Process Automation', href: '/ai-workflow-and-business-process-automation' },
+  { label: 'A.I. Workflow and Business Process Automation', href: '/ai-workflow-and-business-process-automation' },
+  { label: 'A.I. Use Cases for Excel, VBA and Power Query', href: '/use-cases' },
   { label: 'Excel VBA/Macro Development', href: '/excel-vba-macro-development' },
   { label: 'Excel Integrations (SQL, API, etc.)', href: '/excel-integrations' },
   { label: 'VBA to Office Scripts Migration', href: '/vba-to-office-scripts-migration' },

@@ -14,6 +14,10 @@ export const BLOG_SITE_PAGES: readonly BlogLinkTarget[] = [
     label: 'Excel in Enterprise Operational Applications',
     href: '/enterprise',
   },
+  {
+    label: 'A.I. Use Cases for Excel, VBA and Power Query',
+    href: '/use-cases',
+  },
   ...servicePages.map((p) => ({ label: p.label, href: p.href })),
 ]
 

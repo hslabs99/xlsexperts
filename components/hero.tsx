@@ -168,6 +168,12 @@ export function Hero() {
           >
             View Case Studies
           </a>
+          <Link
+            href="/use-cases"
+            className="inline-flex h-11 items-center rounded-lg border border-gray-200 bg-white px-7 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            View A.I. use cases
+          </Link>
         </div>
 
         {/* Client name strip */}

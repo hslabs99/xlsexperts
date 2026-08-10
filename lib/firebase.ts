@@ -91,6 +91,12 @@ export const USERS_COLLECTION = 'users'
 export const BLOG_POSTS_COLLECTION = 'blogPosts'
 
 /**
+ * Firestore collection for admin-managed AI system prompts
+ * (blog draft / blog image tone libraries).
+ */
+export const AI_SYSTEM_PROMPTS_COLLECTION = 'aiSystemPrompts'
+
+/**
  * Queue of Wix posts to harvest into draft blogPosts.
  * Doc id = slug. Synced from `lib/wix-blog-seed-urls.ts`.
  */

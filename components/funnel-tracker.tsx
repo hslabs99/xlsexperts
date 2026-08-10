@@ -14,7 +14,13 @@ import { trackCtaClick, trackPageView } from '@/lib/track-funnel'
 import { ALL_SERVICES_HREF, servicePageHrefs } from '@/lib/service-pages'
 
 const ALL_SOLUTIONS_HREF = '/solutions'
-const SERVICE_PATHS = new Set<string>([ALL_SERVICES_HREF, ...servicePageHrefs])
+/** Extra landings that are not in `servicePages` but still matter for funnel. */
+const EXTRA_SERVICE_PATHS = ['/enterprise', '/use-cases'] as const
+const SERVICE_PATHS = new Set<string>([
+  ALL_SERVICES_HREF,
+  ...servicePageHrefs,
+  ...EXTRA_SERVICE_PATHS,
+])
 
 function normalizePath(path: string): string {
   if (!path) return '/'

@@ -64,13 +64,20 @@ export function Services() {
           ))}
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center sm:gap-8">
           <Link
             href={ALL_SERVICES_HREF}
             className="text-sm font-bold uppercase tracking-widest transition-colors hover:underline"
             style={{ color: '#1a6b3c' }}
           >
             View all services
+          </Link>
+          <Link
+            href="/use-cases"
+            className="text-sm font-bold uppercase tracking-widest transition-colors hover:underline"
+            style={{ color: '#1a6b3c' }}
+          >
+            A.I. use cases for Excel
           </Link>
         </div>
 

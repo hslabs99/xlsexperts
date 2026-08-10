@@ -111,7 +111,7 @@ XLS Experts is a business systems consultancy serving clients internationally. W
 
 - **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
 - **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
-- **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and AI-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
+- **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and A.I.-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
 - **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
 - **Financial Modelling**: Budget vs actual reporting, cash flow forecasting, scenario analysis, and management reporting tools for finance teams.
 - **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
@@ -127,6 +127,7 @@ We work with businesses and organisations across industries internationally, inc
 - Homepage: ${origin}
 - Solutions: ${origin}/solutions
 - Excel in Enterprise Operational Applications: ${origin}/enterprise
+- A.I. Use Cases for Excel, VBA and Power Query: ${origin}/use-cases
 - Web Applications: ${origin}/web-applications
 - Blog: ${origin}/blog
 
@@ -144,7 +145,7 @@ XLS Experts is a New Zealand business systems consultancy. We design and build p
 
 - **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
 - **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
-- **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and AI-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
+- **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and A.I.-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
 - **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
 - **Financial Modelling**: Budget vs actual reporting, cash flow forecasting, scenario analysis, and management reporting tools for finance teams.
 - **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
@@ -195,6 +196,7 @@ VBA (Visual Basic for Applications) is Excel's built-in programming language. VB
 - Homepage: ${origin}
 - Solutions: ${origin}/solutions
 - Excel in Enterprise Operational Applications: ${origin}/enterprise
+- A.I. Use Cases for Excel, VBA and Power Query: ${origin}/use-cases
 - Web Applications: ${origin}/web-applications
 - Blog: ${origin}/blog
 

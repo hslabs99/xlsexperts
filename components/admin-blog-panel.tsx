@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { Plus, Trash2, Upload, Eye } from 'lucide-react'
+import { Plus, Trash2, Upload, Eye, Sparkles } from 'lucide-react'
 import type { BlogPostRecord } from '@/lib/blog-shared'
 import { AdminDialog } from '@/components/admin-dialog'
 import {
   AdminBlogPreviewShell,
   type BlogPreviewKind,
 } from '@/components/admin-blog-preview'
+import { AdminBlogAiAssist } from '@/components/admin-blog-ai-assist'
 import { BlogImageSizeAdvice } from '@/components/blog-image-size-advice'
 import { AdminBlogTextField } from '@/components/admin-blog-text-field'
 import {
@@ -17,9 +18,10 @@ import {
   infoFromFile,
   BLOG_IMAGE_TARGETS,
 } from '@/lib/blog-image-advice'
+import type { BlogAiDraft } from '@/lib/blog-ai-types'
 import type { BlogSection } from '@/lib/types'
 
-type EditorMode = 'list' | 'edit' | 'preview'
+type EditorMode = 'list' | 'edit' | 'preview' | 'ai'
 
 const SECTION_TYPES: BlogSection['type'][] = [
   'intro',
@@ -84,6 +86,19 @@ export function AdminBlogPanel() {
   >('all')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
+  const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState<
+    string | null
+  >(null)
+
+  useEffect(() => {
+    if (!pendingImageFile) {
+      setPendingImagePreviewUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(pendingImageFile)
+    setPendingImagePreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [pendingImageFile])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -221,14 +236,56 @@ export function AdminBlogPanel() {
   function startNew() {
     setIsNew(true)
     setForm(emptyPost())
+    setPendingImageFile(null)
     setMode('edit')
     setMessage(null)
+    setError(null)
+  }
+
+  function startAiAssist() {
+    setMessage(null)
+    setError(null)
+    setMode('ai')
+  }
+
+  function applyAiDraft(draft: BlogAiDraft | null, imageFile: File | null) {
+    if (draft) {
+      setForm({
+        ...emptyPost(),
+        title: draft.title,
+        slug: draft.slug,
+        excerpt: draft.excerpt,
+        category: draft.category,
+        author: draft.author || 'Mike',
+        readTime: draft.readTime,
+        sections:
+          draft.sections.length > 0
+            ? draft.sections.map((s) => ({ ...s }))
+            : [{ type: 'p', text: '' }],
+        published: false,
+        featured: false,
+      })
+      setIsNew(true)
+    } else if (imageFile) {
+      setForm(emptyPost())
+      setIsNew(true)
+    }
+    setPendingImageFile(imageFile)
+    setMode('edit')
+    setMessage(
+      draft && imageFile
+        ? 'AI draft and image applied — review and save as a draft.'
+        : draft
+          ? 'AI draft applied — review sections and save as a draft.'
+          : 'AI image applied — complete the post and save.'
+    )
     setError(null)
   }
 
   function startEdit(post: BlogPostRecord) {
     setIsNew(false)
     setForm({ ...post, sections: post.sections.map((s) => ({ ...s })) })
+    setPendingImageFile(null)
     setMode('edit')
     setMessage(null)
     setError(null)
@@ -283,9 +340,16 @@ export function AdminBlogPanel() {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Save failed')
       }
-      setMessage(`Saved “${form.title.trim()}”.`)
       setIsNew(false)
       setForm((p) => ({ ...p, slug }))
+
+      const queuedImage = pendingImageFile
+      if (queuedImage) {
+        await uploadPendingImage(queuedImage, slug)
+        setMessage(`Saved “${form.title.trim()}” with hero image.`)
+      } else {
+        setMessage(`Saved “${form.title.trim()}”.`)
+      }
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
@@ -322,8 +386,12 @@ export function AdminBlogPanel() {
     }
   }
 
-  async function uploadPendingImage(file: File) {
-    const slug = form.slug.trim() || slugify(form.title) || 'untitled'
+  async function uploadPendingImage(file: File, slugOverride?: string) {
+    const slug =
+      slugOverride?.trim() ||
+      form.slug.trim() ||
+      slugify(form.title) ||
+      'untitled'
     setBusy(true)
     setError(null)
     try {
@@ -346,6 +414,7 @@ export function AdminBlogPanel() {
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed')
+      throw err
     } finally {
       setPendingImageFile(null)
       setImageWarn(null)
@@ -368,7 +437,11 @@ export function AdminBlogPanel() {
       return
     }
 
-    await uploadPendingImage(file)
+    try {
+      await uploadPendingImage(file)
+    } catch {
+      // Error already surfaced via setError in uploadPendingImage
+    }
   }
 
   function updateSection(index: number, patch: Partial<BlogSection>) {
@@ -423,6 +496,17 @@ export function AdminBlogPanel() {
           previewReturn === 'list' ? 'Back to list' : 'Back to editor'
         }
       />
+    )
+  }
+
+  if (mode === 'ai') {
+    return (
+      <div className="space-y-6">
+        <AdminBlogAiAssist
+          onApply={applyAiDraft}
+          onCancel={() => setMode('list')}
+        />
+      </div>
     )
   }
 
@@ -583,17 +667,22 @@ export function AdminBlogPanel() {
                 We check the size for you after you pick a file.
               </p>
             </div>
-            {form.image ? (
+            {form.image || pendingImagePreviewUrl ? (
               <div className="relative h-40 w-full max-w-md overflow-hidden rounded border border-border bg-white">
                 <Image
-                  src={form.image}
+                  src={pendingImagePreviewUrl || form.image}
                   alt=""
                   fill
                   className="object-cover"
                   sizes="400px"
-                  unoptimized={form.image.startsWith('http')}
+                  unoptimized
                 />
               </div>
+            ) : null}
+            {pendingImageFile && !form.image ? (
+              <p className="text-xs text-ink-muted">
+                Pending AI image: {pendingImageFile.name} (uploads on save)
+              </p>
             ) : null}
             <BlogImageSizeAdvice
               imageUrl={form.image}
@@ -871,11 +960,22 @@ export function AdminBlogPanel() {
             <h2 className="text-lg font-semibold text-ink">Blog posts</h2>
             <p className="mt-1 text-sm text-ink-muted">
               Live posts in Firebase <code className="text-xs">blogPosts</code>.
-              Filter drafts vs published, select rows, then batch publish or
-              unpublish (hide from the public blog).
+              Use <strong>New with AI</strong> to draft markdown copy and a hero
+              image from a system prompt library, or create manually. Filter
+              drafts vs published, select rows, then batch publish or unpublish
+              (hide from the public blog).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={startAiAssist}
+              className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 bg-brand-light px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/15 disabled:opacity-60"
+            >
+              <Sparkles className="h-4 w-4" />
+              New with AI
+            </button>
             <button
               type="button"
               disabled={busy}
@@ -1133,7 +1233,11 @@ export function AdminBlogPanel() {
         }}
         onConfirm={async () => {
           if (!imageWarn) return
-          await uploadPendingImage(imageWarn.file)
+          try {
+            await uploadPendingImage(imageWarn.file)
+          } catch {
+            // Error already surfaced via setError in uploadPendingImage
+          }
         }}
       >
         <p>{imageWarn?.detail}</p>

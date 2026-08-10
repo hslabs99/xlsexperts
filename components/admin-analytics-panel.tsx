@@ -72,19 +72,19 @@ function SimpleBarChart({
       {total === 0 ? (
         <p className="mt-8 text-center text-sm text-ink-muted">{emptyLabel}</p>
       ) : (
-        <div className="mt-4 flex h-44 items-end gap-0.5 sm:gap-1">
+        <div className="mt-4 flex h-44 gap-0.5 sm:gap-1">
           {points.map((p) => {
             const height = Math.max(p.value > 0 ? 4 : 0, (p.value / max) * 100)
             return (
               <div
                 key={p.date}
-                className="group relative flex min-w-0 flex-1 flex-col items-center justify-end"
+                className="group relative flex h-full min-w-0 flex-1 flex-col justify-end"
                 title={`${formatShortDate(p.date)}: ${p.value}${
                   p.secondary != null ? ` (${p.secondary} discovery)` : ''
                 }`}
               >
                 <div
-                  className="w-full max-w-[18px] rounded-t-sm bg-brand/80 transition group-hover:bg-brand"
+                  className="w-full max-w-[18px] self-center rounded-t-sm bg-brand/80 transition group-hover:bg-brand"
                   style={{ height: `${height}%` }}
                 />
               </div>
@@ -250,9 +250,12 @@ export function AdminAnalyticsPanel() {
         <p className="mt-2 text-sm text-ink-muted">
           <strong className="font-semibold text-ink">Enquiries</strong> are
           completed forms — not page requests — so a quiet week looks low by
-          design. CTA clicks and page views only count after this tracker went
-          live, and <em>localhost browsing is ignored</em> so local testing does
-          not inflate the charts.
+          design. CTA clicks and page views only count from{' '}
+          <strong className="font-semibold text-ink">6 Aug 2026</strong> onward
+          (when this tracker went live), and <em>localhost browsing is ignored</em>{' '}
+          so local testing does not inflate the charts. Until there is more than
+          a week of funnel data, Last 7 days and Last 30 days will look the same
+          for page views and CTA clicks.
         </p>
       </div>
 

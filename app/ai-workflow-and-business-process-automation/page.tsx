@@ -6,7 +6,9 @@ import { Contact } from '@/components/contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
+import Link from 'next/link'
 import { CheckCircle, ArrowRight } from 'lucide-react'
+import { USE_CASES_HREF } from '@/lib/ai-use-cases-page'
 
 const PAGE_HREF = '/ai-workflow-and-business-process-automation'
 
@@ -24,7 +26,7 @@ const problems = [
   'Spreadsheets being used as a database — or a process that has clearly outgrown Excel',
   'Files that are too large, slow or unstable, with formulas and macros that break regularly',
   'Report generation that requires a day of preparation before analysis can begin',
-  'AI tools used ad hoc by individuals but never integrated into an actual business process',
+  'A.I. tools used ad hoc by individuals but never integrated into an actual business process',
   'Document creation done by hand from template files — one at a time',
   'Staff time consumed by routine, low-value work that should not require human attention',
 ]
@@ -36,7 +38,7 @@ const modernisationPathways = [
   },
   {
     title: 'Automate the process',
-    body: 'Replace copy-paste routines with VBA, Power Automate or AI-assisted steps so reports, exports and hand-offs run consistently.',
+    body: 'Replace copy-paste routines with VBA, Power Automate or A.I.-assisted steps so reports, exports and hand-offs run consistently.',
   },
   {
     title: 'Move into Microsoft 365',
@@ -54,7 +56,7 @@ const steps = [
     title: 'Process and opportunity mapping',
     points: [
       'Walk through the current process step by step',
-      'Identify manual steps, decision points and where AI can assist',
+      'Identify manual steps, decision points and where A.I. can assist',
       'Assess whether the spreadsheet needs improvement, automation or replacement',
       'Calculate the time cost and error risk of the current approach',
     ],
@@ -65,7 +67,7 @@ const steps = [
     number: '02',
     title: 'Design, build and validate',
     points: [
-      'Choose the right tools — Excel/VBA, Power Automate, AI, Microsoft 365 or a hybrid',
+      'Choose the right tools — Excel/VBA, Power Automate, A.I., Microsoft 365 or a hybrid',
       'Build the automation with exception handling, logging and system integrations',
       'Validate accuracy against real data with a human review layer where needed',
     ],
@@ -85,8 +87,8 @@ const steps = [
 
 const faqs = [
   {
-    q: 'What tools do you use for AI workflow and business process automation?',
-    a: 'We use Excel VBA, Power Automate, Power Query and AI platforms such as OpenAI and Azure AI depending on what the process requires. We choose the right tool for each job rather than applying a single technology to every problem.',
+    q: 'What tools do you use for A.I. workflow and business process automation?',
+    a: 'We use Excel VBA, Power Automate, Power Query and A.I. platforms such as OpenAI and Azure A.I. depending on what the process requires. We choose the right tool for each job rather than applying a single technology to every problem.',
   },
   {
     q: 'Do you always replace the existing spreadsheet?',
@@ -105,8 +107,8 @@ const faqs = [
     a: 'We start with the business process, then weigh user count, collaboration needs, data volume, integration requirements, IT constraints and total cost of ownership — not a preferred technology stack. Excel remains appropriate when used properly; we do not assume every spreadsheet should be replaced.',
   },
   {
-    q: 'Will AI replace the Excel-based processes we already have?',
-    a: 'No — our approach is to integrate AI as an input or decision layer that feeds your existing Excel and business processes. The workflows, formulas and reporting structures you already rely on remain in place. AI handles unstructured data preparation and classification that currently requires human reading and transcription.',
+    q: 'Will A.I. replace the Excel-based processes we already have?',
+    a: 'No — our approach is to integrate A.I. as an input or decision layer that feeds your existing Excel and business processes. The workflows, formulas and reporting structures you already rely on remain in place. A.I. handles unstructured data preparation and classification that currently requires human reading and transcription.',
   },
   {
     q: 'Do we need to change our existing systems to automate a process?',
@@ -114,16 +116,16 @@ const faqs = [
   },
   {
     q: 'How do you handle exceptions, accuracy and data privacy?',
-    a: 'Exception handling and human review are built into every automation we deliver. For AI extraction, accuracy is monitored over time and exceptions are flagged for review. We use API-based processing rather than consumer AI tools, and can work with Azure-hosted models for clients with strict data residency requirements.',
+    a: 'Exception handling and human review are built into every automation we deliver. For A.I. extraction, accuracy is monitored over time and exceptions are flagged for review. We use API-based processing rather than consumer A.I. tools, and can work with Azure-hosted models for clients with strict data residency requirements.',
   },
 ]
 
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: PAGE_HREF,
-    name: 'AI Workflow and Business Process Automation',
+    name: 'A.I. Workflow and Business Process Automation',
     description:
-      'AI workflow and business process automation for New Zealand businesses using Excel, VBA, Power Automate and AI tools.',
+      'A.I. workflow and business process automation for New Zealand businesses using Excel, VBA, Power Automate and A.I. tools.',
   })
 }
 
@@ -171,7 +173,7 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
           />
           <div className="relative mx-auto max-w-5xl px-6 text-center">
             <span className="mb-4 inline-block rounded-full border border-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/80">
-              AI Workflow and Business Process Automation
+              A.I. Workflow and Business Process Automation
             </span>
             <h1 className="font-display mb-6 text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl text-balance">
               {seo.h1}
@@ -195,7 +197,7 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
             </h2>
             <p className="mb-12 text-center text-gray-500">
               Manual work patterns and fragile spreadsheet processes we identify
-              and modernise — including tasks where AI adds the most value.
+              and modernise — including tasks where A.I. adds the most value.
             </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {problems.map((p) => (
@@ -213,9 +215,35 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
 
         <ServicePageExamples
           heading="Automation examples"
-          subheading="AI workflow and business process automation projects for New Zealand organisations."
+          subheading="A.I. workflow and business process automation projects for New Zealand organisations."
           tiles={exampleTiles}
         />
+
+        <section className="border-y border-[#c5e0d0] bg-[#e8f5ee]/60 py-16">
+          <div className="mx-auto max-w-3xl px-6 text-center">
+            <span
+              className="mb-3 inline-block text-xs font-bold uppercase tracking-widest"
+              style={{ color: '#1a6b3c' }}
+            >
+              Practical patterns
+            </span>
+            <h2 className="font-display mb-4 text-3xl font-bold text-gray-900">
+              Five A.I. use cases for Excel, VBA and Power Query
+            </h2>
+            <p className="mb-8 text-base leading-relaxed text-gray-600">
+              See how A.I. can add commentary, classification, document extraction,
+              anomaly review and a natural-language assistant — while Excel keeps
+              the calculations, workflows and reporting you already trust.
+            </p>
+            <Link
+              href={USE_CASES_HREF}
+              className="inline-flex items-center gap-2 rounded-lg px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-all hover:opacity-95"
+              style={{ backgroundColor: '#1a6b3c' }}
+            >
+              Explore A.I. use cases <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
 
         <section className="bg-gray-50 py-20">
           <div className="mx-auto max-w-5xl px-6">
@@ -294,7 +322,7 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
               Automation across New Zealand
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              We deliver AI workflow and business process automation throughout
+              We deliver A.I. workflow and business process automation throughout
               New Zealand — Auckland, Wellington, Christchurch, Hamilton,
               Tauranga and regional areas. Our work spans SMEs and enterprise
               across finance, insurance, healthcare, construction, logistics,
@@ -323,7 +351,12 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
         </section>
 
         <SolutionCrossLinks
+          heading="Related reading and solutions"
           links={[
+            {
+              href: USE_CASES_HREF,
+              label: 'A.I. Use Cases for Excel, VBA and Power Query',
+            },
             {
               href: '/solutions/workflow-automation-systems-integration',
               label: 'Workflow Automation & Systems Integration',
@@ -345,7 +378,7 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
             </h2>
             <p className="mb-8 text-white/80">
               Tell us what your team does manually each week — we will identify
-              where automation and AI can make the biggest difference.
+              where automation and A.I. can make the biggest difference.
             </p>
             <a
               href="#contact"
