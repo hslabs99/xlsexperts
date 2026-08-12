@@ -14,10 +14,19 @@ import {
 } from 'lucide-react'
 import type { AiSystemPrompt, AiSystemPromptKind } from '@/lib/ai-system-prompts'
 import type { BlogAiDraft } from '@/lib/blog-ai-types'
+import {
+  blogAiAssistSessionHasWork,
+  clearBlogAiAssistSession,
+  combineSystemPrompts,
+  dataUrlToFile,
+  loadBlogAiAssistSession,
+  saveBlogAiAssistSession,
+} from '@/lib/blog-ai-assist-session'
 
 type Props = {
   onApply: (draft: BlogAiDraft | null, imageFile: File | null) => void
   onCancel: () => void
+  cancelLabel?: string
 }
 
 type PromptFormState = {
@@ -38,14 +47,22 @@ function emptyPromptForm(kind: AiSystemPromptKind): PromptFormState {
   }
 }
 
-export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
+function toggleId(ids: string[], id: string): string[] {
+  return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+}
+
+export function AdminBlogAiAssist({
+  onApply,
+  onCancel,
+  cancelLabel = 'Back to list',
+}: Props) {
   const [title, setTitle] = useState('')
   const [brief, setBrief] = useState('')
   const [userPrompt, setUserPrompt] = useState('')
   const [categoryHint, setCategoryHint] = useState('')
   const [prompts, setPrompts] = useState<AiSystemPrompt[]>([])
-  const [draftPromptId, setDraftPromptId] = useState<string>('')
-  const [imagePromptId, setImagePromptId] = useState<string>('')
+  const [draftPromptIds, setDraftPromptIds] = useState<string[]>([])
+  const [imagePromptIds, setImagePromptIds] = useState<string[]>([])
   const [busy, setBusy] = useState<'draft' | 'image' | 'prompts' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -55,6 +72,7 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
   const [showLibrary, setShowLibrary] = useState(false)
   const [promptForm, setPromptForm] = useState<PromptFormState | null>(null)
   const [deletePromptId, setDeletePromptId] = useState<string | null>(null)
+  const [sessionReady, setSessionReady] = useState(false)
 
   const draftPrompts = useMemo(
     () => prompts.filter((p) => p.kind === 'blog-draft' && p.active),
@@ -65,14 +83,78 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
     [prompts]
   )
 
-  const selectedDraftPrompt = useMemo(
-    () => draftPrompts.find((p) => p.id === draftPromptId) ?? null,
-    [draftPrompts, draftPromptId]
+  const selectedDraftPrompts = useMemo(
+    () => draftPrompts.filter((p) => draftPromptIds.includes(p.id)),
+    [draftPrompts, draftPromptIds]
   )
-  const selectedImagePrompt = useMemo(
-    () => imagePrompts.find((p) => p.id === imagePromptId) ?? null,
-    [imagePrompts, imagePromptId]
+  const selectedImagePrompts = useMemo(
+    () => imagePrompts.filter((p) => imagePromptIds.includes(p.id)),
+    [imagePrompts, imagePromptIds]
   )
+
+  const combinedDraftSystemPrompt = useMemo(
+    () => combineSystemPrompts(selectedDraftPrompts),
+    [selectedDraftPrompts]
+  )
+  const combinedImageSystemPrompt = useMemo(
+    () => combineSystemPrompts(selectedImagePrompts),
+    [selectedImagePrompts]
+  )
+
+  useEffect(() => {
+    const restored = loadBlogAiAssistSession()
+    if (restored && blogAiAssistSessionHasWork(restored)) {
+      setTitle(restored.title)
+      setBrief(restored.brief)
+      setUserPrompt(restored.userPrompt)
+      setCategoryHint(restored.categoryHint)
+      setDraftPromptIds(restored.draftPromptIds)
+      setImagePromptIds(restored.imagePromptIds)
+      setDraft(restored.draft)
+      setImageDataUrl(restored.imageDataUrl)
+      if (restored.imageDataUrl) {
+        setImageFile(
+          dataUrlToFile(
+            restored.imageDataUrl,
+            restored.imageFileName || 'blog-ai-image.png',
+            restored.imageMimeType
+          )
+        )
+      }
+      setMessage(
+        'Restored your in-progress AI Assist work from this browser session.'
+      )
+    }
+    setSessionReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!sessionReady) return
+    saveBlogAiAssistSession({
+      title,
+      brief,
+      userPrompt,
+      categoryHint,
+      draftPromptIds,
+      imagePromptIds,
+      draft,
+      imageDataUrl,
+      imageMimeType: imageFile?.type ?? null,
+      imageFileName: imageFile?.name ?? null,
+      updatedAt: Date.now(),
+    })
+  }, [
+    sessionReady,
+    title,
+    brief,
+    userPrompt,
+    categoryHint,
+    draftPromptIds,
+    imagePromptIds,
+    draft,
+    imageDataUrl,
+    imageFile,
+  ])
 
   const loadPrompts = useCallback(async (opts?: { seedIfEmpty?: boolean }) => {
     setBusy('prompts')
@@ -123,12 +205,16 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
       const images = data.items.filter(
         (p) => p.kind === 'blog-image' && p.active
       )
-      setDraftPromptId((prev) =>
-        prev && drafts.some((p) => p.id === prev) ? prev : drafts[0]?.id || ''
-      )
-      setImagePromptId((prev) =>
-        prev && images.some((p) => p.id === prev) ? prev : images[0]?.id || ''
-      )
+      setDraftPromptIds((prev) => {
+        const kept = prev.filter((id) => drafts.some((p) => p.id === id))
+        if (kept.length > 0) return kept
+        return drafts[0]?.id ? [drafts[0].id] : []
+      })
+      setImagePromptIds((prev) => {
+        const kept = prev.filter((id) => images.some((p) => p.id === id))
+        if (kept.length > 0) return kept
+        return images[0]?.id ? [images[0].id] : []
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load prompts')
     } finally {
@@ -141,8 +227,8 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
   }, [loadPrompts])
 
   async function generateDraft() {
-    if (!selectedDraftPrompt) {
-      setError('Select a blog system prompt first.')
+    if (selectedDraftPrompts.length === 0) {
+      setError('Select at least one blog system prompt first.')
       return
     }
     setBusy('draft')
@@ -156,7 +242,7 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
           title,
           brief,
           userPrompt,
-          systemPrompt: selectedDraftPrompt.systemPrompt,
+          systemPrompt: combinedDraftSystemPrompt,
           categoryHint,
           authorHint: 'Mike',
         }),
@@ -193,7 +279,7 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
-          systemPrompt: selectedImagePrompt?.systemPrompt ?? '',
+          systemPrompt: combinedImageSystemPrompt,
           imagePrompt: draft?.imagePrompt,
           brief,
           userPrompt,
@@ -205,6 +291,8 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
         imageBase64?: string
         mimeType?: string
         error?: string
+        originalBytes?: number
+        optimizedBytes?: number
       }
       if (!res.ok || !data.ok || !data.imageBase64 || !data.dataUrl) {
         throw new Error(data.error || 'Image generation failed')
@@ -213,18 +301,32 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
       const binary = atob(data.imageBase64)
       const bytes = new Uint8Array(binary.length)
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      const mime = data.mimeType || 'image/png'
+      const mime = data.mimeType || 'image/webp'
       const blob = new Blob([bytes], { type: mime })
       const slugBit = (draft?.slug || title || 'blog')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
-      const file = new File([blob], `blog-ai-${slugBit || 'post'}.png`, {
+      const ext = mime.includes('jpeg')
+        ? 'jpg'
+        : mime.includes('png')
+          ? 'png'
+          : 'webp'
+      const file = new File([blob], `blog-ai-${slugBit || 'post'}.${ext}`, {
         type: mime,
       })
 
       setImageDataUrl(data.dataUrl)
       setImageFile(file)
+      const optimizedBytes =
+        typeof data.optimizedBytes === 'number' ? data.optimizedBytes : file.size
+      const originalBytes =
+        typeof data.originalBytes === 'number' ? data.originalBytes : null
+      setMessage(
+        originalBytes != null && originalBytes > optimizedBytes
+          ? `Image ready — compressed for the web (${Math.round(originalBytes / 1024)} KB → ${Math.round(optimizedBytes / 1024)} KB).`
+          : `Image ready — web-optimized (${Math.round(optimizedBytes / 1024)} KB).`
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image generation failed')
     } finally {
@@ -239,6 +341,7 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
       setError('Generate copy and/or an image first, then apply to the editor.')
       return
     }
+    clearBlogAiAssistSession()
     onApply(nextDraft, nextImage)
   }
 
@@ -270,7 +373,7 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
         if (!res.ok || !data.ok) {
           throw new Error(data.error || 'Failed to update prompt')
         }
-        setMessage('System prompt updated.')
+        setMessage('System prompt updated. Your blog inputs are still here.')
       } else {
         const res = await fetch('/api/admin/ai-system-prompts', {
           method: 'POST',
@@ -291,10 +394,17 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
         if (!res.ok || !data.ok) {
           throw new Error(data.error || 'Failed to create prompt')
         }
-        setMessage('System prompt added to the library.')
+        setMessage('System prompt added. Your blog inputs are still here.')
         if (data.id) {
-          if (promptForm.kind === 'blog-draft') setDraftPromptId(data.id)
-          else setImagePromptId(data.id)
+          if (promptForm.kind === 'blog-draft') {
+            setDraftPromptIds((prev) =>
+              prev.includes(data.id!) ? prev : [...prev, data.id!]
+            )
+          } else {
+            setImagePromptIds((prev) =>
+              prev.includes(data.id!) ? prev : [...prev, data.id!]
+            )
+          }
         }
       }
       setPromptForm(null)
@@ -340,9 +450,10 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
             AI Assist — create blog post
           </h3>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Choose a system prompt from the library, enter a title, brief and
-            your writing angle, then generate markdown copy and/or a hero image.
-            Apply the result into the blog editor to review and save.
+            Select one or more system prompts, enter a title, brief and your
+            writing angle, then generate markdown copy and/or a hero image.
+            Your work is kept while you manage the prompt library or leave and
+            come back in this browser session.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -359,7 +470,7 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
             className="text-sm font-semibold text-brand hover:underline"
             onClick={onCancel}
           >
-            Back to list
+            {cancelLabel}
           </button>
         </div>
       </div>
@@ -380,9 +491,15 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
       {showLibrary && (
         <div className="space-y-4 rounded-md border border-border bg-surface-raised p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h4 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
-              System prompt library
-            </h4>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
+                System prompt library
+              </h4>
+              <p className="mt-1 text-xs text-ink-muted">
+                Edit prompts here anytime — title, brief, generated copy and
+                image below stay intact.
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -572,40 +689,62 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-          <span className="font-medium text-ink">Blog system prompt</span>
-          <select
-            value={draftPromptId}
-            onChange={(e) => setDraftPromptId(e.target.value)}
-            className="rounded-md border border-border px-3 py-2"
-            disabled={draftPrompts.length === 0 || busy === 'prompts'}
-          >
-            {draftPrompts.length === 0 ? (
-              <option value="">No draft prompts — open the library</option>
-            ) : (
-              draftPrompts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))
-            )}
-          </select>
-          {selectedDraftPrompt?.description && (
-            <span className="text-xs text-ink-muted">
-              {selectedDraftPrompt.description}
+        <fieldset className="sm:col-span-2">
+          <legend className="mb-1 text-sm font-medium text-ink">
+            Blog system prompts
+            <span className="ml-1 font-normal text-ink-muted">
+              (select one or more — combined for generation)
             </span>
+          </legend>
+          {draftPrompts.length === 0 ? (
+            <p className="rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-ink-muted">
+              No draft prompts — open the library to add some.
+            </p>
+          ) : (
+            <ul className="space-y-2 rounded-md border border-border bg-white p-3">
+              {draftPrompts.map((p) => {
+                const checked = draftPromptIds.includes(p.id)
+                return (
+                  <li key={p.id}>
+                    <label className="flex cursor-pointer items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={checked}
+                        disabled={busy === 'prompts'}
+                        onChange={() =>
+                          setDraftPromptIds((prev) => toggleId(prev, p.id))
+                        }
+                      />
+                      <span>
+                        <span className="font-semibold text-ink">{p.name}</span>
+                        {p.description ? (
+                          <span className="block text-xs text-ink-muted">
+                            {p.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
           )}
-        </label>
+        </fieldset>
 
-        {selectedDraftPrompt && (
+        {selectedDraftPrompts.length > 0 && (
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="font-medium text-ink">
-              System prompt (sent with your request)
+              Combined system prompt
+              {selectedDraftPrompts.length > 1
+                ? ` (${selectedDraftPrompts.length} selected)`
+                : ''}{' '}
+              (sent with your request)
             </span>
             <textarea
               readOnly
-              rows={6}
-              value={selectedDraftPrompt.systemPrompt}
+              rows={Math.min(10, 4 + selectedDraftPrompts.length * 2)}
+              value={combinedDraftSystemPrompt}
               className="rounded-md border border-border bg-surface-raised px-3 py-2 font-mono text-xs text-ink-muted"
             />
           </label>
@@ -629,25 +768,41 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
             placeholder="e.g. Power Query"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-ink">Image system prompt</span>
-          <select
-            value={imagePromptId}
-            onChange={(e) => setImagePromptId(e.target.value)}
-            className="rounded-md border border-border px-3 py-2"
-            disabled={imagePrompts.length === 0 || busy === 'prompts'}
-          >
-            {imagePrompts.length === 0 ? (
-              <option value="">Default style (no library prompt)</option>
-            ) : (
-              imagePrompts.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
+        <fieldset className="text-sm">
+          <legend className="mb-1 font-medium text-ink">
+            Image system prompts
+            <span className="ml-1 font-normal text-ink-muted">
+              (optional, multi-select)
+            </span>
+          </legend>
+          {imagePrompts.length === 0 ? (
+            <p className="rounded-md border border-border bg-surface-raised px-3 py-2 text-ink-muted">
+              Default style (no library prompt)
+            </p>
+          ) : (
+            <ul className="space-y-2 rounded-md border border-border bg-white p-3">
+              {imagePrompts.map((p) => {
+                const checked = imagePromptIds.includes(p.id)
+                return (
+                  <li key={p.id}>
+                    <label className="flex cursor-pointer items-start gap-2">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={checked}
+                        disabled={busy === 'prompts'}
+                        onChange={() =>
+                          setImagePromptIds((prev) => toggleId(prev, p.id))
+                        }
+                      />
+                      <span className="font-semibold text-ink">{p.name}</span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </fieldset>
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
           <span className="font-medium text-ink">Brief description</span>
           <textarea
@@ -677,7 +832,7 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
             generating ||
             !title.trim() ||
             (!brief.trim() && !userPrompt.trim()) ||
-            !selectedDraftPrompt
+            selectedDraftPrompts.length === 0
           }
           onClick={() => void generateDraft()}
           className="inline-flex items-center gap-1.5 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
@@ -790,9 +945,11 @@ export function AdminBlogAiAssist({ onApply, onCancel }: Props) {
                 Image prompt: {draft.imagePrompt}
               </p>
             )}
-            {selectedImagePrompt && (
+            {selectedImagePrompts.length > 0 && (
               <p className="mt-2 text-xs text-ink-muted">
-                Image style: {selectedImagePrompt.name}
+                Image style
+                {selectedImagePrompts.length > 1 ? 's' : ''}:{' '}
+                {selectedImagePrompts.map((p) => p.name).join(', ')}
               </p>
             )}
           </div>

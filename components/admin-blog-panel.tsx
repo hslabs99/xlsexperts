@@ -20,6 +20,16 @@ import {
 } from '@/lib/blog-image-advice'
 import type { BlogAiDraft } from '@/lib/blog-ai-types'
 import type { BlogSection } from '@/lib/types'
+import {
+  blogAiAssistSessionHasWork,
+  clearBlogAiAssistSession,
+  loadBlogAiAssistSession,
+} from '@/lib/blog-ai-assist-session'
+import {
+  describeOptimization,
+  fileFromImageUrl,
+  optimizeBlogImageFile,
+} from '@/lib/blog-image-optimize'
 
 type EditorMode = 'list' | 'edit' | 'preview' | 'ai'
 
@@ -72,6 +82,8 @@ export function AdminBlogPanel() {
   const [mode, setMode] = useState<EditorMode>('list')
   const [previewKind, setPreviewKind] = useState<BlogPreviewKind>('list')
   const [previewReturn, setPreviewReturn] = useState<'list' | 'edit'>('edit')
+  const [aiReturn, setAiReturn] = useState<'list' | 'edit'>('list')
+  const [aiSessionTick, setAiSessionTick] = useState(0)
   const [form, setForm] = useState<BlogPostRecord>(emptyPost())
   const [deleteSlug, setDeleteSlug] = useState<string | null>(null)
   const [imageWarn, setImageWarn] = useState<{
@@ -242,13 +254,16 @@ export function AdminBlogPanel() {
     setError(null)
   }
 
-  function startAiAssist() {
+  function startAiAssist(returnTo: 'list' | 'edit' = 'list') {
+    setAiReturn(returnTo)
     setMessage(null)
     setError(null)
     setMode('ai')
   }
 
   function applyAiDraft(draft: BlogAiDraft | null, imageFile: File | null) {
+    clearBlogAiAssistSession()
+    setAiSessionTick((n) => n + 1)
     if (draft) {
       setForm({
         ...emptyPost(),
@@ -271,6 +286,7 @@ export function AdminBlogPanel() {
       setIsNew(true)
     }
     setPendingImageFile(imageFile)
+    setAiReturn('edit')
     setMode('edit')
     setMessage(
       draft && imageFile
@@ -281,6 +297,13 @@ export function AdminBlogPanel() {
     )
     setError(null)
   }
+
+  const savedAiSession = useMemo(() => {
+    void aiSessionTick
+    return loadBlogAiAssistSession()
+  }, [aiSessionTick, mode])
+
+  const hasSavedAiWork = blogAiAssistSessionHasWork(savedAiSession)
 
   function startEdit(post: BlogPostRecord) {
     setIsNew(false)
@@ -345,8 +368,11 @@ export function AdminBlogPanel() {
 
       const queuedImage = pendingImageFile
       if (queuedImage) {
-        await uploadPendingImage(queuedImage, slug)
-        setMessage(`Saved “${form.title.trim()}” with hero image.`)
+        const optimized = await optimizeBlogImageFile(queuedImage)
+        await uploadPendingImage(optimized.file, slug)
+        setMessage(
+          `Saved “${form.title.trim()}” with optimized hero image (${describeOptimization(optimized)}).`
+        )
       } else {
         setMessage(`Saved “${form.title.trim()}”.`)
       }
@@ -404,13 +430,19 @@ export function AdminBlogPanel() {
         ok?: boolean
         image?: string
         error?: string
+        bytes?: number
+        originalBytes?: number
       }
       if (!res.ok || !data.ok || !data.image) {
         throw new Error(data.error || 'Image upload failed')
       }
       setForm((p) => ({ ...p, image: data.image!, slug: p.slug || slug }))
+      const storedBytes = data.bytes ?? file.size
+      const original = data.originalBytes
       setMessage(
-        `Image uploaded to cloud (${formatBytes(file.size)}). Aim under ${formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)} when you can.`
+        original != null && original > storedBytes
+          ? `Image optimized and uploaded (${formatBytes(original)} → ${formatBytes(storedBytes)}).`
+          : `Image uploaded (${formatBytes(storedBytes)}).`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed')
@@ -422,25 +454,74 @@ export function AdminBlogPanel() {
     }
   }
 
+  async function optimizeThenUpload(file: File, slugOverride?: string) {
+    setBusy(true)
+    setError(null)
+    try {
+      const optimized = await optimizeBlogImageFile(file)
+      setPendingImageFile(optimized.file)
+      setMessage(describeOptimization(optimized))
+      await uploadPendingImage(optimized.file, slugOverride)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Image optimization failed'
+      )
+      setBusy(false)
+    }
+  }
+
   async function handleImageFile(file: File | null) {
     if (!file) return
+    setBusy(true)
     setPendingImageFile(file)
-    const info = await infoFromFile(file)
-    const advice = assessBlogImage(info)
-
-    if (advice.level === 'too_large' || advice.level === 'large') {
-      setImageWarn({
-        file,
-        headline: advice.headline,
-        detail: advice.detail,
-      })
-      return
-    }
-
+    setError(null)
+    setImageWarn(null)
     try {
-      await uploadPendingImage(file)
-    } catch {
-      // Error already surfaced via setError in uploadPendingImage
+      const optimized = await optimizeBlogImageFile(file)
+      setPendingImageFile(optimized.file)
+      const info = await infoFromFile(optimized.file)
+      const advice = assessBlogImage(info)
+
+      if (advice.level === 'too_large') {
+        setImageWarn({
+          file: optimized.file,
+          headline: advice.headline,
+          detail: `${describeOptimization(optimized)} ${advice.detail}`,
+        })
+        setBusy(false)
+        return
+      }
+
+      setMessage(describeOptimization(optimized))
+      await uploadPendingImage(optimized.file)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image handling failed')
+      setPendingImageFile(null)
+      setBusy(false)
+    }
+  }
+
+  async function optimizeCurrentHero() {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const source =
+        pendingImageFile ||
+        (form.image.trim() ? await fileFromImageUrl(form.image.trim()) : null)
+      if (!source) {
+        throw new Error('Choose or upload a hero image first.')
+      }
+      const optimized = await optimizeBlogImageFile(source)
+      setPendingImageFile(optimized.file)
+      setImageWarn(null)
+      setMessage(describeOptimization(optimized))
+      await uploadPendingImage(optimized.file)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not optimize this image'
+      )
+      setBusy(false)
     }
   }
 
@@ -504,7 +585,13 @@ export function AdminBlogPanel() {
       <div className="space-y-6">
         <AdminBlogAiAssist
           onApply={applyAiDraft}
-          onCancel={() => setMode('list')}
+          onCancel={() => {
+            setAiSessionTick((n) => n + 1)
+            setMode(aiReturn)
+          }}
+          cancelLabel={
+            aiReturn === 'edit' ? 'Back to editor' : 'Back to list'
+          }
         />
       </div>
     )
@@ -524,6 +611,21 @@ export function AdminBlogPanel() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              disabled={busy}
+              className="rounded-md bg-brand px-3 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+            >
+              {busy ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={() => startAiAssist('edit')}
+              className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 bg-brand-light px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/15"
+            >
+              <Sparkles className="h-4 w-4" />
+              AI Assist &amp; prompts
+            </button>
             <button
               type="button"
               onClick={() => openPreview('list')}
@@ -662,9 +764,9 @@ export function AdminBlogPanel() {
             <div>
               <p className="text-sm font-medium text-ink">Hero image</p>
               <p className="mt-0.5 text-xs text-ink-muted">
-                Keep it simple: about 1600px wide, under{' '}
-                {formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)}, JPEG or WebP.
-                We check the size for you after you pick a file.
+                Images are automatically optimized for phones (about 1600px
+                wide, under {formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)},
+                WebP/JPEG). Large files are never uploaded as-is.
               </p>
             </div>
             {form.image || pendingImagePreviewUrl ? (
@@ -697,18 +799,28 @@ export function AdminBlogPanel() {
               placeholder="/images/blog-....png or Storage URL"
               className="w-full rounded-md border border-border px-3 py-2 font-mono text-xs"
             />
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised">
-              <Upload className="h-4 w-4" />
-              Choose image…
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={(e) =>
-                  void handleImageFile(e.target.files?.[0] ?? null)
-                }
-              />
-            </label>
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised">
+                <Upload className="h-4 w-4" />
+                Choose image…
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) =>
+                    void handleImageFile(e.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                disabled={busy || (!pendingImageFile && !form.image.trim())}
+                onClick={() => void optimizeCurrentHero()}
+                className="inline-flex items-center gap-2 rounded-md border border-brand/40 bg-brand-light px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/15 disabled:opacity-60"
+              >
+                Optimize for web
+              </button>
+            </div>
           </div>
 
           <label className="inline-flex items-center gap-2 text-sm text-ink">
@@ -970,7 +1082,7 @@ export function AdminBlogPanel() {
             <button
               type="button"
               disabled={busy}
-              onClick={startAiAssist}
+              onClick={() => startAiAssist('list')}
               className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 bg-brand-light px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/15 disabled:opacity-60"
             >
               <Sparkles className="h-4 w-4" />
@@ -987,6 +1099,37 @@ export function AdminBlogPanel() {
             </button>
           </div>
         </div>
+
+        {hasSavedAiWork && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-brand/30 bg-brand-light p-3 text-sm text-brand-dark">
+            <p>
+              You have in-progress AI Assist work saved in this browser session
+              {savedAiSession?.title
+                ? ` (“${savedAiSession.title}”)`
+                : ''}
+              .
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => startAiAssist('list')}
+                className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark"
+              >
+                Resume AI Assist
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearBlogAiAssistSession()
+                  setAiSessionTick((n) => n + 1)
+                }}
+                className="rounded-md border border-brand/40 bg-white px-3 py-1.5 text-xs font-semibold text-brand-dark hover:bg-brand/10"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
 
         {(message || error) && (
           <div
@@ -1222,7 +1365,7 @@ export function AdminBlogPanel() {
         open={imageWarn != null}
         title={imageWarn?.headline || 'Large image'}
         mode="confirm"
-        confirmLabel="Upload anyway"
+        confirmLabel="Optimize & upload"
         cancelLabel="Cancel"
         busy={busy}
         onClose={() => {
@@ -1233,15 +1376,15 @@ export function AdminBlogPanel() {
         }}
         onConfirm={async () => {
           if (!imageWarn) return
-          try {
-            await uploadPendingImage(imageWarn.file)
-          } catch {
-            // Error already surfaced via setError in uploadPendingImage
-          }
+          await optimizeThenUpload(imageWarn.file)
         }}
       >
         <p>{imageWarn?.detail}</p>
-        <p>We recommend compressing first when you can.</p>
+        <p>
+          We will compress this to under about{' '}
+          {formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)} before it goes live —
+          visitors never receive the original large file.
+        </p>
       </AdminDialog>
     </div>
   )

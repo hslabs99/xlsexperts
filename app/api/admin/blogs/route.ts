@@ -85,12 +85,32 @@ export async function POST(request: Request) {
             { status: 400 }
           )
         }
+        const { compressBlogImageBuffer } = await import(
+          '@/lib/blog-image-compress'
+        )
+        const arrayBuffer = await (image as Blob).arrayBuffer()
+        const compressed = await compressBlogImageBuffer(
+          Buffer.from(arrayBuffer),
+          { baseName: 'hero' }
+        )
         const url = await withTimeout(
-          uploadBlogImageAdmin(slug, image),
+          uploadBlogImageAdmin(
+            slug,
+            compressed.bytes,
+            compressed.filename,
+            compressed.contentType
+          ),
           20_000,
           'uploadBlogImageAdmin'
         )
-        return NextResponse.json({ ok: true, image: url })
+        return NextResponse.json({
+          ok: true,
+          image: url,
+          bytes: compressed.bytes.byteLength,
+          originalBytes: compressed.originalBytes,
+          width: compressed.width,
+          height: compressed.height,
+        })
       }
     }
 

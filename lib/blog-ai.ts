@@ -61,7 +61,7 @@ Rules for markdown:
 - Optional FAQ: a "## FAQ" section with "### Question" headings and paragraph answers.
 - Keep excerpt to 1–2 sentences for the blog card.
 - slug must be lowercase kebab-case.
-- imagePrompt should describe a professional abstract blog hero (no text in image).
+- imagePrompt should describe a simple professional abstract blog hero for a fast mobile web page (no text in image; not high-resolution).
 - readTime like "6 min read".
 - category should be a short topic tag (e.g. Excel, Dashboards, A.I. Solutions).
 
@@ -116,8 +116,12 @@ ${RESPONSE_SHAPE}`
 
 export type BlogAiImageResult = {
   imageBase64: string
-  mimeType: 'image/png'
+  mimeType: 'image/webp' | 'image/jpeg' | 'image/png'
   revisedPrompt?: string
+  width?: number | null
+  height?: number | null
+  originalBytes?: number
+  optimizedBytes?: number
 }
 
 export async function generateBlogImage(options: {
@@ -141,18 +145,25 @@ export async function generateBlogImage(options: {
   const promptParts = [
     style ||
       'Create a wide website blog hero image (abstract, professional) for XLS Experts New Zealand. Style: clean corporate, soft forest-green accents, light neutrals. No readable text, no logos, no photorealistic faces.',
+    'This is a small web hero only — simple graphic suitable for a fast mobile blog card, not a high-resolution print or marketing billboard.',
     `Blog title context: ${title}.`,
     subject,
   ]
     .filter(Boolean)
     .join(' ')
 
+  let rawBase64: string
+  let revisedPrompt: string | undefined
+
   try {
     const result = await openai.images.generate({
       model: 'gpt-image-1',
       prompt: promptParts,
+      // Smallest landscape size the model supports; we compress further below.
       size: '1536x1024',
-      quality: 'medium',
+      quality: 'low',
+      output_format: 'webp',
+      output_compression: 60,
     })
 
     const first = result.data?.[0]
@@ -160,15 +171,11 @@ export async function generateBlogImage(options: {
     if (!b64) {
       throw new Error('OpenAI gpt-image-1 returned no image data')
     }
-
-    return {
-      imageBase64: b64,
-      mimeType: 'image/png',
-      revisedPrompt:
-        first && 'revised_prompt' in first
-          ? String((first as { revised_prompt?: string }).revised_prompt ?? '')
-          : undefined,
-    }
+    rawBase64 = b64
+    revisedPrompt =
+      first && 'revised_prompt' in first
+        ? String((first as { revised_prompt?: string }).revised_prompt ?? '')
+        : undefined
   } catch (primaryError) {
     const fallback = await openai.images.generate({
       model: 'dall-e-3',
@@ -188,11 +195,22 @@ export async function generateBlogImage(options: {
         `Image generation failed (gpt-image-1 and dall-e-3). Last error: ${detail}`
       )
     }
+    rawBase64 = b64
+    revisedPrompt = first?.revised_prompt
+  }
 
-    return {
-      imageBase64: b64,
-      mimeType: 'image/png',
-      revisedPrompt: first?.revised_prompt,
-    }
+  const { compressBlogImageBuffer } = await import('@/lib/blog-image-compress')
+  const compressed = await compressBlogImageBuffer(Buffer.from(rawBase64, 'base64'), {
+    baseName: 'blog-ai-hero',
+  })
+
+  return {
+    imageBase64: compressed.bytes.toString('base64'),
+    mimeType: compressed.contentType,
+    revisedPrompt,
+    width: compressed.width,
+    height: compressed.height,
+    originalBytes: compressed.originalBytes,
+    optimizedBytes: compressed.bytes.byteLength,
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { generateBlogDraft } from '@/lib/blog-ai'
-import { getOpenAIApiKey } from '@/lib/openai'
+import { getOpenAIApiKey, openaiKeyMissingMessage } from '@/lib/openai'
 import { withTimeout } from '@/lib/with-timeout'
 
 export const runtime = 'nodejs'
@@ -12,8 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error:
-            'OPENAI_API_KEY is not configured. Add it to .env.local and App Hosting.',
+          error: openaiKeyMissingMessage(),
         },
         { status: 503 }
       )

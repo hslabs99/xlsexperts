@@ -92,9 +92,9 @@ export function BlogImageSizeAdvice({
   if (!imageUrl.trim() && !pendingFile) {
     return (
       <p className="text-xs text-ink-muted">
-        Tip: use a photo about 1600px wide, under{' '}
-        {formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)} (JPEG or WebP). That
-        keeps the blog fast on phones.
+        Tip: heroes are auto-optimized to about 1600px wide / under{' '}
+        {formatBytes(BLOG_IMAGE_TARGETS.idealMaxBytes)} (WebP or JPEG) so the
+        blog stays fast on phones.
       </p>
     )
   }

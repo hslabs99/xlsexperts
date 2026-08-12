@@ -55,7 +55,7 @@ export function assessBlogImage(info: ImageSizeInfo): {
     return {
       level: 'too_large',
       headline: 'Too large for the website',
-      detail: `This file is ${sizeLabel} (${dimLabel}). That will slow the blog on phones. Replace it with a compressed JPEG or WebP under about ${formatBytes(t.idealMaxBytes)} (roughly 1600px wide).`,
+      detail: `This file is ${sizeLabel} (${dimLabel}). That will slow the blog on phones. Use Optimize for web in the editor, or replace it with a compressed JPEG/WebP under about ${formatBytes(t.idealMaxBytes)} (roughly 1600px wide).`,
     }
   }
 

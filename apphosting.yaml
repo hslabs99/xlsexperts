@@ -1,0 +1,23 @@
+# Firebase App Hosting configuration
+# https://firebase.google.com/docs/app-hosting/configure
+#
+# Environment variables set in the Firebase Console
+# (App Hosting → xlsexperts → Settings → Environment) override this file
+# and take effect only after a NEW ROLLOUT. If you just added OPENAI_API_KEY
+# in the console, trigger a redeploy/rollout before testing AI Assist.
+#
+# For sensitive keys, prefer Cloud Secret Manager:
+#   firebase apphosting:secrets:set OPENAI_API_KEY --project xlsexperts-49c22
+#   firebase apphosting:secrets:grantaccess OPENAI_API_KEY --backend xlsexperts --project xlsexperts-49c22
+#
+# Then uncomment the block below (secret name must match Secret Manager).
+
+runConfig:
+  # Defaults are fine for most sites; raise if AI routes time out under load.
+  maxInstances: 20
+
+# env:
+#   - variable: OPENAI_API_KEY
+#     secret: OPENAI_API_KEY
+#     availability:
+#       - RUNTIME
