@@ -1,8 +1,15 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { BLOG_POSTS_COLLECTION } from '@/lib/firebase'
+import type { MarketId } from '@/lib/market'
 import type { BlogListItem, BlogPost, BlogSection } from '@/lib/types'
-import type { BlogPostInput, BlogPostRecord } from '@/lib/blog-shared'
+import {
+  blogShowNz,
+  blogShowUsa,
+  blogVisibleOnMarket,
+  type BlogPostInput,
+  type BlogPostRecord,
+} from '@/lib/blog-shared'
 
 export type { BlogPostInput, BlogPostRecord } from '@/lib/blog-shared'
 
@@ -52,6 +59,8 @@ function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
     sections: mapSections(data.sections),
     published: data.published !== false,
     featured: Boolean(data.featured),
+    showNz: blogShowNz(data.showNz),
+    showUsa: blogShowUsa(data.showUsa),
     sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 9999,
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
@@ -110,27 +119,31 @@ function sortPublishedRecords(records: BlogPostRecord[]): BlogPostRecord[] {
     })
 }
 
-export async function fetchPublishedBlogPosts(): Promise<BlogPost[]> {
-  // Single-field order avoids a composite index; publish filter applied in memory.
+async function fetchSortedPublishedRecords(
+  market: MarketId
+): Promise<BlogPostRecord[]> {
+  // Single-field order avoids a composite index; publish/market filters in memory.
   const snap = await getAdminDb()
     .collection(BLOG_POSTS_COLLECTION)
     .orderBy('sortOrder', 'asc')
     .get()
-  const records = sortPublishedRecords(
+  return sortPublishedRecords(
     snap.docs.map((d) => mapPost(d.id, d.data() as Record<string, unknown>))
-  )
+  ).filter((record) => blogVisibleOnMarket(record, market))
+}
+
+export async function fetchPublishedBlogPosts(
+  market: MarketId
+): Promise<BlogPost[]> {
+  const records = await fetchSortedPublishedRecords(market)
   return records.map(toPublicBlogPost)
 }
 
 /** Published posts without section bodies — for /blog index filtering. */
-export async function fetchPublishedBlogList(): Promise<BlogListItem[]> {
-  const snap = await getAdminDb()
-    .collection(BLOG_POSTS_COLLECTION)
-    .orderBy('sortOrder', 'asc')
-    .get()
-  const records = sortPublishedRecords(
-    snap.docs.map((d) => mapPost(d.id, d.data() as Record<string, unknown>))
-  )
+export async function fetchPublishedBlogList(
+  market: MarketId
+): Promise<BlogListItem[]> {
+  const records = await fetchSortedPublishedRecords(market)
   return records.map(toBlogListItem)
 }
 
@@ -146,10 +159,12 @@ export async function fetchBlogPostRecordBySlug(
 }
 
 export async function fetchPublishedBlogPostBySlug(
-  slug: string
+  slug: string,
+  market: MarketId
 ): Promise<BlogPost | null> {
   const record = await fetchBlogPostRecordBySlug(slug)
   if (!record || !record.published) return null
+  if (!blogVisibleOnMarket(record, market)) return null
   return toPublicBlogPost(record)
 }
 
@@ -172,6 +187,8 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
     sections: input.sections,
     published: input.published !== false,
     featured: Boolean(input.featured),
+    showNz: blogShowNz(input.showNz),
+    showUsa: blogShowUsa(input.showUsa),
     sortOrder:
       typeof input.sortOrder === 'number'
         ? input.sortOrder
@@ -205,6 +222,8 @@ export async function updateBlogPostFields(
   if (patch.sections !== undefined) payload.sections = patch.sections
   if (patch.published !== undefined) payload.published = patch.published
   if (patch.featured !== undefined) payload.featured = patch.featured
+  if (patch.showNz !== undefined) payload.showNz = Boolean(patch.showNz)
+  if (patch.showUsa !== undefined) payload.showUsa = Boolean(patch.showUsa)
   if (patch.sortOrder !== undefined) payload.sortOrder = patch.sortOrder
 
   await getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(slug).update(payload)

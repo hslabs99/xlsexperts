@@ -32,6 +32,8 @@ function serializeBlog(record: BlogPostRecord) {
     ...toPublicBlogPost(record),
     published: record.published,
     featured: record.featured,
+    showNz: record.showNz,
+    showUsa: record.showUsa,
     sortOrder: record.sortOrder,
     createdAt: serializeTimestamp(record.createdAt),
     updatedAt: serializeTimestamp(record.updatedAt),

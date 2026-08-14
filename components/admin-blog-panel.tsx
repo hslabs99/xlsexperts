@@ -59,6 +59,8 @@ function emptyPost(): BlogPostRecord {
     sections: [{ type: 'p', text: '' }],
     published: true,
     featured: false,
+    showNz: true,
+    showUsa: true,
     sortOrder: 9999,
     createdAt: null,
     updatedAt: null,
@@ -125,7 +127,13 @@ export function AdminBlogPanel() {
       if (!res.ok || !data.ok || !data.items) {
         throw new Error(data.error || 'Failed to load blog posts')
       }
-      setRows(data.items)
+      setRows(
+        data.items.map((item) => ({
+          ...item,
+          showNz: item.showNz !== false,
+          showUsa: item.showUsa !== false,
+        }))
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load blog posts')
     } finally {
@@ -245,6 +253,34 @@ export function AdminBlogPanel() {
     await setPublishedForSlugs([post.slug], !post.published)
   }
 
+  async function setMarketFlag(
+    slug: string,
+    field: 'showNz' | 'showUsa',
+    value: boolean
+  ) {
+    setError(null)
+    setMessage(null)
+    setRows((prev) =>
+      prev.map((r) => (r.slug === slug ? { ...r, [field]: value } : r))
+    )
+    try {
+      const res = await fetch('/api/admin/blogs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, [field]: value }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to update market')
+      }
+    } catch (err) {
+      setRows((prev) =>
+        prev.map((r) => (r.slug === slug ? { ...r, [field]: !value } : r))
+      )
+      setError(err instanceof Error ? err.message : 'Failed to update market')
+    }
+  }
+
   function startNew() {
     setIsNew(true)
     setForm(emptyPost())
@@ -279,6 +315,8 @@ export function AdminBlogPanel() {
             : [{ type: 'p', text: '' }],
         published: false,
         featured: false,
+        showNz: true,
+        showUsa: true,
       })
       setIsNew(true)
     } else if (imageFile) {
@@ -843,6 +881,26 @@ export function AdminBlogPanel() {
             />
             Featured (list page hero)
           </label>
+          <label className="inline-flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={form.showNz}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, showNz: e.target.checked }))
+              }
+            />
+            Show on NZ site
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={form.showUsa}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, showUsa: e.target.checked }))
+              }
+            />
+            Show on USA site
+          </label>
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-5">
@@ -1075,7 +1133,8 @@ export function AdminBlogPanel() {
               Use <strong>New with AI</strong> to draft markdown copy and a hero
               image from a system prompt library, or create manually. Filter
               drafts vs published, select rows, then batch publish or unpublish
-              (hide from the public blog).
+              (hide from the public blog). NZ and USA checkboxes default to both
+              sites; uncheck one to hide a regional post from the other market.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1220,7 +1279,7 @@ export function AdminBlogPanel() {
         </p>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-ink-muted">
                 <th className="py-2 pr-2 w-8">
@@ -1231,6 +1290,8 @@ export function AdminBlogPanel() {
                 <th className="py-2 pr-3">Category</th>
                 <th className="py-2 pr-3">Author</th>
                 <th className="py-2 pr-3">Published</th>
+                <th className="py-2 pr-3">NZ</th>
+                <th className="py-2 pr-3">USA</th>
                 <th className="py-2 pr-3">Featured</th>
                 <th className="py-2">Actions</th>
               </tr>
@@ -1238,13 +1299,13 @@ export function AdminBlogPanel() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-6 text-ink-muted">
+                  <td colSpan={10} className="py-6 text-ink-muted">
                     Loading from Firebase…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-6 text-ink-muted">
+                  <td colSpan={10} className="py-6 text-ink-muted">
                     {rows.length === 0
                       ? 'No posts in Firebase yet. Add a new post to get started.'
                       : 'No posts match this filter.'}
@@ -1297,6 +1358,34 @@ export function AdminBlogPanel() {
                       >
                         {post.published ? 'Published' : 'Draft'}
                       </button>
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <input
+                        type="checkbox"
+                        checked={post.showNz}
+                        disabled={busy}
+                        onChange={() =>
+                          void setMarketFlag(post.slug, 'showNz', !post.showNz)
+                        }
+                        aria-label={`Show ${post.title} on NZ site`}
+                        title="Show on New Zealand site"
+                      />
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <input
+                        type="checkbox"
+                        checked={post.showUsa}
+                        disabled={busy}
+                        onChange={() =>
+                          void setMarketFlag(
+                            post.slug,
+                            'showUsa',
+                            !post.showUsa
+                          )
+                        }
+                        aria-label={`Show ${post.title} on USA site`}
+                        title="Show on USA site"
+                      />
                     </td>
                     <td className="py-2.5 pr-3">
                       {post.featured ? '★' : '—'}

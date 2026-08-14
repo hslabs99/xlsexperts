@@ -66,6 +66,8 @@ export async function seedBlogPostsFromV0Archive(options?: {
           ...post,
           published: true,
           featured: i === 0,
+          showNz: true,
+          showUsa: true,
           sortOrder: i,
           updatedAt: FieldValue.serverTimestamp(),
           ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),

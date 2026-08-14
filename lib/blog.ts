@@ -14,17 +14,21 @@ import {
   fetchPublishedBlogPostBySlug,
   fetchPublishedBlogPosts,
 } from '@/lib/blog-db'
+import { getMarket } from '@/lib/market-server'
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
-  return fetchPublishedBlogPosts()
+  const market = await getMarket()
+  return fetchPublishedBlogPosts(market)
 }
 
 /** Index cards only — omits heavy section bodies. */
 export async function getBlogListPosts(): Promise<BlogListItem[]> {
-  return fetchPublishedBlogList()
+  const market = await getMarket()
+  return fetchPublishedBlogList(market)
 }
 
 export async function getBlogPost(slug: string): Promise<BlogPost | undefined> {
-  const post = await fetchPublishedBlogPostBySlug(slug)
+  const market = await getMarket()
+  const post = await fetchPublishedBlogPostBySlug(slug, market)
   return post ?? undefined
 }

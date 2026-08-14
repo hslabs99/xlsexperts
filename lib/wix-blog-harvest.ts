@@ -342,6 +342,8 @@ async function harvestOne(
       sections: parsed.sections,
       published: false,
       featured: false,
+      showNz: true,
+      showUsa: true,
       sortOrder: 5000,
       source: 'wix-harvest',
       sourceUrl,
