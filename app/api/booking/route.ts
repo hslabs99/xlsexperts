@@ -12,6 +12,7 @@ import {
 } from '@/lib/booking-slots'
 import { markBookingSlotBooked } from '@/lib/booking-slots-db'
 import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
+import { upsertProspectFromLead } from '@/lib/mailings-db'
 import { isEmailError } from '@/lib/email/errors'
 import {
   buildDiscoveryMergeContext,
@@ -92,6 +93,25 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Could not save booking enquiry. Please try again.' },
       { status: 500 }
+    )
+  }
+
+  try {
+    await withTimeout(
+      upsertProspectFromLead({
+        name: body.name,
+        email: body.email,
+        company: body.company,
+        source: 'discovery',
+        sector: body.solution || body.service || '',
+      }),
+      8_000,
+      'upsertProspectFromLead'
+    )
+  } catch (error) {
+    console.error(
+      '[booking] Booking saved but mailing contact upsert failed',
+      error instanceof Error ? error.message : undefined
     )
   }
 

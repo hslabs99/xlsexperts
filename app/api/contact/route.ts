@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
+import { upsertProspectFromLead } from '@/lib/mailings-db'
 import { isEmailError } from '@/lib/email/errors'
 import {
   buildStandardMergeContext,
@@ -89,6 +90,25 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Could not save enquiry. Please try again.' },
       { status: 500 }
+    )
+  }
+
+  try {
+    await withTimeout(
+      upsertProspectFromLead({
+        name: body.name,
+        email: body.email,
+        company: body.company,
+        source: 'enquiry',
+        sector: body.solution || body.service || '',
+      }),
+      8_000,
+      'upsertProspectFromLead'
+    )
+  } catch (error) {
+    console.error(
+      '[contact] Enquiry saved but mailing contact upsert failed',
+      error instanceof Error ? error.message : undefined
     )
   }
 

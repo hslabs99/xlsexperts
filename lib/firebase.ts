@@ -141,3 +141,15 @@ export const CHAT_SETTINGS_DOC_ID = 'chat-settings'
 
 /** Firestore collection for live chat sessions (messages in `messages` subcollection) */
 export const CHATS_COLLECTION = 'chats'
+
+/** Marketing mailing list contacts (clients + prospects) */
+export const MAILING_CONTACTS_COLLECTION = 'mailingContacts'
+
+/** Saved reusable audience filter sets */
+export const MAILING_AUDIENCES_COLLECTION = 'mailingAudiences'
+
+/** Marketing email campaigns */
+export const MAILING_CAMPAIGNS_COLLECTION = 'mailingCampaigns'
+
+/** Per-recipient campaign send / engagement log */
+export const MAILING_SENDS_COLLECTION = 'mailingSends'

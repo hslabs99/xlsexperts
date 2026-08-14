@@ -175,6 +175,26 @@ function validateInput(input: SendEmailInput): {
     }
   }
 
+  if (input.customArgs !== undefined) {
+    if (
+      !input.customArgs ||
+      typeof input.customArgs !== 'object' ||
+      Array.isArray(input.customArgs)
+    ) {
+      throw new EmailValidationError('customArgs must be an object')
+    }
+    for (const [key, value] of Object.entries(input.customArgs)) {
+      if (!key.trim() || key.length > 100) {
+        throw new EmailValidationError('customArgs keys must be 1–100 characters')
+      }
+      if (typeof value !== 'string' || value.length > 255) {
+        throw new EmailValidationError(
+          `customArgs.${key} must be a string up to 255 characters`
+        )
+      }
+    }
+  }
+
   return { to, cc, bcc, replyTo }
 }
 
@@ -265,8 +285,30 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     ...(input.category
       ? { categories: [input.category.trim()] }
       : {}),
-    ...(input.referenceId
-      ? { customArgs: { reference_id: input.referenceId.trim() } }
+    ...(() => {
+      const customArgs: Record<string, string> = {
+        ...(input.customArgs || {}),
+      }
+      if (input.referenceId?.trim()) {
+        customArgs.reference_id = input.referenceId.trim()
+      }
+      return Object.keys(customArgs).length > 0 ? { customArgs } : {}
+    })(),
+    ...(input.tracking
+      ? {
+          trackingSettings: {
+            clickTracking: {
+              enable: input.tracking.click !== false,
+              enableText: false,
+            },
+            openTracking: {
+              enable: input.tracking.open !== false,
+            },
+            subscriptionTracking: {
+              enable: false,
+            },
+          },
+        }
       : {}),
   }
 

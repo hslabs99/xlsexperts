@@ -29,6 +29,7 @@ import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
 import { AdminCrawlDocsPanel } from '@/components/admin-crawl-docs-panel'
 import { AdminMarketCopyPanel } from '@/components/admin-market-copy-panel'
 import { AdminPageSeoPanel } from '@/components/admin-page-seo-panel'
+import { AdminMailingsPanel } from '@/components/admin-mailings-panel'
 import {
   clearAdminSession,
   canAccessTab,
@@ -1007,6 +1008,14 @@ export default function AdminPage() {
           <div className="mt-8 space-y-6" role="tabpanel">
             <AdminSiteTagsPanel />
             <AdminCrawlDocsPanel />
+          </div>
+        )}
+
+        {tab === 'mailings' &&
+          session &&
+          canAccessTab(session, 'mailings', viewMode) && (
+          <div className="mt-8" role="tabpanel">
+            <AdminMailingsPanel />
           </div>
         )}
 

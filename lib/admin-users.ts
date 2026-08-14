@@ -18,6 +18,7 @@ export const ADMIN_TABS = [
   { id: 'find-out-about', label: 'Find out about' },
   { id: 'cms', label: 'CMS' },
   { id: 'marketing', label: 'Marketing' },
+  { id: 'mailings', label: 'New Mailings' },
   { id: 'email', label: 'Email' },
   { id: 'seeding', label: 'Seeding' },
   { id: 'settings', label: 'Settings' },
@@ -39,6 +40,7 @@ export const DEFAULT_NON_ADMIN_TABS: readonly AdminTabId[] = [
   'blog',
   'cms',
   'marketing',
+  'mailings',
 ]
 
 export const ADMIN_USER_ROLES = ['admin', 'marketing'] as const

@@ -24,6 +24,16 @@ export type SendEmailInput = {
   category?: string
   /** Internal non-PII reference; sent as custom arg `reference_id`. */
   referenceId?: string
+  /**
+   * Extra SendGrid custom_args (string values only).
+   * Merged with reference_id when both are set.
+   */
+  customArgs?: Record<string, string>
+  /** Enable open + click tracking (campaign mailings). */
+  tracking?: {
+    open?: boolean
+    click?: boolean
+  }
 }
 
 /**
