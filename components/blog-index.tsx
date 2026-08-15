@@ -1,9 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import type { BlogListItem } from '@/lib/types'
+import { BlogSafeImage } from '@/components/blog-safe-image'
 
 const PAGE_SIZE = 10
 
@@ -95,14 +95,12 @@ export function BlogIndexClient({ posts }: Props) {
               className="group mb-14 grid gap-8 overflow-hidden border border-gray-200 bg-white transition-shadow hover:shadow-md lg:grid-cols-2"
             >
               <div className="relative aspect-[16/9] overflow-hidden lg:aspect-auto lg:min-h-[340px]">
-                <Image
+                <BlogSafeImage
                   src={featured.image}
                   alt={featured.title}
-                  fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
-                  unoptimized={featured.image.startsWith('http')}
                 />
               </div>
               <div className="flex flex-col justify-center px-8 py-10">
@@ -136,14 +134,12 @@ export function BlogIndexClient({ posts }: Props) {
                   className="group flex flex-col overflow-hidden border border-gray-200 bg-white transition-shadow hover:shadow-md"
                 >
                   <div className="relative aspect-[16/9] overflow-hidden">
-                    <Image
+                    <BlogSafeImage
                       src={post.image}
                       alt={post.title}
-                      fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       loading={index < 2 ? 'eager' : 'lazy'}
-                      unoptimized={post.image.startsWith('http')}
                     />
                   </div>
                   <div className="flex flex-1 flex-col p-6">

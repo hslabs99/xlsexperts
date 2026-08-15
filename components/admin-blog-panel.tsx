@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { Plus, Trash2, Upload, Eye, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Upload, Eye, Sparkles, ArrowUp, ArrowDown, ArrowUpDown, Loader2 } from 'lucide-react'
 import type { BlogPostRecord } from '@/lib/blog-shared'
 import { AdminDialog } from '@/components/admin-dialog'
 import {
@@ -32,6 +32,22 @@ import {
 } from '@/lib/blog-image-optimize'
 
 type EditorMode = 'list' | 'edit' | 'preview' | 'ai'
+type SortKey =
+  | 'order'
+  | 'title'
+  | 'category'
+  | 'author'
+  | 'published'
+  | 'nz'
+  | 'usa'
+  | 'featured'
+type SortDir = 'asc' | 'desc'
+type MarketFilter = 'all' | 'both' | 'nz-only' | 'usa-only' | 'hidden'
+type FlagField = 'showNz' | 'showUsa' | 'featured'
+
+function flagSaveKey(slug: string, field: FlagField) {
+  return `${slug}:${field}`
+}
 
 const SECTION_TYPES: BlogSection['type'][] = [
   'intro',
@@ -41,6 +57,56 @@ const SECTION_TYPES: BlogSection['type'][] = [
   'ul',
   'faq',
 ]
+
+function SortIcon({
+  active,
+  dir,
+}: {
+  active: boolean
+  dir: SortDir
+}) {
+  if (!active) return <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+  return dir === 'asc' ? (
+    <ArrowUp className="h-3.5 w-3.5 text-brand" />
+  ) : (
+    <ArrowDown className="h-3.5 w-3.5 text-brand" />
+  )
+}
+
+function SavingCheck({
+  checked,
+  disabled,
+  saving,
+  label,
+  title,
+  onChange,
+}: {
+  checked: boolean
+  disabled?: boolean
+  saving: boolean
+  label: string
+  title: string
+  onChange: () => void
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled || saving}
+        onChange={onChange}
+        aria-label={label}
+        title={title}
+      />
+      {saving ? (
+        <Loader2
+          className="h-3.5 w-3.5 animate-spin text-brand"
+          aria-label="Saving"
+        />
+      ) : null}
+    </span>
+  )
+}
 
 function emptyPost(): BlogPostRecord {
   return {
@@ -98,7 +164,11 @@ export function AdminBlogPanel() {
   const [publishFilter, setPublishFilter] = useState<
     'all' | 'published' | 'draft'
   >('all')
+  const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
+  const [sortKey, setSortKey] = useState<SortKey>('order')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [savingFlags, setSavingFlags] = useState<Set<string>>(new Set())
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
   const [pendingImagePreviewUrl, setPendingImagePreviewUrl] = useState<
     string | null
@@ -152,15 +222,56 @@ export function AdminBlogPanel() {
     } else if (publishFilter === 'draft') {
       list = list.filter((r) => !r.published)
     }
+    if (marketFilter === 'both') {
+      list = list.filter((r) => r.showNz && r.showUsa)
+    } else if (marketFilter === 'nz-only') {
+      list = list.filter((r) => r.showNz && !r.showUsa)
+    } else if (marketFilter === 'usa-only') {
+      list = list.filter((r) => r.showUsa && !r.showNz)
+    } else if (marketFilter === 'hidden') {
+      list = list.filter((r) => !r.showNz && !r.showUsa)
+    }
     const q = search.trim().toLowerCase()
-    if (!q) return list
-    return list.filter((r) =>
-      [r.title, r.slug, r.category, r.author, r.excerpt]
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
-    )
-  }, [rows, search, publishFilter])
+    if (q) {
+      list = list.filter((r) =>
+        [r.title, r.slug, r.category, r.author, r.excerpt]
+          .join(' ')
+          .toLowerCase()
+          .includes(q)
+      )
+    }
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...list].sort((a, b) => {
+      let cmp = 0
+      switch (sortKey) {
+        case 'title':
+          cmp = a.title.localeCompare(b.title, 'en')
+          break
+        case 'category':
+          cmp = a.category.localeCompare(b.category, 'en')
+          break
+        case 'author':
+          cmp = a.author.localeCompare(b.author, 'en')
+          break
+        case 'published':
+          cmp = Number(a.published) - Number(b.published)
+          break
+        case 'nz':
+          cmp = Number(a.showNz) - Number(b.showNz)
+          break
+        case 'usa':
+          cmp = Number(a.showUsa) - Number(b.showUsa)
+          break
+        case 'featured':
+          cmp = Number(a.featured) - Number(b.featured)
+          break
+        default:
+          cmp = a.sortOrder - b.sortOrder
+      }
+      if (cmp === 0) cmp = a.sortOrder - b.sortOrder
+      return cmp * dir
+    })
+  }, [rows, search, publishFilter, marketFilter, sortKey, sortDir])
 
   const selectedInView = useMemo(
     () => filtered.filter((r) => selected.has(r.slug)).map((r) => r.slug),
@@ -170,12 +281,29 @@ export function AdminBlogPanel() {
   const counts = useMemo(() => {
     let published = 0
     let draft = 0
+    let both = 0
+    let nzOnly = 0
+    let usaOnly = 0
+    let hidden = 0
     for (const r of rows) {
       if (r.published) published += 1
       else draft += 1
+      if (r.showNz && r.showUsa) both += 1
+      else if (r.showNz) nzOnly += 1
+      else if (r.showUsa) usaOnly += 1
+      else hidden += 1
     }
-    return { published, draft, total: rows.length }
+    return { published, draft, total: rows.length, both, nzOnly, usaOnly, hidden }
   }, [rows])
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   function toggleSelected(slug: string) {
     setSelected((prev) => {
@@ -253,13 +381,19 @@ export function AdminBlogPanel() {
     await setPublishedForSlugs([post.slug], !post.published)
   }
 
-  async function setMarketFlag(
+  async function setBooleanFlag(
     slug: string,
-    field: 'showNz' | 'showUsa',
+    field: FlagField,
     value: boolean
   ) {
+    const key = flagSaveKey(slug, field)
     setError(null)
     setMessage(null)
+    setSavingFlags((prev) => {
+      const next = new Set(prev)
+      next.add(key)
+      return next
+    })
     setRows((prev) =>
       prev.map((r) => (r.slug === slug ? { ...r, [field]: value } : r))
     )
@@ -271,13 +405,19 @@ export function AdminBlogPanel() {
       })
       const data = (await res.json()) as { ok?: boolean; error?: string }
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Failed to update market')
+        throw new Error(data.error || 'Failed to update post')
       }
     } catch (err) {
       setRows((prev) =>
         prev.map((r) => (r.slug === slug ? { ...r, [field]: !value } : r))
       )
-      setError(err instanceof Error ? err.message : 'Failed to update market')
+      setError(err instanceof Error ? err.message : 'Failed to update post')
+    } finally {
+      setSavingFlags((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
     }
   }
 
@@ -1135,6 +1275,8 @@ export function AdminBlogPanel() {
               drafts vs published, select rows, then batch publish or unpublish
               (hide from the public blog). NZ and USA checkboxes default to both
               sites; uncheck one to hide a regional post from the other market.
+              Use the market filters or click column headers to isolate NZ-only
+              or USA-only posts.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1234,6 +1376,32 @@ export function AdminBlogPanel() {
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="mr-1 text-xs text-ink-muted">Market:</span>
+            {(
+              [
+                { id: 'all', label: `All (${counts.total})` },
+                { id: 'both', label: `Both (${counts.both})` },
+                { id: 'nz-only', label: `NZ only (${counts.nzOnly})` },
+                { id: 'usa-only', label: `USA only (${counts.usaOnly})` },
+                { id: 'hidden', label: `Hidden (${counts.hidden})` },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={busy}
+                onClick={() => setMarketFilter(opt.id)}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold ${
+                  marketFilter === opt.id
+                    ? 'border-brand bg-brand-light text-brand-dark'
+                    : 'border-border bg-white text-ink-muted hover:bg-surface-raised'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1285,14 +1453,86 @@ export function AdminBlogPanel() {
                 <th className="py-2 pr-2 w-8">
                   <span className="sr-only">Select</span>
                 </th>
-                <th className="py-2 pr-3">Order</th>
-                <th className="py-2 pr-3">Title</th>
-                <th className="py-2 pr-3">Category</th>
-                <th className="py-2 pr-3">Author</th>
-                <th className="py-2 pr-3">Published</th>
-                <th className="py-2 pr-3">NZ</th>
-                <th className="py-2 pr-3">USA</th>
-                <th className="py-2 pr-3">Featured</th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('order')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Order
+                    <SortIcon active={sortKey === 'order'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('title')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Title
+                    <SortIcon active={sortKey === 'title'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('category')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Category
+                    <SortIcon active={sortKey === 'category'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('author')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Author
+                    <SortIcon active={sortKey === 'author'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('published')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Published
+                    <SortIcon active={sortKey === 'published'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('nz')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    NZ
+                    <SortIcon active={sortKey === 'nz'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('usa')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    USA
+                    <SortIcon active={sortKey === 'usa'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('featured')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Featured
+                    <SortIcon active={sortKey === 'featured'} dir={sortDir} />
+                  </button>
+                </th>
                 <th className="py-2">Actions</th>
               </tr>
             </thead>
@@ -1360,35 +1600,50 @@ export function AdminBlogPanel() {
                       </button>
                     </td>
                     <td className="py-2.5 pr-3">
-                      <input
-                        type="checkbox"
+                      <SavingCheck
                         checked={post.showNz}
                         disabled={busy}
-                        onChange={() =>
-                          void setMarketFlag(post.slug, 'showNz', !post.showNz)
-                        }
-                        aria-label={`Show ${post.title} on NZ site`}
+                        saving={savingFlags.has(flagSaveKey(post.slug, 'showNz'))}
+                        label={`Show ${post.title} on NZ site`}
                         title="Show on New Zealand site"
+                        onChange={() =>
+                          void setBooleanFlag(post.slug, 'showNz', !post.showNz)
+                        }
                       />
                     </td>
                     <td className="py-2.5 pr-3">
-                      <input
-                        type="checkbox"
+                      <SavingCheck
                         checked={post.showUsa}
                         disabled={busy}
+                        saving={savingFlags.has(flagSaveKey(post.slug, 'showUsa'))}
+                        label={`Show ${post.title} on USA site`}
+                        title="Show on USA site"
                         onChange={() =>
-                          void setMarketFlag(
+                          void setBooleanFlag(
                             post.slug,
                             'showUsa',
                             !post.showUsa
                           )
                         }
-                        aria-label={`Show ${post.title} on USA site`}
-                        title="Show on USA site"
                       />
                     </td>
                     <td className="py-2.5 pr-3">
-                      {post.featured ? '★' : '—'}
+                      <SavingCheck
+                        checked={post.featured}
+                        disabled={busy}
+                        saving={savingFlags.has(
+                          flagSaveKey(post.slug, 'featured')
+                        )}
+                        label={`Feature ${post.title} on the list page`}
+                        title="Featured (list page hero)"
+                        onChange={() =>
+                          void setBooleanFlag(
+                            post.slug,
+                            'featured',
+                            !post.featured
+                          )
+                        }
+                      />
                     </td>
                     <td className="py-2.5">
                       <div className="flex flex-wrap gap-2">

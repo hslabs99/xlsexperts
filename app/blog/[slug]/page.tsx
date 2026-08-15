@@ -1,11 +1,12 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
+import { hasBlogImageSrc } from '@/lib/blog-image-src'
 import { renderBlogInline } from '@/lib/blog-inline-markup'
 import { getSiteOrigin } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
+import { BlogSafeImage } from '@/components/blog-safe-image'
 import { ArrowLeft } from 'lucide-react'
 
 /** Every slug resolved from Firestore at request time — nothing baked from disk. */
@@ -23,9 +24,11 @@ export async function generateMetadata({
 
   const origin = await getSiteOrigin()
   const url = `${origin}/blog/${post.slug}`
-  const imageUrl = post.image.startsWith('http')
-    ? post.image
-    : `${origin}${post.image}`
+  const imageUrl = hasBlogImageSrc(post.image)
+    ? post.image.startsWith('http')
+      ? post.image
+      : `${origin}${post.image}`
+    : undefined
 
   return {
     title: post.title,
@@ -39,14 +42,16 @@ export async function generateMetadata({
       description: post.excerpt,
       publishedTime: new Date(post.date).toISOString(),
       authors: ['XLS Experts'],
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: post.title }],
+      ...(imageUrl
+        ? { images: [{ url: imageUrl, width: 1200, height: 630, alt: post.title }] }
+        : {}),
       siteName: 'XLS Experts',
     },
     twitter: {
-      card: 'summary_large_image',
+      card: imageUrl ? 'summary_large_image' : 'summary',
       title: post.title,
       description: post.excerpt,
-      images: [imageUrl],
+      ...(imageUrl ? { images: [imageUrl] } : {}),
     },
   }
 }
@@ -63,16 +68,18 @@ export default async function BlogPost({
   const origin = await getSiteOrigin()
   const allPosts = await getAllBlogPosts()
   const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 2)
-  const imageUrl = post.image.startsWith('http')
-    ? post.image
-    : `${origin}${post.image}`
+  const imageUrl = hasBlogImageSrc(post.image)
+    ? post.image.startsWith('http')
+      ? post.image
+      : `${origin}${post.image}`
+    : undefined
 
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: post.title,
     description: post.excerpt,
-    image: imageUrl,
+    ...(imageUrl ? { image: imageUrl } : {}),
     datePublished: new Date(post.date).toISOString(),
     author: {
       '@type': 'Organization',
@@ -120,10 +127,9 @@ export default async function BlogPost({
       <main className="min-h-screen bg-white">
         {/* Hero image */}
         <div className="relative h-64 w-full sm:h-80 lg:h-96">
-          <Image
+          <BlogSafeImage
             src={post.image}
             alt={post.title}
-            fill
             className="object-cover"
             sizes="100vw"
             priority
@@ -265,10 +271,9 @@ export default async function BlogPost({
                     className="group flex gap-5 overflow-hidden border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md"
                   >
                     <div className="relative h-20 w-28 shrink-0 overflow-hidden">
-                      <Image
+                      <BlogSafeImage
                         src={rel.image}
                         alt={rel.title}
-                        fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                         sizes="112px"
                       />

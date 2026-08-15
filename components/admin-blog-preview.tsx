@@ -5,6 +5,7 @@
  * Used in Admin → Blog so staff can check list cards and full articles.
  */
 
+import { useState } from 'react'
 import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import type { BlogPost, BlogSection } from '@/lib/types'
@@ -26,12 +27,36 @@ function HeroImage({
 }) {
   if (!src) {
     return (
-      <div
-        className={`flex items-center justify-center bg-stone-100 text-xs text-stone-500 ${className ?? ''}`}
-      >
-        No image
-      </div>
+      <div className="absolute inset-0 bg-gray-100" aria-hidden="true" />
     )
+  }
+  return (
+    <HeroImageInner
+      src={src}
+      alt={alt}
+      className={className}
+      sizes={sizes}
+      priority={priority}
+    />
+  )
+}
+
+function HeroImageInner({
+  src,
+  alt,
+  className,
+  sizes,
+  priority,
+}: {
+  src: string
+  alt: string
+  className?: string
+  sizes?: string
+  priority?: boolean
+}) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return <div className="absolute inset-0 bg-gray-100" aria-hidden="true" />
   }
   return (
     <Image
@@ -42,6 +67,7 @@ function HeroImage({
       sizes={sizes}
       priority={priority}
       unoptimized={src.startsWith('http') || src.startsWith('blob:')}
+      onError={() => setFailed(true)}
     />
   )
 }
