@@ -77,12 +77,12 @@ export const DEFAULT_BLOG_IMAGE_PROMPTS: Omit<
     kind: 'blog-image',
     name: 'Blog hero — corporate abstract',
     description:
-      'Compact web hero/card visual; soft forest-green accents; no text or faces.',
-    systemPrompt: `Create a simple wide website blog hero for XLS Experts New Zealand.
-This is a small web asset only (blog card / article header on phones) — not a high-resolution print, billboard, or photography portfolio piece.
-Style: clean corporate, soft forest-green (#1a6b3c) accents, light neutrals, subtle geometric or systems/data motif, limited detail.
-No readable text, no logos, no watermarks, no photorealistic people faces.
-Prefer flat/graphic shapes over ultra-detailed textures so the file stays tiny after compression.`,
+      'Optional brand overlay: forest-green accents and no readable text. Pair with a visual style (infographic, photo, or illustration).',
+    systemPrompt: `Brand overlay for an XLS Experts New Zealand blog hero.
+This is a small web asset only (blog card / article header on phones) — not print or a billboard.
+When colour accents fit the chosen visual treatment, prefer soft forest-green (#1a6b3c) and light neutrals.
+No readable text, no logos, no watermarks, no brand names on screens or paper.
+Do not force an infographic, diagram, or abstract geometric look — follow the selected visual treatment.`,
   },
 ]
 

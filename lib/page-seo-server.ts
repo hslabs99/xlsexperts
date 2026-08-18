@@ -2,8 +2,9 @@ import 'server-only'
 
 import type { Metadata } from 'next'
 import { PUBLISHED_PAGE_SEO } from '@/data/page-seo.generated'
-import { getMarket } from '@/lib/market-server'
+import { getIsLocalDev, getMarket } from '@/lib/market-server'
 import type { MarketId } from '@/lib/market'
+import { withTimeout } from '@/lib/with-timeout'
 import {
   catalogItemForPath,
   defaultPageSeoMarkets,
@@ -17,7 +18,7 @@ import {
 } from '@/lib/page-seo'
 import { marketPageMetadata } from '@/lib/seo'
 
-/** Published NZ + Global page SEO (static import — zero DB). */
+/** Published NZ + International + UK page SEO (static import — zero DB). */
 export function getPublishedPageSeoMarkets(): PageSeoMarkets {
   const raw = PUBLISHED_PAGE_SEO as unknown as Record<string, unknown>
   // Accept v1 (pages) or v2 (markets) static files
@@ -34,13 +35,35 @@ export function getPublishedPageSeoBundle(market: MarketId = 'nz') {
   return pickPageSeoBundle(getPublishedPageSeoMarkets(), market)
 }
 
+async function livePageSeoMarkets(): Promise<PageSeoMarkets> {
+  if (await getIsLocalDev()) {
+    try {
+      const { fetchPageSeoDraft } = await import('@/lib/page-seo-db')
+      const draft = await withTimeout(
+        fetchPageSeoDraft(),
+        6_000,
+        'fetchPageSeoDraft'
+      )
+      return draft.markets
+    } catch (error) {
+      console.error(
+        '[page-seo] localhost CMS draft unavailable, using published file',
+        error instanceof Error ? error.message : error
+      )
+    }
+  }
+  return getPublishedPageSeoMarkets()
+}
+
 /**
  * Effective SEO for a path on the current request market
- * (NZ .co.nz / Global .com — or local /nz|/usa cookie).
+ * (NZ .co.nz / International .com / UK .co.uk — or local /nz|/usa|/uk cookie).
+ * Localhost uses the CMS draft so Save draft is enough to preview UK vs International.
  */
 export async function getPageSeo(path: string): Promise<PageSeoFields> {
   const market = await getMarket()
-  return resolvePageSeo(path, getPublishedPageSeoBundle(market), market)
+  const bundle = pickPageSeoBundle(await livePageSeoMarkets(), market)
+  return resolvePageSeo(path, bundle, market)
 }
 
 /** Effective SEO for an explicit market (admin preview / tools). */

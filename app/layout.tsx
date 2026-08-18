@@ -4,8 +4,10 @@ import { SiteTags } from '@/components/site-tags'
 import { FloatingConsultationCta } from '@/components/floating-consultation-cta'
 import { FunnelTracker } from '@/components/funnel-tracker'
 import { MarketProvider } from '@/components/market-provider'
+import { LocalMarketSwitcher } from '@/components/local-market-switcher'
 import { keywordsToArray } from '@/lib/market-copy'
-import { getMarket, getMarketCopy } from '@/lib/market-server'
+import { getIsLocalDev, getMarket, getMarketCopy } from '@/lib/market-server'
+import { SITE_ICONS } from '@/lib/site-icons'
 import './globals.css'
 
 const _inter = Inter({
@@ -41,14 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
       follow: true,
       googleBot: { index: true, follow: true },
     },
-    icons: {
-      icon: [
-        { url: '/icon.svg', type: 'image/svg+xml' },
-        { url: '/icon.svg', sizes: 'any' },
-      ],
-      apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
-      shortcut: ['/icon.svg'],
-    },
+    icons: SITE_ICONS,
     openGraph: {
       type: 'website',
       locale: site.ogLocale,
@@ -92,11 +87,18 @@ export default async function RootLayout({
 }>) {
   const market = await getMarket()
   const copy = await getMarketCopy()
+  const localDev = await getIsLocalDev()
 
   return (
     <html lang={copy.site.htmlLang} className="bg-background">
       <body className="font-sans antialiased">
-        <MarketProvider market={market} copy={copy}>
+        <MarketProvider
+          key={market}
+          market={market}
+          copy={copy}
+          localDev={localDev}
+        >
+          <LocalMarketSwitcher />
           <SiteTags />
           <FunnelTracker />
           {children}

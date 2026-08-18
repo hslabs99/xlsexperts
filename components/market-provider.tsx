@@ -14,24 +14,28 @@ import {
 type MarketContextValue = {
   market: MarketId
   copy: MarketCopy
+  localDev: boolean
 }
 
 const MarketContext = createContext<MarketContextValue>({
   market: 'nz',
   copy: DEFAULT_NZ_MARKET_COPY,
+  localDev: false,
 })
 
 export function MarketProvider({
   market,
   copy,
+  localDev = false,
   children,
 }: {
   market: MarketId
   copy: MarketCopy
+  localDev?: boolean
   children: ReactNode
 }) {
   return (
-    <MarketContext.Provider value={{ market, copy }}>
+    <MarketContext.Provider value={{ market, copy, localDev }}>
       {children}
     </MarketContext.Provider>
   )

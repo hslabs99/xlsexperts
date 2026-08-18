@@ -68,7 +68,7 @@ export async function PUT(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: 'Provide { market, tags } or { markets: { nz, intl } }',
+          error: 'Provide { market, tags } or { markets: { nz, intl, uk } }',
         },
         { status: 400 }
       )

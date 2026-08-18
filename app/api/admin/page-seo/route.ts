@@ -62,7 +62,7 @@ export async function PUT(request: Request) {
         publishedAt: result.publishedAt,
         filePath: result.filePath,
         message:
-          'Published full H1/meta catalog (every service & solution, NZ + Global) to the static file. Public pages import by market — no database read.',
+          'Published full H1/meta catalog (every service & solution, NZ + International + UK) to the static file. Public pages import by market — no database read.',
       })
     }
 
@@ -82,7 +82,7 @@ export async function PUT(request: Request) {
       ok: true,
       markets,
       message:
-        'Draft saved for the full catalog (all pages, NZ + Global) to Firebase. Click Publish to update the public static file.',
+        'Draft saved for the full catalog (all pages, NZ + International + UK) to Firebase. Click Publish to update the public static file.',
     })
   } catch (error) {
     return NextResponse.json(

@@ -359,7 +359,7 @@ export function AiUseCasesPageView() {
           alignRight={[1, 2, 3, 4, 5]}
           rows={[
             [
-              'Auckland',
+              'Northern',
               '$842,000',
               '$790,000',
               '$765,000',
@@ -367,7 +367,7 @@ export function AiUseCasesPageView() {
               '4,220',
             ],
             [
-              'Wellington',
+              'Central',
               '$516,000',
               '$560,000',
               '$541,000',
@@ -375,7 +375,7 @@ export function AiUseCasesPageView() {
               '2,730',
             ],
             [
-              'Christchurch',
+              'Southern',
               '$624,000',
               '$610,000',
               '$590,000',
@@ -397,13 +397,13 @@ export function AiUseCasesPageView() {
         />
         <P>A.I. could then generate commentary such as:</P>
         <Quote>
-          Auckland materially exceeded both budget and prior year, with revenue
+          Northern materially exceeded both budget and prior year, with revenue
           6.6% above budget and stronger volume. Margin remains healthy at 31%,
           suggesting growth has not been achieved through excessive discounting.
         </Quote>
-        <P>For Wellington:</P>
+        <P>For Central:</P>
         <Quote>
-          Wellington is 7.9% below budget and 4.6% below the prior year. The
+          Central is 7.9% below budget and 4.6% below the prior year. The
           combination of weaker revenue and a 24% margin warrants investigation,
           particularly if the decline is concentrated in specific customers or
           product groups.
@@ -446,7 +446,7 @@ export function AiUseCasesPageView() {
   "period": "July 2026",
   "business_units": [
     {
-      "name": "Auckland",
+      "name": "Northern",
       "actual": 842000,
       "budget": 790000,
       "prior_year": 765000,
@@ -505,7 +505,7 @@ export function AiUseCasesPageView() {
                   <CodeBlock>{`{
   "business_units": [
     {
-      "name": "Auckland",
+      "name": "Northern",
       "status": "Positive",
       "priority": "Medium",
       "summary": "...",
@@ -920,7 +920,7 @@ export function AiUseCasesPageView() {
           <br />
           Hot-dip galvanising additional $145.00 per item
           <br />
-          Freight Auckland $385
+          Freight Northern $385
           <br />
           Quote valid 30 days.
         </Quote>
@@ -1060,7 +1060,7 @@ export function AiUseCasesPageView() {
         <CodeBlock>{`{
   "field": "freight",
   "value": 385,
-  "source_text": "Freight Auckland $385",
+  "source_text": "Freight Northern $385",
   "confidence": 0.98
 }`}</CodeBlock>
         <P>
@@ -1443,11 +1443,11 @@ THEN Flag = TRUE`}</CodeBlock>
         <P>
           The assistant could eventually become more than a reporting interface.
           A user might ask: “Prepare the monthly project variance report for
-          Auckland.” The A.I. interprets the instruction:
+          Northern.” The A.I. interprets the instruction:
         </P>
         <CodeBlock>{`{
   "action": "generate_variance_report",
-  "region": "Auckland",
+  "region": "Northern",
   "period": "current_month"
 }`}</CodeBlock>
         <P>

@@ -15,6 +15,7 @@ import {
   type ChatStatus,
 } from '@/lib/chat'
 import { ChatTypingIndicator } from '@/components/chat-typing-indicator'
+import { AdminDialog } from '@/components/admin-dialog'
 
 type ApiSession = ChatSessionPublic & {
   createdAt: string | null
@@ -363,6 +364,7 @@ export function AdminChatPanel() {
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_CHAT_SETTINGS)
@@ -690,7 +692,7 @@ export function AdminChatPanel() {
 
   async function handleDelete() {
     if (!selectedId || busy) return
-    if (!window.confirm('Delete this chat and all messages?')) return
+    setDeleteConfirmOpen(false)
     setBusy(true)
     try {
       const res = await fetch(
@@ -935,7 +937,7 @@ export function AdminChatPanel() {
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() => void handleDelete()}
+                        onClick={() => setDeleteConfirmOpen(true)}
                         className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -1103,6 +1105,21 @@ export function AdminChatPanel() {
           </div>
         </div>
       )}
+
+      <AdminDialog
+        open={deleteConfirmOpen}
+        title="Delete this chat?"
+        mode="confirm"
+        tone="danger"
+        confirmLabel="Delete chat"
+        busy={busy}
+        onClose={() => {
+          if (!busy) setDeleteConfirmOpen(false)
+        }}
+        onConfirm={() => void handleDelete()}
+      >
+        <p>Delete this chat and all messages? This cannot be undone.</p>
+      </AdminDialog>
     </div>
   )
 }

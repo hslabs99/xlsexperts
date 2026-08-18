@@ -1,5 +1,5 @@
 /**
- * Dual-market copy dictionary (NZ vs International).
+ * Three-market copy dictionary (NZ, International, UK).
  * Public pages read the published static file — never Firestore.
  */
 
@@ -20,9 +20,11 @@ export type MarketCopy = {
     twitterDescription: string
   }
   contact: {
+    heading: string
     phoneDisplay: string
     phoneTel: string
     whatsapp: string
+    whatsappLabel: string
     locationLine: string
     locationBadge: string
     emailPlaceholder: string
@@ -64,6 +66,7 @@ export type MarketCopy = {
     pillarSmeBody: string
     brandNzLabel: string
     brandIntlLabel: string
+    brandUkLabel: string
   }
   caseStudies: {
     homeIntro: string
@@ -76,10 +79,10 @@ export type MarketCopyFieldMeta = {
   label: string
   group: string
   multiline?: boolean
+  hint?: string
 }
 
 export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
-  { path: 'site.origin', label: 'Site origin URL', group: 'Site' },
   { path: 'site.htmlLang', label: 'HTML lang', group: 'Site' },
   { path: 'site.ogLocale', label: 'Open Graph locale', group: 'Site' },
   { path: 'site.defaultTitle', label: 'Default document title', group: 'Site' },
@@ -110,14 +113,6 @@ export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
     group: 'Site',
     multiline: true,
   },
-
-  { path: 'contact.phoneDisplay', label: 'Phone (display)', group: 'Contact' },
-  { path: 'contact.phoneTel', label: 'Phone (tel: href, digits)', group: 'Contact' },
-  { path: 'contact.whatsapp', label: 'WhatsApp number (digits)', group: 'Contact' },
-  { path: 'contact.locationLine', label: 'Location line', group: 'Contact' },
-  { path: 'contact.locationBadge', label: 'Location badge short code', group: 'Contact' },
-  { path: 'contact.emailPlaceholder', label: 'Email field placeholder', group: 'Contact' },
-  { path: 'contact.phonePlaceholder', label: 'Phone field placeholder', group: 'Contact' },
 
   { path: 'home.metaTitle', label: 'Homepage title', group: 'Homepage SEO' },
   {
@@ -196,6 +191,7 @@ export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
   },
   { path: 'about.brandNzLabel', label: 'Brand link label (NZ)', group: 'About' },
   { path: 'about.brandIntlLabel', label: 'Brand link label (USA)', group: 'About' },
+  { path: 'about.brandUkLabel', label: 'Brand link label (UK)', group: 'About' },
 
   {
     path: 'caseStudies.homeIntro',
@@ -224,9 +220,11 @@ export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
       "New Zealand's leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling.",
   },
   contact: {
+    heading: 'Contact directly',
     phoneDisplay: '+64 21 783 967',
     phoneTel: '+6421783967',
     whatsapp: '6421783967',
+    whatsappLabel: 'WhatsApp us',
     locationLine: 'Auckland, New Zealand — serving clients nationwide',
     locationBadge: 'NZ',
     emailPlaceholder: 'jane@acme.co.nz',
@@ -274,6 +272,7 @@ export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
       'We work with solo operators, engineers, construction firms, retailers, and NZX-listed corporates alike. Every client gets the same quality of attention.',
     brandNzLabel: 'Excel Experts NZ',
     brandIntlLabel: 'Excel Experts USA',
+    brandUkLabel: 'Excel Experts UK',
   },
   caseStudies: {
     homeIntro:
@@ -297,7 +296,7 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
     defaultDescription:
       'XLS Experts are leading Excel and spreadsheet consultants. We build models, automate data, and create dashboards that transform how your business works.',
     keywords:
-      'Excel consultant USA, Excel VBA developer USA, spreadsheet automation USA, Excel dashboard, Excel financial modelling, Power Query, business process automation, Excel expert USA Australia Canada UK',
+      'Excel consultant USA, Excel VBA developer USA, spreadsheet automation USA, Excel dashboard, Excel financial modelling, Power Query, business process automation, Excel expert USA Australia Canada',
     ogTitle: 'Excel & Spreadsheet Consulting | XLS Experts',
     ogDescription:
       'Leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling, and workflow automation.',
@@ -308,7 +307,7 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
   },
   contact: {
     ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).contact,
-    locationLine: 'Serving clients across USA, Canada, United Kingdom, Australia',
+    locationLine: 'Serving clients across USA, Canada, Australia',
     locationBadge: 'USA',
     emailPlaceholder: 'jane@acme.com',
     phonePlaceholder: '+1 000 000 0000',
@@ -321,7 +320,7 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
       'Spreadsheet experts ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.',
     schemaDescription:
       'Leading Excel and Google spreadsheet consulting firm. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.',
-    schemaAreaServed: 'USA, Canada, United Kingdom, Australia',
+    schemaAreaServed: 'USA, Canada, Australia',
     schemaAddressCountry: 'US',
     schemaAddressLocality: 'Global',
   },
@@ -331,9 +330,84 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
   },
 }
 
+export const DEFAULT_UK_MARKET_COPY: MarketCopy = {
+  ...cloneMarketCopy(DEFAULT_INTL_MARKET_COPY),
+  site: {
+    ...cloneMarketCopy(DEFAULT_INTL_MARKET_COPY).site,
+    origin: 'https://www.xlsexperts.co.uk',
+    htmlLang: 'en-GB',
+    ogLocale: 'en_GB',
+    defaultTitle: 'Excel & Spreadsheet Consulting UK | XLS Experts',
+    defaultDescription:
+      'XLS Experts are leading Excel and spreadsheet consultants in the United Kingdom. We build models, automate data, and create dashboards that transform how your business works.',
+    keywords:
+      'Excel consultant UK, Excel VBA developer UK, spreadsheet automation United Kingdom, Excel dashboard UK, Excel financial modelling UK, Power Query UK, business process automation UK, Excel expert London',
+    ogTitle: 'Excel & Spreadsheet Consulting UK | XLS Experts',
+    ogDescription:
+      'Leading Excel and spreadsheet consultants in the United Kingdom. VBA automation, dashboards, financial modelling, and workflow automation.',
+    ogImageAlt: 'XLS Experts — Excel & Spreadsheet Consulting UK',
+    twitterTitle: 'Excel & Spreadsheet Consulting UK | XLS Experts',
+    twitterDescription:
+      'Leading Excel and spreadsheet consultants in the United Kingdom. VBA automation, dashboards, financial modelling.',
+  },
+  contact: {
+    ...cloneMarketCopy(DEFAULT_INTL_MARKET_COPY).contact,
+    heading: 'Contact directly',
+    whatsappLabel: 'WhatsApp us',
+    locationLine: 'United Kingdom — serving clients nationwide',
+    locationBadge: 'UK',
+    emailPlaceholder: 'jane@acme.co.uk',
+    phonePlaceholder: '+44 20 0000 0000',
+  },
+  home: {
+    ...cloneMarketCopy(DEFAULT_INTL_MARKET_COPY).home,
+    metaTitle:
+      'UK Excel Experts, Excel Data Analysis, Consulting & Solutions',
+    metaDescription:
+      'Spreadsheet experts in the United Kingdom ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.',
+    schemaDescription:
+      'Leading Excel and spreadsheet consulting firm in the United Kingdom. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.',
+    schemaAreaServed: 'United Kingdom',
+    schemaAddressCountry: 'GB',
+    schemaAddressLocality: 'London',
+    faqCostQuestion: 'How much does Excel consulting cost in the UK?',
+    faqCostAnswer:
+      'XLS Experts projects typically start from £500 for small automation tasks. Most projects fall in the £1,000–£6,000 range depending on complexity. We provide a clear scope and fixed price before starting any work.',
+    faqIndustriesAnswer:
+      'XLS Experts works with businesses across finance, insurance, energy, healthcare, construction, logistics, retail, hospitality, education, and not-for-profit sectors throughout the United Kingdom.',
+    faqOutsideQuestion: 'Do you work with businesses outside London?',
+    faqOutsideAnswer:
+      'Yes. We work with businesses across the United Kingdom including Manchester, Birmingham, Edinburgh, Bristol, Leeds, and other regions. Most project work can be delivered remotely.',
+  },
+  hero: {
+    ...cloneMarketCopy(DEFAULT_INTL_MARKET_COPY).hero,
+    line1: 'UNITED KINGDOM',
+    badgeSpecialists: 'UK Microsoft Excel Specialists',
+    trustBased: 'Serving UK clients',
+    statValue: 'UK',
+    statLabel: 'Based expertise, delivered remotely',
+  },
+  about: {
+    ...cloneMarketCopy(DEFAULT_INTL_MARKET_COPY).about,
+    intro:
+      'We are a United Kingdom data automation consultancy with expertise in Excel, VBA, Google Sheets, and modern workflow automation tools. We specialise in transforming data management tasks into valuable business tools — for businesses of every size.',
+    pillarBasedTitle: 'United Kingdom',
+    pillarBasedBody:
+      'We work with UK organisations remotely, with one project manager as your point of contact and 20+ years of experience. No offshore handoffs — you deal directly with the people doing the work.',
+    brandNzLabel: 'Excel Experts NZ',
+    brandIntlLabel: 'Excel Experts USA',
+    brandUkLabel: 'Excel Experts UK',
+  },
+  caseStudies: {
+    homeIntro:
+      'Real problems, real solutions. A sample of what we have built for businesses across the United Kingdom.',
+  },
+}
+
 export type MarketCopyBundle = {
   nz: MarketCopy
   intl: MarketCopy
+  uk: MarketCopy
 }
 
 export type PublishedMarketCopyFile = {
@@ -346,6 +420,7 @@ export function defaultMarketCopyBundle(): MarketCopyBundle {
   return {
     nz: cloneMarketCopy(DEFAULT_NZ_MARKET_COPY),
     intl: cloneMarketCopy(DEFAULT_INTL_MARKET_COPY),
+    uk: cloneMarketCopy(DEFAULT_UK_MARKET_COPY),
   }
 }
 
@@ -435,6 +510,7 @@ export function normalizeMarketCopyBundle(raw: unknown): MarketCopyBundle {
   return {
     nz: normalizeMarketCopy(markets.nz, defaults.nz),
     intl: normalizeMarketCopy(markets.intl, defaults.intl),
+    uk: normalizeMarketCopy(markets.uk ?? markets.intl, defaults.uk),
   }
 }
 
@@ -449,7 +525,28 @@ export function pickMarketCopy(
   bundle: MarketCopyBundle,
   market: MarketId
 ): MarketCopy {
-  return market === 'intl' ? bundle.intl : bundle.nz
+  return bundle[market] ?? bundle.nz
+}
+
+/** Canonical site URLs are owned by Settings → Domains, not Marketing copy. */
+export function applySiteOrigins(
+  bundle: MarketCopyBundle,
+  origins: { nz: string; intl: string; uk: string }
+): MarketCopyBundle {
+  return {
+    nz: {
+      ...bundle.nz,
+      site: { ...bundle.nz.site, origin: origins.nz },
+    },
+    intl: {
+      ...bundle.intl,
+      site: { ...bundle.intl.site, origin: origins.intl },
+    },
+    uk: {
+      ...bundle.uk,
+      site: { ...bundle.uk.site, origin: origins.uk },
+    },
+  }
 }
 
 /** Homepage hero strapline badges — text + optional service/solution link. */
@@ -475,3 +572,60 @@ export const HERO_BADGE_DEFS = [
 ] as const
 
 export type HeroBadgeDef = (typeof HERO_BADGE_DEFS)[number]
+
+/** Contact Us sidebar — phone, WhatsApp, and location, per region. */
+export const CONTACT_DETAIL_FIELDS: MarketCopyFieldMeta[] = [
+  {
+    path: 'contact.heading',
+    label: 'Section heading',
+    group: 'Contact',
+    hint: 'Shown above the phone number, e.g. Contact directly',
+  },
+  {
+    path: 'contact.phoneDisplay',
+    label: 'Phone (shown on site)',
+    group: 'Contact',
+    hint: 'Exactly as visitors see it, e.g. +44 20 0000 0000',
+  },
+  {
+    path: 'contact.phoneTel',
+    label: 'Phone (tel: link)',
+    group: 'Contact',
+    hint: 'Digits with country code for the click-to-call link, e.g. +442000000000',
+  },
+  {
+    path: 'contact.whatsappLabel',
+    label: 'WhatsApp link text',
+    group: 'Contact',
+    hint: 'e.g. WhatsApp us',
+  },
+  {
+    path: 'contact.whatsapp',
+    label: 'WhatsApp number',
+    group: 'Contact',
+    hint: 'Digits only for wa.me, country code first, e.g. 442000000000',
+  },
+  {
+    path: 'contact.locationBadge',
+    label: 'Location badge',
+    group: 'Contact',
+    hint: 'Short code beside the location line, e.g. UK, USA, NZ',
+  },
+  {
+    path: 'contact.locationLine',
+    label: 'Location line',
+    group: 'Contact',
+    multiline: true,
+    hint: 'e.g. Serving clients across the United Kingdom',
+  },
+  {
+    path: 'contact.emailPlaceholder',
+    label: 'Email field placeholder',
+    group: 'Contact',
+  },
+  {
+    path: 'contact.phonePlaceholder',
+    label: 'Phone field placeholder',
+    group: 'Contact',
+  },
+]

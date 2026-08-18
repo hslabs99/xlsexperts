@@ -1,58 +1,118 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, CheckSquare, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckSquare, Globe, Loader2 } from 'lucide-react'
 import { MEET_OPTIONS } from '@/lib/booking-config'
+import { useMarket } from '@/components/market-provider'
+import { marketLabel, marketUsesVisitorTimeZone } from '@/lib/market'
 import {
+  BOOKING_TIMEZONE,
   bookingCalendarStartMonday,
   formatDateKey,
   formatDayLabel,
+  getCalendarWeekDays,
+  getMondayOfWeek,
   getWeekDays,
-  groupSlotsByDate,
   nextWorkingDay,
   type BookingSlot,
 } from '@/lib/booking-slots'
+import {
+  bookingTimeZoneSelectGroups,
+  civilDateInTimeZone,
+  describeNzSlotInTimeZone,
+  describeOffsetFromNewZealand,
+  displayTimeZoneForMarket,
+  formatTimeZoneOptionLabel,
+  formatTimeZoneShort,
+  groupSlotsByDateInTimeZone,
+  resolveBookingPickerTimeZone,
+  slotLocalDisplay,
+  storeBookingTimeZone,
+  clearStoredBookingTimeZone,
+} from '@/lib/booking-timezone'
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
-/** NZ business calendar day (YYYY-MM-DD), not the visitor’s local TZ. */
-function aucklandToday(): Date {
-  const key = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Pacific/Auckland',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
+function civilDateFromKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number)
   const date = new Date(y, m - 1, d)
   date.setHours(0, 0, 0, 0)
   return date
 }
 
+export interface BookingCalendarConfirm {
+  day: string
+  date: string
+  time: string
+  method: string
+  slotId: string
+  displayDay: string
+  displayTime: string
+  timeZone: string
+}
+
 interface BookingCalendarProps {
-  onConfirm: (payload: {
-    day: string
-    date: string
-    time: string
-    method: string
-    slotId: string
-  }) => void | Promise<void>
+  onConfirm: (payload: BookingCalendarConfirm) => void | Promise<void>
   onBack: () => void
 }
 
 export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
-  const today = useMemo(() => aucklandToday(), [])
-  const firstWorkingDay = useMemo(() => nextWorkingDay(today), [today])
+  const { market } = useMarket()
+
+  const [visitorTimeZone, setVisitorTimeZone] = useState(() =>
+    displayTimeZoneForMarket(market)
+  )
+  const [detectedTimeZone, setDetectedTimeZone] = useState(() =>
+    displayTimeZoneForMarket(market)
+  )
+  const [showTimeZonePicker, setShowTimeZonePicker] = useState(() =>
+    marketUsesVisitorTimeZone(market)
+  )
+  const [tzReady, setTzReady] = useState(false)
+  const didAutoSelect = useRef(false)
+
+  useEffect(() => {
+    if (showTimeZonePicker) {
+      const { detected, selected } = resolveBookingPickerTimeZone()
+      setDetectedTimeZone(detected)
+      setVisitorTimeZone(selected)
+    } else if (market === 'intl') {
+      const { detected } = resolveBookingPickerTimeZone()
+      setDetectedTimeZone(detected)
+      setVisitorTimeZone(detected)
+    } else {
+      const locked = displayTimeZoneForMarket(market)
+      setDetectedTimeZone(locked)
+      setVisitorTimeZone(locked)
+    }
+    didAutoSelect.current = false
+    setTzReady(true)
+  }, [market, showTimeZonePicker])
+
+  const displayTimeZone = visitorTimeZone
+  const useVisitorWeek = displayTimeZone !== BOOKING_TIMEZONE
+
+  const today = useMemo(
+    () => civilDateInTimeZone(displayTimeZone),
+    [displayTimeZone]
+  )
+  const firstBookableDay = useMemo(
+    () => (useVisitorWeek ? today : nextWorkingDay(today)),
+    [useVisitorWeek, today]
+  )
   const earliestMonday = useMemo(
-    () => bookingCalendarStartMonday(today),
-    [today]
+    () =>
+      useVisitorWeek
+        ? getMondayOfWeek(today)
+        : bookingCalendarStartMonday(today),
+    [useVisitorWeek, today]
   )
 
   const [weekMonday, setWeekMonday] = useState<Date>(() =>
-    bookingCalendarStartMonday(aucklandToday())
+    bookingCalendarStartMonday(civilDateInTimeZone(BOOKING_TIMEZONE))
   )
   const [slots, setSlots] = useState<BookingSlot[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,7 +121,6 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
-  const didAutoSelect = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -73,12 +132,18 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
         const data = (await res.json()) as {
           ok?: boolean
           items?: BookingSlot[]
+          showTimeZonePicker?: boolean
           error?: string
         }
         if (!res.ok || !data.ok) {
           throw new Error(data.error || 'Could not load booking slots.')
         }
-        if (!cancelled) setSlots(data.items ?? [])
+        if (!cancelled) {
+          setSlots(data.items ?? [])
+          if (typeof data.showTimeZonePicker === 'boolean') {
+            setShowTimeZonePicker(data.showTimeZonePicker)
+          }
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Could not load booking slots.')
@@ -93,31 +158,66 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
     }
   }, [])
 
-  const byDate = useMemo(() => groupSlotsByDate(slots), [slots])
-  const weekDays = getWeekDays(weekMonday)
-  const firstWorkingKey = formatDateKey(firstWorkingDay)
+  const byDate = useMemo(
+    () => groupSlotsByDateInTimeZone(slots, displayTimeZone),
+    [slots, displayTimeZone]
+  )
+  const weekDays = useVisitorWeek
+    ? getCalendarWeekDays(weekMonday)
+    : getWeekDays(weekMonday)
+  const firstBookableKey = formatDateKey(firstBookableDay)
+  const timeZoneGroups = useMemo(
+    () => bookingTimeZoneSelectGroups(detectedTimeZone, visitorTimeZone),
+    [detectedTimeZone, visitorTimeZone]
+  )
+  const offsetFromNz = describeOffsetFromNewZealand(displayTimeZone)
+  const nzExample = describeNzSlotInTimeZone(displayTimeZone)
+  const detectedLabel = formatTimeZoneOptionLabel({
+    id: detectedTimeZone,
+    label:
+      timeZoneGroups
+        .flatMap((group) => group.options)
+        .find((option) => option.id === detectedTimeZone)?.label ?? 'Detected',
+  })
+  const hasOverriddenTimeZone = visitorTimeZone !== detectedTimeZone
 
-  // Once slots load, open on the earliest bookable working day with availability.
+  function applyTimeZone(next: string) {
+    setVisitorTimeZone(next)
+    if (next === detectedTimeZone) {
+      clearStoredBookingTimeZone()
+    } else {
+      storeBookingTimeZone(next)
+    }
+    setSelectedDate(null)
+    setSelectedSlotId(null)
+    setSelectedMethod(null)
+    didAutoSelect.current = false
+  }
+
+  // Once slots + timezone are ready, open on the earliest bookable day with availability.
   useEffect(() => {
-    if (didAutoSelect.current || loading || slots.length === 0) return
+    if (!tzReady || didAutoSelect.current || loading || slots.length === 0) return
     const dates = Object.keys(byDate)
-      .filter((d) => d >= firstWorkingKey)
+      .filter((d) => d >= firstBookableKey)
       .sort()
     const firstOpen = dates.find((d) => (byDate[d] ?? []).length > 0)
     if (!firstOpen) {
       didAutoSelect.current = true
       return
     }
-    const [y, m, d] = firstOpen.split('-').map(Number)
-    const day = new Date(y, m - 1, d)
-    day.setHours(0, 0, 0, 0)
-    setWeekMonday(bookingCalendarStartMonday(day))
+    const day = civilDateFromKey(firstOpen)
+    setWeekMonday(
+      useVisitorWeek ? getMondayOfWeek(day) : bookingCalendarStartMonday(day)
+    )
     setSelectedDate(firstOpen)
     didAutoSelect.current = true
-  }, [loading, slots, byDate, firstWorkingKey])
+  }, [tzReady, loading, slots, byDate, firstBookableKey, useVisitorWeek])
 
   const selectedSlot = slots.find((s) => s.id === selectedSlotId) ?? null
   const daySlots = selectedDate ? byDate[selectedDate] ?? [] : []
+  const selectedLocal = selectedSlot
+    ? slotLocalDisplay(selectedSlot, displayTimeZone)
+    : null
 
   const prevWeek = () => {
     const prev = new Date(weekMonday)
@@ -139,18 +239,18 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
     setSelectedMethod(null)
   }
 
+  const weekEnd = weekDays[weekDays.length - 1]
   const weekLabel = (() => {
-    const end = weekDays[4]
-    if (weekMonday.getMonth() === end.getMonth()) {
-      return `${weekMonday.getDate()} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`
+    if (weekMonday.getMonth() === weekEnd.getMonth()) {
+      return `${weekMonday.getDate()} – ${weekEnd.getDate()} ${MONTH_NAMES[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
     }
-    return `${weekMonday.getDate()} ${MONTH_NAMES[weekMonday.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`
+    return `${weekMonday.getDate()} ${MONTH_NAMES[weekMonday.getMonth()]} – ${weekEnd.getDate()} ${MONTH_NAMES[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
   })()
 
-  /** Days before the next NZ working day are not bookable. */
-  const isPastDay = (d: Date) => d < firstWorkingDay
+  const isPastDay = (d: Date) => d < firstBookableDay
   const canConfirm = selectedSlot && selectedMethod
   const canGoPrev = weekMonday > earliestMonday
+  const showCalendar = tzReady && !loading && slots.length > 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -167,9 +267,53 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
       <div>
         <h3 className="text-base font-bold text-gray-900">Book a free discovery call</h3>
         <p className="mt-1 text-sm text-gray-500">30 minutes · Free · No commitment</p>
+        {tzReady && showTimeZonePicker && (
+          <div className="mt-4 flex flex-col gap-1.5">
+            <label
+              htmlFor="booking-timezone"
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gray-600"
+            >
+              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+              Time zone
+            </label>
+            <select
+              id="booking-timezone"
+              value={visitorTimeZone}
+              onChange={(e) => applyTimeZone(e.target.value)}
+              className="border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-400 focus:bg-white"
+            >
+              {timeZoneGroups.map((group) => (
+                <optgroup key={group.group} label={group.group}>
+                  {group.options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {formatTimeZoneOptionLabel(option)}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <p className="text-sm text-gray-500">
+              Site region: {marketLabel(market)}.{' '}
+              {hasOverriddenTimeZone
+                ? 'Times use the zone you selected.'
+                : 'Auto-detected from your browser — change if you will take the call somewhere else.'}{' '}
+              Slots are {offsetFromNz}
+              {nzExample ? ` — ${nzExample}` : ''}.
+            </p>
+            {hasOverriddenTimeZone ? (
+              <button
+                type="button"
+                onClick={() => applyTimeZone(detectedTimeZone)}
+                className="w-fit text-xs font-semibold text-[#1a6b3c] underline-offset-2 hover:underline"
+              >
+                Use detected time zone ({detectedLabel})
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
 
-      {loading && (
+      {(loading || !tzReady) && (
         <p className="text-sm text-gray-500">Loading available slots…</p>
       )}
 
@@ -179,13 +323,13 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
         </p>
       )}
 
-      {!loading && !error && slots.length === 0 && (
+      {tzReady && !loading && !error && slots.length === 0 && (
         <p className="text-sm text-gray-500">
           No discovery slots are open right now. Please try again later or send an enquiry.
         </p>
       )}
 
-      {!loading && slots.length > 0 && (
+      {showCalendar && (
         <>
           <div className="flex items-center justify-between">
             <button
@@ -208,7 +352,7 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
             </button>
           </div>
 
-          <div className="grid grid-cols-5 gap-2">
+          <div className={useVisitorWeek ? 'grid grid-cols-7 gap-1 sm:gap-2' : 'grid grid-cols-5 gap-2'}>
             {weekDays.map((day) => {
               const dateKey = formatDateKey(day)
               const label = formatDayLabel(dateKey)
@@ -225,25 +369,25 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
                     setSelectedSlotId(null)
                     setSelectedMethod(null)
                   }}
-                  className="flex flex-col items-center gap-1 border py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex flex-col items-center gap-1 border py-2 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40 sm:py-3"
                   style={{
                     borderColor: isSelected ? '#1a6b3c' : '#e5e7eb',
                     backgroundColor: isSelected ? '#e8f5ee' : past ? '#f9fafb' : 'white',
                   }}
                 >
                   <span
-                    className="text-xs font-bold uppercase tracking-widest"
+                    className="text-[10px] font-bold uppercase tracking-widest sm:text-xs"
                     style={{ color: isSelected ? '#1a6b3c' : '#6b7280' }}
                   >
                     {label}
                   </span>
                   <span
-                    className="text-lg font-bold"
+                    className="text-base font-bold sm:text-lg"
                     style={{ color: isSelected ? '#1a6b3c' : '#111827' }}
                   >
                     {day.getDate()}
                   </span>
-                  <span className="text-xs text-gray-400">{openCount} open</span>
+                  <span className="text-[10px] text-gray-400 sm:text-xs">{openCount} open</span>
                 </button>
               )
             })}
@@ -257,6 +401,7 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
                 {daySlots.map((slot) => {
                   const isChosen = selectedSlotId === slot.id
+                  const local = slotLocalDisplay(slot, displayTimeZone)
                   return (
                     <button
                       key={slot.id}
@@ -265,15 +410,15 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
                         setSelectedSlotId(slot.id)
                         setSelectedMethod(null)
                       }}
-                      className="border px-3 py-2.5 text-xs font-semibold transition-colors"
+                      className="border px-3 py-2.5 text-xs font-semibold transition-colors hover:border-[#1a6b3c]"
                       style={{
-                        borderColor: isChosen ? '#1a6b3c' : '#e5e7eb',
-                        backgroundColor: isChosen ? '#1a6b3c' : '#f9fafb',
-                        color: isChosen ? 'white' : '#374151',
+                        borderColor: isChosen ? '#1a6b3c' : '#b7ddc8',
+                        backgroundColor: isChosen ? '#1a6b3c' : '#e8f5ee',
+                        color: isChosen ? 'white' : '#1a6b3c',
                       }}
                     >
-                      {slot.time}
-                      <span className={`mt-0.5 block text-[10px] font-medium ${isChosen ? 'text-white/80' : 'text-gray-400'}`}>
+                      {local.time}
+                      <span className={`mt-0.5 block text-[10px] font-medium ${isChosen ? 'text-white/80' : 'text-[#1a6b3c]/70'}`}>
                         {slot.durationMinutes} min
                       </span>
                     </button>
@@ -317,12 +462,13 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
             </div>
           )}
 
-          {canConfirm && selectedSlot && (
+          {canConfirm && selectedSlot && selectedLocal && (
             <div className="flex flex-col gap-3 border-t border-gray-100 pt-4">
               <p className="text-sm text-gray-600">
                 <span className="font-semibold text-gray-900">
-                  {formatDayLabel(selectedSlot.date)} at {selectedSlot.time}
+                  {selectedLocal.dayLabel} at {selectedLocal.time}
                 </span>
+                <span className="text-gray-500"> ({formatTimeZoneShort(displayTimeZone)})</span>
                 {' '}via{' '}
                 <span className="font-semibold text-gray-900">
                   {MEET_OPTIONS.find((m) => m.id === selectedMethod)?.label}
@@ -341,6 +487,9 @@ export function BookingCalendar({ onConfirm, onBack }: BookingCalendarProps) {
                       time: selectedSlot.time,
                       method: MEET_OPTIONS.find((m) => m.id === selectedMethod)!.label,
                       slotId: selectedSlot.id,
+                      displayDay: selectedLocal.dayLabel,
+                      displayTime: selectedLocal.time,
+                      timeZone: displayTimeZone,
                     })
                   ).catch(() => {
                     setConfirming(false)

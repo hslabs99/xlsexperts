@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { marketLabel, type MarketId } from '@/lib/market'
+import { MARKET_IDS, marketLabel, type MarketId } from '@/lib/market'
 import {
   defaultCrawlDocs,
   defaultCrawlDocsBundle,
@@ -17,7 +17,19 @@ import {
   type VerificationFile,
 } from '@/lib/crawl-docs'
 
-const MARKET_TABS: MarketId[] = ['nz', 'intl']
+const MARKET_TABS: MarketId[] = MARKET_IDS
+
+function sitemapStateFromBundle(
+  bundle: CrawlDocsBundle
+): Record<MarketId, string> {
+  const next = {} as Record<MarketId, string>
+  for (const id of MARKET_IDS) {
+    next[id] = formatSitemapUrlLines(
+      (bundle[id] ?? defaultCrawlDocs(id)).sitemapExtraUrls
+    )
+  }
+  return next
+}
 
 function emptyVerification(): VerificationFile {
   return { path: '', content: '', enabled: true }
@@ -34,7 +46,7 @@ export function AdminCrawlDocsPanel() {
   const [activeMarket, setActiveMarket] = useState<MarketId>('nz')
   const [sitemapByMarket, setSitemapByMarket] = useState<
     Record<MarketId, string>
-  >({ nz: '', intl: '' })
+  >(() => sitemapStateFromBundle(defaultCrawlDocsBundle()))
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,15 +69,12 @@ export function AdminCrawlDocsPanel() {
       if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Failed to load crawl documents')
       }
-      const next = {
-        nz: cloneDocs(data.markets.nz ?? defaultCrawlDocs('nz')),
-        intl: cloneDocs(data.markets.intl ?? defaultCrawlDocs('intl')),
+      const next = defaultCrawlDocsBundle()
+      for (const id of MARKET_IDS) {
+        next[id] = cloneDocs(data.markets[id] ?? defaultCrawlDocs(id))
       }
       setMarkets(next)
-      setSitemapByMarket({
-        nz: formatSitemapUrlLines(next.nz.sitemapExtraUrls),
-        intl: formatSitemapUrlLines(next.intl.sitemapExtraUrls),
-      })
+      setSitemapByMarket(sitemapStateFromBundle(next))
     } catch (err) {
       setError(
         err instanceof Error
@@ -113,15 +122,12 @@ export function AdminCrawlDocsPanel() {
       if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Save failed')
       }
-      const saved = {
-        nz: cloneDocs(data.markets.nz),
-        intl: cloneDocs(data.markets.intl),
+      const saved = defaultCrawlDocsBundle()
+      for (const id of MARKET_IDS) {
+        saved[id] = cloneDocs(data.markets[id])
       }
       setMarkets(saved)
-      setSitemapByMarket({
-        nz: formatSitemapUrlLines(saved.nz.sitemapExtraUrls),
-        intl: formatSitemapUrlLines(saved.intl.sitemapExtraUrls),
-      })
+      setSitemapByMarket(sitemapStateFromBundle(saved))
       setMessage(
         `${marketLabel(activeMarket)} SEO crawl documents saved. Public robots/llms/sitemap/verification for that domain update immediately.`
       )
@@ -163,7 +169,7 @@ export function AdminCrawlDocsPanel() {
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
           Separate sitemap extras, robots.txt, llms.txt, and Search Console
-          verification files per domain. New Zealand and International never
+          verification files per domain. New Zealand, International, and UK never
           share crawl data. Stored in Firebase{' '}
           <code className="text-xs">Site Content / crawl-documents</code>.
         </p>

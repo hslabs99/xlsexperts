@@ -14,6 +14,11 @@ export type BlogPostRecord = BlogPost & {
   showNz: boolean
   /** Show on the USA / international site. Missing/undefined defaults to true. */
   showUsa: boolean
+  /**
+   * Show on the UK site. Missing/undefined follows `showUsa` so posts that were
+   * already tagged for International stay visible on UK until edited.
+   */
+  showUk: boolean
   createdAt: unknown
   updatedAt: unknown
   /** Present on Wix-harvested drafts */
@@ -27,6 +32,7 @@ export type BlogPostInput = BlogPost & {
   sortOrder?: number
   showNz?: boolean
   showUsa?: boolean
+  showUk?: boolean
 }
 
 /** Legacy posts without the field are treated as visible on both sites. */
@@ -39,11 +45,22 @@ export function blogShowUsa(value: unknown): boolean {
   return value !== false
 }
 
+/**
+ * UK visibility. Explicit false hides the post. Missing field inherits
+ * International (`showUsa`) because UK used to share that market.
+ */
+export function blogShowUk(value: unknown, showUsa: unknown): boolean {
+  if (value === undefined || value === null) return blogShowUsa(showUsa)
+  return value !== false
+}
+
 export function blogVisibleOnMarket(
-  record: Pick<BlogPostRecord, 'showNz' | 'showUsa'>,
+  record: Pick<BlogPostRecord, 'showNz' | 'showUsa' | 'showUk'>,
   market: MarketId
 ): boolean {
-  return market === 'nz' ? record.showNz : record.showUsa
+  if (market === 'nz') return record.showNz
+  if (market === 'uk') return record.showUk
+  return record.showUsa
 }
 
 export type { BlogPost, BlogSection, BlogListItem }

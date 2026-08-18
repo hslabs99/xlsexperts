@@ -1,14 +1,26 @@
 import { NextResponse } from 'next/server'
+import { PUBLISHED_DOMAIN_REGIONS } from '@/data/domain-regions.generated'
+import { siteOriginsFromRegions } from '@/lib/domain-regions'
 import {
   fetchMarketCopyDraft,
   publishMarketCopy,
   saveMarketCopyDraft,
 } from '@/lib/market-copy-db'
 import {
+  applySiteOrigins,
   normalizeMarketCopyBundle,
   type MarketCopyBundle,
 } from '@/lib/market-copy'
 import { withTimeout } from '@/lib/with-timeout'
+
+function marketsWithLockedOrigins(
+  markets: MarketCopyBundle
+): MarketCopyBundle {
+  return applySiteOrigins(
+    markets,
+    siteOriginsFromRegions(PUBLISHED_DOMAIN_REGIONS.regions)
+  )
+}
 
 export async function GET() {
   try {
@@ -41,7 +53,7 @@ export async function PUT(request: Request) {
     if (action === 'publish') {
       const markets =
         body.markets != null
-          ? normalizeMarketCopyBundle(body.markets)
+          ? marketsWithLockedOrigins(normalizeMarketCopyBundle(body.markets))
           : undefined
       const result = await withTimeout(
         publishMarketCopy(markets),
@@ -66,7 +78,9 @@ export async function PUT(request: Request) {
     }
 
     const markets = await withTimeout(
-      saveMarketCopyDraft(normalizeMarketCopyBundle(body.markets)),
+      saveMarketCopyDraft(
+        marketsWithLockedOrigins(normalizeMarketCopyBundle(body.markets))
+      ),
       8_000,
       'saveMarketCopyDraft'
     )

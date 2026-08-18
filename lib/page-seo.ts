@@ -5,6 +5,7 @@
 
 import { servicePages } from '@/lib/service-pages'
 import { solutionPages } from '@/lib/solutions'
+import { DEFAULT_MARKET, isMarketId, type MarketId } from '@/lib/market'
 
 export type PageSeoKind = 'service' | 'solution'
 
@@ -48,10 +49,11 @@ export type PageSeoCatalogItem = {
 
 export type PageSeoBundle = Record<string, PageSeoFields>
 
-/** NZ + Global (intl) page SEO maps. */
+/** NZ + International + UK page SEO maps. */
 export type PageSeoMarkets = {
   nz: PageSeoBundle
   intl: PageSeoBundle
+  uk: PageSeoBundle
 }
 
 export type PublishedPageSeoFile = {
@@ -62,7 +64,7 @@ export type PublishedPageSeoFile = {
 
 /**
  * Legacy v1 shape (pre market-split). Still readable for migration.
- * @deprecated Prefer PublishedPageSeoFile with markets.nz / markets.intl
+ * @deprecated Prefer PublishedPageSeoFile with markets.nz / markets.intl / markets.uk
  */
 export type PublishedPageSeoFileV1 = {
   version?: 1
@@ -383,10 +385,15 @@ export function defaultIntlPageSeoBundle(): PageSeoBundle {
   return pages
 }
 
+export function defaultUkPageSeoBundle(): PageSeoBundle {
+  return defaultIntlPageSeoBundle()
+}
+
 export function defaultPageSeoMarkets(): PageSeoMarkets {
   return {
     nz: defaultPageSeoBundle(),
     intl: defaultIntlPageSeoBundle(),
+    uk: defaultUkPageSeoBundle(),
   }
 }
 
@@ -396,9 +403,10 @@ export function clonePageSeoBundle(source: PageSeoBundle): PageSeoBundle {
 
 export function pickPageSeoBundle(
   markets: PageSeoMarkets,
-  market: 'nz' | 'intl'
+  market: MarketId
 ): PageSeoBundle {
-  return market === 'intl' ? markets.intl : markets.nz
+  const id = isMarketId(market) ? market : DEFAULT_MARKET
+  return markets[id] ?? markets.nz
 }
 
 /** Merge a partial overlay onto defaults (overlay wins for set string fields). */
@@ -450,7 +458,7 @@ export function mergePageSeo(
  */
 export function normalizePageSeoBundle(
   raw: unknown,
-  market: 'nz' | 'intl' = 'nz'
+  market: MarketId = 'nz'
 ): PageSeoBundle {
   const incoming: Record<string, unknown> =
     raw && typeof raw === 'object' && !Array.isArray(raw)
@@ -470,7 +478,11 @@ export function normalizePageSeoBundle(
       : incoming
 
   const defaultsRoot =
-    market === 'intl' ? defaultIntlPageSeoBundle() : defaultPageSeoBundle()
+    market === 'nz'
+      ? defaultPageSeoBundle()
+      : market === 'uk'
+        ? defaultUkPageSeoBundle()
+        : defaultIntlPageSeoBundle()
 
   const pages: PageSeoBundle = {}
   for (const item of PAGE_SEO_CATALOG) {
@@ -489,11 +501,12 @@ export function normalizePageSeoBundle(
 }
 
 /**
- * Normalize a full NZ + Global markets payload.
+ * Normalize a full NZ + International + UK markets payload.
  * Accepts:
- * - { markets: { nz, intl } }
- * - { nz, intl }
- * - legacy { pages } → treated as NZ; intl starts from globalized NZ overlay
+ * - { markets: { nz, intl, uk } }
+ * - { nz, intl, uk }
+ * - legacy { pages } → treated as NZ; intl/uk start from globalized NZ overlay
+ * Missing `uk` is seeded from International (UK used to share that market).
  */
 export function normalizePageSeoMarkets(raw: unknown): PageSeoMarkets {
   const defaults = defaultPageSeoMarkets()
@@ -505,24 +518,33 @@ export function normalizePageSeoMarkets(raw: unknown): PageSeoMarkets {
       ? (data.markets as Record<string, unknown>)
       : data
 
-  // v2 shape
-  if (marketsSrc.nz != null || marketsSrc.intl != null) {
+  // v2/v3 shape
+  if (marketsSrc.nz != null || marketsSrc.intl != null || marketsSrc.uk != null) {
+    const nz = normalizePageSeoBundle(marketsSrc.nz ?? defaults.nz, 'nz')
+    const intl = normalizePageSeoBundle(
+      marketsSrc.intl ?? defaults.intl,
+      'intl'
+    )
+    const ukSource = marketsSrc.uk ?? marketsSrc.intl ?? intl
     return {
-      nz: normalizePageSeoBundle(marketsSrc.nz ?? defaults.nz, 'nz'),
-      intl: normalizePageSeoBundle(marketsSrc.intl ?? defaults.intl, 'intl'),
+      nz,
+      intl,
+      uk: normalizePageSeoBundle(ukSource, 'uk'),
     }
   }
 
-  // v1 flat pages → NZ only; seed Global from globalized NZ
+  // v1 flat pages → NZ only; seed Global and UK from globalized NZ
   if (data.pages != null || looksLikePageMap(data)) {
     const nz = normalizePageSeoBundle(data.pages ?? data, 'nz')
     const intlBase: PageSeoBundle = {}
     for (const path of Object.keys(nz)) {
       intlBase[path] = globalizePageSeoFields(nz[path])
     }
+    const intl = normalizePageSeoBundle(intlBase, 'intl')
     return {
       nz,
-      intl: normalizePageSeoBundle(intlBase, 'intl'),
+      intl,
+      uk: normalizePageSeoBundle(intlBase, 'uk'),
     }
   }
 
@@ -548,14 +570,17 @@ function looksLikePageMap(data: Record<string, unknown>): boolean {
 export function resolvePageSeo(
   path: string,
   published: PageSeoBundle | null | undefined,
-  market: 'nz' | 'intl' = 'nz'
+  market: MarketId = 'nz'
 ): PageSeoFields {
   const normalized = normalizePath(path)
   const defaults =
-    market === 'intl'
-      ? defaultIntlPageSeoBundle()[normalized] ??
-        globalizePageSeoFields(defaultPageSeoForPath(normalized))
-      : defaultPageSeoForPath(normalized)
+    market === 'nz'
+      ? defaultPageSeoForPath(normalized)
+      : market === 'uk'
+        ? defaultUkPageSeoBundle()[normalized] ??
+          globalizePageSeoFields(defaultPageSeoForPath(normalized))
+        : defaultIntlPageSeoBundle()[normalized] ??
+          globalizePageSeoFields(defaultPageSeoForPath(normalized))
   const overlay = published?.[normalized]
   return mergePageSeo(defaults, overlay)
 }

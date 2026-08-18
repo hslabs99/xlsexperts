@@ -32,21 +32,28 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const local = isLocalHost(host)
 
-  // Local: /nz or /usa sets the market cookie, then redirects to the real path
-  // so normal links (/services, etc.) keep working under the same market.
+  // Local: /nz, /usa, or /uk stay in the address bar (rewrite, not redirect)
+  // so each region has its own URL and cannot share a cached homepage.
   if (local) {
     const stripped = stripLocalMarketPrefix(pathname)
     if (stripped) {
       const url = request.nextUrl.clone()
       url.pathname = stripped.pathname
-      return applyMarketHeaders(NextResponse.redirect(url), stripped.market)
+      const requestHeaders = new Headers(request.headers)
+      requestHeaders.set(MARKET_HEADER, stripped.market)
+      const response = NextResponse.rewrite(url, {
+        request: { headers: requestHeaders },
+      })
+      response.headers.set('Cache-Control', 'private, no-store')
+      response.headers.set('Vary', 'Cookie, Host')
+      return applyMarketHeaders(response, stripped.market)
     }
   }
 
   let market: MarketId = DEFAULT_MARKET
 
   if (local) {
-    // Persist the last /nz or /usa choice for the rest of the local session.
+    // Persist the last /nz, /usa, or /uk choice for the rest of the local session.
     const fromCookie = parseMarketId(request.cookies.get(MARKET_COOKIE)?.value)
     market = fromCookie ?? DEFAULT_MARKET
   } else {
@@ -60,6 +67,8 @@ export function middleware(request: NextRequest) {
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   })
+  response.headers.set('Cache-Control', 'private, no-store')
+  response.headers.set('Vary', 'Cookie, Host')
   return applyMarketHeaders(response, market)
 }
 
@@ -70,6 +79,6 @@ export const config = {
      * Include robots.txt / sitemap.xml / llms.txt so market is resolved
      * from the arrival host for separate SEO properties.
      */
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|images/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg|icon-32.png|icon-48.png|icon-192.png|apple-icon.png|images/).*)',
   ],
 }

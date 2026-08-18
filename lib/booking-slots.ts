@@ -1,4 +1,5 @@
 import type { Timestamp } from 'firebase/firestore'
+import type { MarketId } from '@/lib/market'
 
 /** Business timezone for discovery booking availability. */
 export const BOOKING_TIMEZONE = 'Pacific/Auckland'
@@ -8,6 +9,79 @@ export const BOOKING_MIN_LEAD_MINUTES = 120
 
 /** Slot status shown in admin: tick = available, cross = unavailable, B = booked */
 export type BookingSlotStatus = 'available' | 'unavailable' | 'booked'
+
+/** Public site region a slot can be offered in. Australia uses International. */
+export type BookingRegionId = 'nz' | 'uk' | 'intl'
+
+export interface BookingRegions {
+  nz: boolean
+  uk: boolean
+  intl: boolean
+}
+
+export const BOOKING_REGION_IDS: BookingRegionId[] = ['nz', 'uk', 'intl']
+
+export const BOOKING_REGION_LABELS: Record<BookingRegionId, string> = {
+  nz: 'NZ',
+  uk: 'UK',
+  intl: 'INT',
+}
+
+export function emptyBookingRegions(): BookingRegions {
+  return { nz: false, uk: false, intl: false }
+}
+
+export function allBookingRegions(): BookingRegions {
+  return { nz: true, uk: true, intl: true }
+}
+
+export function hasAnyBookingRegion(regions: BookingRegions): boolean {
+  return regions.nz || regions.uk || regions.intl
+}
+
+export function applyBookingRegionChange(
+  current: BookingRegions | undefined,
+  scope: 'all' | BookingRegionId,
+  enabled: boolean
+): BookingRegions {
+  if (scope === 'all') {
+    return enabled ? allBookingRegions() : emptyBookingRegions()
+  }
+  const base = current ?? emptyBookingRegions()
+  return { ...base, [scope]: enabled }
+}
+
+/**
+ * Legacy slots have no `regions` field: available/booked were shown everywhere.
+ */
+export function parseBookingRegions(
+  raw: unknown,
+  status?: BookingSlotStatus
+): BookingRegions {
+  if (raw && typeof raw === 'object') {
+    const r = raw as Record<string, unknown>
+    return {
+      nz: Boolean(r.nz),
+      uk: Boolean(r.uk),
+      intl: Boolean(r.intl),
+    }
+  }
+  if (status === 'available' || status === 'booked') return allBookingRegions()
+  return emptyBookingRegions()
+}
+
+export function bookingRegionForMarket(market: MarketId): BookingRegionId {
+  if (market === 'uk') return 'uk'
+  if (market === 'nz') return 'nz'
+  return 'intl'
+}
+
+export function slotOpenForRegion(
+  slot: Pick<BookingSlot, 'status' | 'regions'>,
+  region: BookingRegionId
+): boolean {
+  return slot.status === 'available' && Boolean(slot.regions[region])
+}
 
 /** Details captured when a discovery call is booked */
 export interface BookingDetails {
@@ -31,6 +105,8 @@ export interface BookingSlot {
   type: string // e.g. "discovery"
   status: BookingSlotStatus
   durationMinutes: 15 | 30
+  /** Which public sites can offer this slot. */
+  regions: BookingRegions
   createdAt?: Timestamp | null
   booking?: BookingDetails | null
 }
@@ -48,15 +124,22 @@ export const SEED_WEEKDAYS = [
 
 export type SeedWeekday = (typeof SEED_WEEKDAYS)[number]['day']
 
-/** Business-day bounds for the availability grid (minutes from midnight). */
-export const SEED_DAY_START_MINUTES = 8 * 60 // 8:00 AM
-export const SEED_DAY_END_MINUTES = 18 * 60 // 6:00 PM
+/**
+ * Availability grid is one NZ calendar day in clock order:
+ * 4:00 AM through 11:00 PM (no midnight wrap / overnight block).
+ */
+export const SEED_DAY_START_MINUTES = 4 * 60 // 4:00 AM
+/** Last row start (11:00 PM). Last slot runs 11:00–11:30 PM. */
+export const SEED_DAY_END_MINUTES = 23 * 60 // 11:00 PM
 
 /**
  * Grid row length = appointment length.
- * 8:00–6:00 in 30-minute steps → 20 rows (two per hour).
  */
 export const SEED_SLOT_MINUTES = 30 as const
+
+/** Span of the visible day, including the final 30-minute slot. */
+export const SEED_GRID_MINUTES =
+  SEED_DAY_END_MINUTES - SEED_DAY_START_MINUTES + SEED_SLOT_MINUTES
 
 export type SeedAppointmentMinutes = 15 | 30
 
@@ -102,8 +185,8 @@ export function formatMinutesToTime(totalMinutes: number): string {
 }
 
 /**
- * Build grid rows from 8:00 AM–6:00 PM every 30 minutes
- * (8:00–8:30, 8:30–9:00, …, 5:30–6:00) — 20 rows.
+ * Build 4:00 AM–11:00 PM NZ as consecutive 30-minute rows
+ * (4:00, 4:30, …, 11:00 PM). Does not wrap past midnight.
  */
 export function buildSeedTimeWindows(
   slotMinutes: number = SEED_SLOT_MINUTES
@@ -112,14 +195,13 @@ export function buildSeedTimeWindows(
   const windows: SeedTimeWindow[] = []
   for (
     let start = SEED_DAY_START_MINUTES;
-    start + step <= SEED_DAY_END_MINUTES;
+    start <= SEED_DAY_END_MINUTES;
     start += step
   ) {
-    const end = start + step
     windows.push({
       startMinutes: start,
-      endMinutes: end,
-      label: `${formatMinutesToTime(start)} – ${formatMinutesToTime(end)}`,
+      endMinutes: start + step,
+      label: `${formatMinutesToTime(start)} – ${formatMinutesToTime(start + step)}`,
     })
   }
   return windows
@@ -142,10 +224,11 @@ export function createEmptySeedEnabled(): Record<string, boolean> {
  */
 export function createMorningSeedEnabled(): Record<string, boolean> {
   const enabled = createEmptySeedEnabled()
+  const morningStart = 8 * 60
   const morningCutoff = 12 * 60
   for (const day of [1, 3, 5] as SeedWeekday[]) {
     for (const win of buildSeedTimeWindows()) {
-      if (win.endMinutes <= morningCutoff) {
+      if (win.startMinutes >= morningStart && win.startMinutes < morningCutoff) {
         enabled[seedCellKey(day, win.startMinutes)] = true
       }
     }
@@ -189,6 +272,13 @@ export function weekdayFromDateKey(dateKey: string): number {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
 }
 
+/** Monday YYYY-MM-DD of the week containing `dateKey`. */
+export function mondayDateKey(dateKey: string): string {
+  const dow = weekdayFromDateKey(dateKey)
+  const back = (dow + 6) % 7
+  return addDateKeyDays(dateKey, -back)
+}
+
 /** Inclusive Auckland start/end date keys for a seed horizon. */
 export function seedHorizonDateKeys(
   weeks: unknown,
@@ -215,22 +305,12 @@ export function seedHorizonDateKeys(
   return { startKey, endKey, lastWeekdayKey, daySpan }
 }
 
-/** Times offered in the manual “Add slot” form (every 30 min, 8–6). */
+/** Times offered in the manual “Add slot” form (every 30 min, 4:00 AM–11:00 PM NZ). */
 export const SEED_TIME_OPTIONS: { time: string; durationMinutes: 15 | 30 }[] =
-  (() => {
-    const options: { time: string; durationMinutes: 15 | 30 }[] = []
-    for (
-      let m = SEED_DAY_START_MINUTES;
-      m < SEED_DAY_END_MINUTES;
-      m += SEED_SLOT_MINUTES
-    ) {
-      options.push({
-        time: formatMinutesToTime(m),
-        durationMinutes: SEED_SLOT_MINUTES,
-      })
-    }
-    return options
-  })()
+  buildSeedTimeWindows().map((win) => ({
+    time: formatMinutesToTime(win.startMinutes),
+    durationMinutes: SEED_SLOT_MINUTES,
+  }))
 
 export function formatDateKey(date: Date): string {
   const y = date.getFullYear()
@@ -344,6 +424,7 @@ export function buildSeedSlots(
         type: 'discovery',
         status: 'available',
         durationMinutes: SEED_SLOT_MINUTES,
+        regions: allBookingRegions(),
       })
     }
   }

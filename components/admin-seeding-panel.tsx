@@ -59,6 +59,35 @@ export function AdminSeedingPanel() {
     }
   }
 
+  async function ensureUkMarket() {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/ensure-uk-market', { method: 'POST' })
+      const data = (await res.json()) as {
+        ok?: boolean
+        error?: string
+        marketCopy?: string
+        pageSeo?: string
+        siteTags?: string
+        crawlDocs?: string
+        blogPostsUpdated?: number
+        blogPostsScanned?: number
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'UK market backfill failed')
+      }
+      setMessage(
+        `UK market structures → copy ${data.marketCopy}, page SEO ${data.pageSeo}, tags ${data.siteTags}, crawl docs ${data.crawlDocs}. Blog posts: ${data.blogPostsUpdated} updated / ${data.blogPostsScanned} scanned.`
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'UK market backfill failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function pushBlogImages() {
     // Cloud-only: seed API compresses archive files and writes Storage URLs.
     await seedBlogs(false, true)
@@ -238,6 +267,27 @@ export function AdminSeedingPanel() {
           </div>
         )}
       </div>
+
+      <section className="rounded-lg border border-border bg-surface p-6">
+        <h3 className="text-base font-semibold text-ink">UK market</h3>
+        <p className="mt-1 text-sm text-ink-muted">
+          Adds the United Kingdom key to Firebase{' '}
+          <code className="text-xs">Site Content</code> documents (market copy,
+          page SEO, analytics tags, crawl documents) and sets{' '}
+          <code className="text-xs">showUk</code> on blog posts that do not have
+          it yet (inherits the International flag). Safe to run more than once.
+        </p>
+        <div className="mt-4">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void ensureUkMarket()}
+            className="rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+          >
+            Ensure UK market in Firestore
+          </button>
+        </div>
+      </section>
 
       <section className="rounded-lg border border-border bg-surface p-6">
         <h3 className="text-base font-semibold text-ink">Blog</h3>

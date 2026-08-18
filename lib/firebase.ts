@@ -72,22 +72,29 @@ export const CONFIRMATION_CONTENT_DOC_ID = 'contact-confirmation'
 
 /**
  * Document id for site analytics / marketing tag snippets.
- * Shape: `{ markets: { nz: SiteTagsContent, intl: SiteTagsContent } }`.
+ * Shape: `{ markets: { nz, intl, uk: SiteTagsContent } }`.
  * Legacy flat docs (pre market-split) are treated as NZ and copied on read.
+ * Missing `uk` is filled from empty UK defaults on read.
  */
 export const SITE_TAGS_DOC_ID = 'analytics-tags'
 
 /**
  * Document id for SEO crawl documents (robots, llms, sitemap extras, verification).
- * Shape: `{ markets: { nz: CrawlDocsContent, intl: CrawlDocsContent } }`.
+ * Shape: `{ markets: { nz, intl, uk: CrawlDocsContent } }`.
  * Legacy flat docs are treated as NZ and copied on read.
+ * Missing `uk` is filled from UK crawl defaults on read.
  */
 export const CRAWL_DOCS_DOC_ID = 'crawl-documents'
 
 /** Firestore collection for admin panel user accounts */
 export const USERS_COLLECTION = 'users'
 
-/** Firestore collection for blog posts */
+/**
+ * Firestore collection for blog posts.
+ * Visibility flags: `showNz`, `showUsa` (international), `showUk`.
+ * Missing `showUk` is treated as the same as `showUsa` (UK was previously
+ * part of International).
+ */
 export const BLOG_POSTS_COLLECTION = 'blogPosts'
 
 /**
@@ -118,16 +125,36 @@ export const SERVICE_PAGE_TILES_COLLECTION = 'servicePageTiles'
 export const CASE_STUDIES_HOME_DOC_ID = 'case-studies-home'
 
 /**
- * Site Content doc: draft NZ / International market copy.
+ * Site Content doc: draft NZ / International / UK market copy.
+ * Shape: `{ markets: { nz, intl, uk } }`. Missing `uk` is seeded from UK defaults.
  * Public site reads `data/market-copy.generated.ts` after Publish — not this doc.
  */
 export const MARKET_COPY_DOC_ID = 'market-copy'
 
 /**
+ * Site Content doc: which production hosts belong to NZ / UK / International.
+ * Public host routing reads `data/domain-regions.generated.ts` after Publish.
+ */
+export const DOMAIN_REGIONS_DOC_ID = 'domain-regions'
+
+/**
+ * Site Content doc: per-region booking calendar display options
+ * (whether visitors see the time zone selector).
+ */
+export const BOOKING_DISPLAY_DOC_ID = 'booking-display'
+
+/**
  * Site Content doc: draft H1 + meta tags for service/solution pages.
+ * Shape: `{ markets: { nz, intl, uk } }`. Missing `uk` is seeded from Global.
  * Public site reads `data/page-seo.generated.ts` after Publish — not this doc.
  */
 export const PAGE_SEO_DOC_ID = 'page-seo'
+
+/**
+ * Site Content doc: homepage “What we do” featured service tiles.
+ * Public site reads `data/home-services.generated.ts` after Publish — not this doc.
+ */
+export const HOME_SERVICES_DOC_ID = 'home-services'
 
 /**
  * Site Content doc: floating “Find out about” quick-nav labels + page links.
@@ -142,7 +169,10 @@ export const CHAT_SETTINGS_DOC_ID = 'chat-settings'
 /** Firestore collection for live chat sessions (messages in `messages` subcollection) */
 export const CHATS_COLLECTION = 'chats'
 
-/** Marketing mailing list contacts (clients + prospects) */
+/**
+ * Marketing mailing list contacts (clients + prospects).
+ * `region` is `'NZ' | 'International' | 'UK'`.
+ */
 export const MAILING_CONTACTS_COLLECTION = 'mailingContacts'
 
 /** Saved reusable audience filter sets */

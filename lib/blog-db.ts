@@ -6,6 +6,7 @@ import type { BlogListItem, BlogPost, BlogSection } from '@/lib/types'
 import {
   blogShowNz,
   blogShowUsa,
+  blogShowUk,
   blogVisibleOnMarket,
   type BlogPostInput,
   type BlogPostRecord,
@@ -61,6 +62,7 @@ function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
     featured: Boolean(data.featured),
     showNz: blogShowNz(data.showNz),
     showUsa: blogShowUsa(data.showUsa),
+    showUk: blogShowUk(data.showUk, data.showUsa),
     sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 9999,
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
@@ -189,6 +191,7 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
     featured: Boolean(input.featured),
     showNz: blogShowNz(input.showNz),
     showUsa: blogShowUsa(input.showUsa),
+    showUk: blogShowUk(input.showUk, input.showUsa ?? input.showUk),
     sortOrder:
       typeof input.sortOrder === 'number'
         ? input.sortOrder
@@ -203,6 +206,21 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
   }
 
   await ref.set(payload, { merge: true })
+}
+
+/** Persist a hero URL on an existing post. Returns false if the post is not saved yet. */
+export async function saveBlogPostImage(
+  slug: string,
+  imageUrl: string
+): Promise<boolean> {
+  const trimmed = slug.trim()
+  const image = imageUrl.trim()
+  if (!trimmed || !image) return false
+  const ref = getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(trimmed)
+  const existing = await ref.get()
+  if (!existing.exists) return false
+  await updateBlogPostFields(trimmed, { image })
+  return true
 }
 
 export async function updateBlogPostFields(
@@ -224,6 +242,7 @@ export async function updateBlogPostFields(
   if (patch.featured !== undefined) payload.featured = patch.featured
   if (patch.showNz !== undefined) payload.showNz = Boolean(patch.showNz)
   if (patch.showUsa !== undefined) payload.showUsa = Boolean(patch.showUsa)
+  if (patch.showUk !== undefined) payload.showUk = Boolean(patch.showUk)
   if (patch.sortOrder !== undefined) payload.sortOrder = patch.sortOrder
 
   await getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(slug).update(payload)

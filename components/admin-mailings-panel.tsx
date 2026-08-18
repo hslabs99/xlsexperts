@@ -15,6 +15,7 @@ import { AdminDialog } from '@/components/admin-dialog'
 import {
   MAILING_CONTACT_STATUSES,
   MAILING_REGIONS,
+  parseMailingRegion,
   type MailingAudience,
   type MailingAudienceFilter,
   type MailingCampaign,
@@ -130,6 +131,7 @@ export function AdminMailingsPanel() {
     'all' | 'engaged' | 'opened' | 'clicked' | 'unsubscribed'
   >('all')
   const [sectorFilter, setSectorFilter] = useState('all')
+  const [regionFilter, setRegionFilter] = useState<'all' | MailingRegion>('all')
   const [excludeCampaignTag, setExcludeCampaignTag] = useState('')
 
   const [selectedContact, setSelectedContact] = useState<MailingContact | null>(
@@ -168,6 +170,7 @@ export function AdminMailingsPanel() {
     useState<MailingCampaign | null>(null)
   const [campaignSends, setCampaignSends] = useState<MailingSend[]>([])
   const [sending, setSending] = useState(false)
+  const [sendConfirmOpen, setSendConfirmOpen] = useState(false)
   const [deleteCampaignId, setDeleteCampaignId] = useState<string | null>(null)
 
   const loadContacts = useCallback(async () => {
@@ -229,6 +232,7 @@ export function AdminMailingsPanel() {
     return contacts.filter((c) => {
       if (statusFilter !== 'all' && c.status !== statusFilter) return false
       if (sectorFilter !== 'all' && c.sector !== sectorFilter) return false
+      if (regionFilter !== 'all' && c.region !== regionFilter) return false
       if (engagedFilter === 'engaged' && !c.hasEngaged) return false
       if (engagedFilter === 'opened' && !c.hasOpened) return false
       if (engagedFilter === 'clicked' && !c.hasClicked) return false
@@ -255,6 +259,7 @@ export function AdminMailingsPanel() {
     q,
     statusFilter,
     sectorFilter,
+    regionFilter,
     engagedFilter,
     excludeCampaignTag,
   ])
@@ -313,7 +318,7 @@ export function AdminMailingsPanel() {
       company: row.company || row['company name'] || '',
       sector: row.sector || '',
       status: (row.status === 'client' ? 'client' : 'prospect') as MailingContactStatus,
-      region: (row.region === 'International' ? 'International' : 'NZ') as MailingRegion,
+      region: parseMailingRegion(row.region),
     }))
     const res = await fetch('/api/admin/mailings/contacts', {
       method: 'POST',
@@ -506,13 +511,7 @@ export function AdminMailingsPanel() {
       setError('Save the campaign before sending.')
       return
     }
-    if (
-      !window.confirm(
-        'Send this campaign now to the current audience? This cannot be undone.'
-      )
-    ) {
-      return
-    }
+    setSendConfirmOpen(false)
     setSending(true)
     setError('')
     setMessage('')
@@ -690,6 +689,20 @@ export function AdminMailingsPanel() {
               ))}
             </select>
             <select
+              value={regionFilter}
+              onChange={(e) =>
+                setRegionFilter(e.target.value as typeof regionFilter)
+              }
+              className="rounded-md border border-border px-3 py-2 text-sm"
+            >
+              <option value="all">All regions</option>
+              {MAILING_REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+            <select
               value={engagedFilter}
               onChange={(e) =>
                 setEngagedFilter(e.target.value as typeof engagedFilter)
@@ -840,6 +853,7 @@ export function AdminMailingsPanel() {
                       <th className="px-3 py-2">Description</th>
                       <th className="px-3 py-2">Statuses</th>
                       <th className="px-3 py-2">Sectors</th>
+                      <th className="px-3 py-2">Regions</th>
                       <th className="px-3 py-2">Manual picks</th>
                       <th className="px-3 py-2" />
                     </tr>
@@ -859,6 +873,9 @@ export function AdminMailingsPanel() {
                         </td>
                         <td className="px-3 py-2">
                           {(a.filter.sectors || []).join(', ') || 'all'}
+                        </td>
+                        <td className="px-3 py-2">
+                          {(a.filter.regions || []).join(', ') || 'all'}
                         </td>
                         <td className="px-3 py-2">
                           {a.filter.contactIds?.length || 0}
@@ -886,7 +903,7 @@ export function AdminMailingsPanel() {
                     {audiences.length === 0 && (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={7}
                           className="px-3 py-8 text-center text-ink-muted"
                         >
                           No audiences yet. Create one to use in campaigns.
@@ -974,6 +991,39 @@ export function AdminMailingsPanel() {
                       </label>
                     )
                   })}
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  <span className="text-sm text-ink-muted">Regions</span>
+                  {MAILING_REGIONS.map((r) => {
+                    const checked =
+                      audienceEditor.filter.regions?.includes(r) ?? false
+                    return (
+                      <label key={r} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const current = new Set(
+                              audienceEditor.filter.regions || []
+                            )
+                            if (e.target.checked) current.add(r)
+                            else current.delete(r)
+                            setAudienceEditor({
+                              ...audienceEditor,
+                              filter: {
+                                ...audienceEditor.filter,
+                                regions: [...current],
+                              },
+                            })
+                          }}
+                        />
+                        {r}
+                      </label>
+                    )
+                  })}
+                  <span className="text-xs text-ink-muted">
+                    (none checked = all regions)
+                  </span>
                 </div>
 
                 <label className="block text-sm">
@@ -1299,7 +1349,13 @@ export function AdminMailingsPanel() {
                 <button
                   type="button"
                   disabled={sending}
-                  onClick={() => void sendCampaign()}
+                  onClick={() => {
+                    if (!campaignEditor?.id) {
+                      setError('Save the campaign before sending.')
+                      return
+                    }
+                    setSendConfirmOpen(true)
+                  }}
                   className="rounded-md bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
                 >
                   {sending ? 'Sending…' : 'Send now'}
@@ -1683,6 +1739,21 @@ export function AdminMailingsPanel() {
         <p className="text-sm text-ink-muted">
           Campaigns that already reference this audience will need a new audience
           selected before they can be sent.
+        </p>
+      </AdminDialog>
+
+      <AdminDialog
+        open={sendConfirmOpen}
+        title="Send this campaign now?"
+        confirmLabel="Send now"
+        busy={sending}
+        onClose={() => {
+          if (!sending) setSendConfirmOpen(false)
+        }}
+        onConfirm={() => void sendCampaign()}
+      >
+        <p>
+          Send this campaign now to the current audience? This cannot be undone.
         </p>
       </AdminDialog>
 

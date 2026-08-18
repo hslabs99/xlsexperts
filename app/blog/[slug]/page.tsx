@@ -5,6 +5,7 @@ import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { hasBlogImageSrc } from '@/lib/blog-image-src'
 import { renderBlogInline } from '@/lib/blog-inline-markup'
 import { getSiteOrigin } from '@/lib/market-server'
+import { SITE_ICONS } from '@/lib/site-icons'
 import { Navbar } from '@/components/navbar'
 import { BlogSafeImage } from '@/components/blog-safe-image'
 import { ArrowLeft } from 'lucide-react'
@@ -34,6 +35,7 @@ export async function generateMetadata({
     title: post.title,
     description: post.excerpt,
     authors: [{ name: 'XLS Experts' }],
+    icons: SITE_ICONS,
     alternates: { canonical: url },
     openGraph: {
       type: 'article',

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  CONTACT_DETAIL_FIELDS,
   HERO_BADGE_DEFS,
   MARKET_COPY_FIELDS,
   defaultMarketCopyBundle,
@@ -9,7 +10,7 @@ import {
   setByPath,
   type MarketCopyBundle,
 } from '@/lib/market-copy'
-import { marketLabel, type MarketId } from '@/lib/market'
+import { MARKET_IDS, marketLabel, type MarketId } from '@/lib/market'
 import { HERO_BADGE_LINK_OPTIONS } from '@/lib/hero-badge-links'
 
 export function AdminMarketCopyPanel() {
@@ -73,7 +74,8 @@ export function AdminMarketCopyPanel() {
         field.label.toLowerCase().includes(q) ||
         field.group.toLowerCase().includes(q) ||
         getByPath(markets.nz, field.path).toLowerCase().includes(q) ||
-        getByPath(markets.intl, field.path).toLowerCase().includes(q)
+        getByPath(markets.intl, field.path).toLowerCase().includes(q) ||
+        getByPath(markets.uk, field.path).toLowerCase().includes(q)
       )
     })
   }, [filter, groupFilter, markets])
@@ -85,9 +87,17 @@ export function AdminMarketCopyPanel() {
     }))
   }
 
+  function copyField(from: MarketId, to: MarketId, path: string) {
+    const value = getByPath(markets[from], path)
+    updateField(to, path, value)
+  }
+
   function copyNzToIntl(path: string) {
-    const value = getByPath(markets.nz, path)
-    updateField('intl', path, value)
+    copyField('nz', 'intl', path)
+  }
+
+  function copyNzToUk(path: string) {
+    copyField('nz', 'uk', path)
   }
 
   async function handleSave() {
@@ -159,7 +169,7 @@ export function AdminMarketCopyPanel() {
   if (loading) {
     return (
       <div className="rounded-lg border border-border bg-surface p-6 text-sm text-ink-muted">
-        Loading NZ / International market copy from Firebase…
+        Loading NZ / International / UK market copy from Firebase…
       </div>
     )
   }
@@ -169,20 +179,21 @@ export function AdminMarketCopyPanel() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-ink">
-            Site CMS — NZ / Global copy
+            Site CMS — NZ / International / UK copy
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-muted">
             Site-level content: defaults, homepage SEO, contact details, hero,
-            about and FAQs. Edit New Zealand and Global (USA / Canada / UK /
-            Australia) strings side by side. Save stores a draft in Firebase{' '}
+            about and FAQs. Edit New Zealand, International, and United Kingdom
+            strings side by side. Save stores a draft in Firebase{' '}
             <code className="text-xs">Site Content / market-copy</code>.{' '}
             <strong>Publish</strong> writes{' '}
             <code className="text-xs">data/market-copy.generated.ts</code> so
             the public site never queries the database for these strings.
             Service and solution page H1s live under{' '}
             <strong>CMS → Pages CMS</strong>. Local testing: open{' '}
-            <code className="text-xs">/nz</code> or{' '}
-            <code className="text-xs">/usa</code> once — the choice is stored in
+            <code className="text-xs">/nz</code>,{' '}
+            <code className="text-xs">/usa</code>, or{' '}
+            <code className="text-xs">/uk</code> once — the choice is stored in
             a cookie and stays for the rest of the site.
           </p>
           <p className="mt-2 text-xs text-ink-muted">
@@ -245,8 +256,8 @@ export function AdminMarketCopyPanel() {
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
                 {badge.label}
               </p>
-              <div className="mt-2 grid gap-3 lg:grid-cols-2">
-                {(['nz', 'intl'] as const).map((market) => (
+              <div className="mt-2 grid gap-3 lg:grid-cols-3">
+                {MARKET_IDS.map((market) => (
                   <div key={market} className="space-y-2">
                     <p className="text-xs font-medium text-ink">
                       {marketLabel(market)}
@@ -304,16 +315,86 @@ export function AdminMarketCopyPanel() {
                       </select>
                     </label>
                     {market === 'nz' ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          copyNzToIntl(badge.textPath)
-                          copyNzToIntl(badge.hrefPath)
-                        }}
-                        className="text-xs font-semibold text-brand hover:underline"
-                      >
-                        Copy NZ → Global
-                      </button>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            copyNzToIntl(badge.textPath)
+                            copyNzToIntl(badge.hrefPath)
+                          }}
+                          className="text-xs font-semibold text-brand hover:underline"
+                        >
+                          Copy NZ → Intl
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            copyNzToUk(badge.textPath)
+                            copyNzToUk(badge.hrefPath)
+                          }}
+                          className="text-xs font-semibold text-brand hover:underline"
+                        >
+                          Copy NZ → UK
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-md border border-border bg-white p-4">
+        <h3 className="text-base font-semibold text-ink">Contact details</h3>
+        <p className="mt-1 text-sm text-ink-muted">
+          Phone, WhatsApp, and location on Contact Us, the thank-you page, and
+          the floating call button. Set a different number and region line for
+          New Zealand, International, and the United Kingdom. Save draft to
+          preview on localhost; Publish for the live sites.
+        </p>
+        <div className="mt-4 space-y-4">
+          {CONTACT_DETAIL_FIELDS.map((field) => (
+            <div
+              key={field.path}
+              className="rounded-md border border-border/80 bg-surface p-3"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                {field.label}
+              </p>
+              {field.hint ? (
+                <p className="mt-0.5 text-xs text-ink-muted">{field.hint}</p>
+              ) : null}
+              <div className="mt-2 grid gap-3 lg:grid-cols-3">
+                {MARKET_IDS.map((market) => (
+                  <div key={market} className="space-y-2">
+                    <p className="text-xs font-medium text-ink">
+                      {marketLabel(market)}
+                    </p>
+                    <FieldInput
+                      as={field.multiline ? 'textarea' : 'input'}
+                      value={getByPath(markets[market], field.path)}
+                      onChange={(v) => updateField(market, field.path, v)}
+                      multiline={field.multiline}
+                    />
+                    {market === 'nz' ? (
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => copyNzToIntl(field.path)}
+                          className="text-xs font-semibold text-brand hover:underline"
+                        >
+                          Copy NZ → Intl
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copyNzToUk(field.path)}
+                          className="text-xs font-semibold text-brand hover:underline"
+                        >
+                          Copy NZ → UK
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 ))}
@@ -353,12 +434,11 @@ export function AdminMarketCopyPanel() {
           <thead className="bg-gray-50 text-xs uppercase tracking-wide text-ink-muted">
             <tr>
               <th className="px-3 py-3 font-semibold">Key</th>
-              <th className="px-3 py-3 font-semibold">
-                {marketLabel('nz')}
-              </th>
-              <th className="px-3 py-3 font-semibold">
-                {marketLabel('intl')}
-              </th>
+              {MARKET_IDS.map((id) => (
+                <th key={id} className="px-3 py-3 font-semibold">
+                  {marketLabel(id)}
+                </th>
+              ))}
               <th className="px-3 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
@@ -366,6 +446,7 @@ export function AdminMarketCopyPanel() {
             {visibleFields.map((field) => {
               const nzValue = getByPath(markets.nz, field.path)
               const intlValue = getByPath(markets.intl, field.path)
+              const ukValue = getByPath(markets.uk, field.path)
               const InputTag = field.multiline ? 'textarea' : 'input'
               return (
                 <tr key={field.path} className="align-top">
@@ -378,32 +459,37 @@ export function AdminMarketCopyPanel() {
                       {field.group}
                     </div>
                   </td>
+                  {MARKET_IDS.map((id) => (
+                    <td key={id} className="px-3 py-3">
+                      <FieldInput
+                        as={InputTag}
+                        value={getByPath(markets[id], field.path)}
+                        onChange={(v) => updateField(id, field.path, v)}
+                        multiline={field.multiline}
+                      />
+                    </td>
+                  ))}
                   <td className="px-3 py-3">
-                    <FieldInput
-                      as={InputTag}
-                      value={nzValue}
-                      onChange={(v) => updateField('nz', field.path, v)}
-                      multiline={field.multiline}
-                    />
-                  </td>
-                  <td className="px-3 py-3">
-                    <FieldInput
-                      as={InputTag}
-                      value={intlValue}
-                      onChange={(v) => updateField('intl', field.path, v)}
-                      multiline={field.multiline}
-                    />
-                  </td>
-                  <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      disabled={busy || nzValue === intlValue}
-                      onClick={() => copyNzToIntl(field.path)}
-                      className="rounded border border-border px-2 py-1 text-xs font-medium text-ink hover:bg-gray-50 disabled:opacity-40"
-                      title="Copy NZ value into International"
-                    >
-                      NZ → Intl
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        disabled={busy || nzValue === intlValue}
+                        onClick={() => copyNzToIntl(field.path)}
+                        className="rounded border border-border px-2 py-1 text-xs font-medium text-ink hover:bg-gray-50 disabled:opacity-40"
+                        title="Copy NZ value into International"
+                      >
+                        NZ → Intl
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || nzValue === ukValue}
+                        onClick={() => copyNzToUk(field.path)}
+                        className="rounded border border-border px-2 py-1 text-xs font-medium text-ink hover:bg-gray-50 disabled:opacity-40"
+                        title="Copy NZ value into United Kingdom"
+                      >
+                        NZ → UK
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

@@ -1,17 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { marketLabel, type MarketId } from '@/lib/market'
+import { MARKET_IDS, marketHostHint, marketLabel, type MarketId } from '@/lib/market'
 import {
-  DEFAULT_SITE_TAGS,
-  cloneSiteTags,
   defaultSiteTagsBundle,
+  normalizeSiteTagsBundle,
   validateSiteTags,
   type SiteTagsBundle,
   type SiteTagsContent,
 } from '@/lib/site-tags'
 
-const MARKET_TABS: MarketId[] = ['nz', 'intl']
+const MARKET_TABS: MarketId[] = MARKET_IDS
 
 export function AdminSiteTagsPanel() {
   const [markets, setMarkets] = useState<SiteTagsBundle>(defaultSiteTagsBundle())
@@ -36,10 +35,7 @@ export function AdminSiteTagsPanel() {
       if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Failed to load analytics tags')
       }
-      setMarkets({
-        nz: cloneSiteTags(data.markets.nz ?? DEFAULT_SITE_TAGS),
-        intl: cloneSiteTags(data.markets.intl ?? DEFAULT_SITE_TAGS),
-      })
+      setMarkets(normalizeSiteTagsBundle({ markets: data.markets }))
     } catch (err) {
       setError(
         err instanceof Error
@@ -83,10 +79,7 @@ export function AdminSiteTagsPanel() {
       if (!res.ok || !data.ok || !data.markets) {
         throw new Error(data.error || 'Save failed')
       }
-      setMarkets({
-        nz: cloneSiteTags(data.markets.nz),
-        intl: cloneSiteTags(data.markets.intl),
-      })
+      setMarkets(normalizeSiteTagsBundle({ markets: data.markets }))
       setMessage(
         form.enabled
           ? `${marketLabel(activeMarket)} analytics tags saved and enabled.`
@@ -119,8 +112,10 @@ export function AdminSiteTagsPanel() {
         <p className="mt-1 text-sm text-ink-muted">
           Separate Google Tag Manager / Analytics and vendor snippets for each
           domain. New Zealand tags run only on{' '}
-          <code className="text-xs">xlsexperts.co.nz</code>; International tags
-          only on <code className="text-xs">xlsexperts.com</code>. Stored in
+          <code className="text-xs">{marketHostHint('nz')}</code>; International
+          tags only on <code className="text-xs">{marketHostHint('intl')}</code>
+          ; UK tags only on{' '}
+          <code className="text-xs">{marketHostHint('uk')}</code>. Stored in
           Firebase <code className="text-xs">Site Content / analytics-tags</code>
           . Tags do not run on the admin panel.
         </p>

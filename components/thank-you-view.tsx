@@ -150,7 +150,7 @@ export function ThankYouView() {
                   style={{ color: '#25D366' }}
                   aria-hidden="true"
                 />
-                WhatsApp us
+                {marketCopy.contact.whatsappLabel}
               </a>
             </div>
           </div>

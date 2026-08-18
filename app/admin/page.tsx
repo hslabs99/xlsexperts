@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Check, Plus, Trash2, X } from 'lucide-react'
 import {
   SEED_TIME_OPTIONS,
+  applyBookingRegionChange,
   formatDateKey,
   formatDisplayDate,
+  hasAnyBookingRegion,
   parseTimeToMinutes,
   type BookingSlot,
   type BookingSlotStatus,
@@ -16,6 +18,7 @@ import { AdminEnquiriesPanel } from '@/components/admin-enquiries-panel'
 import { AdminAnalyticsPanel } from '@/components/admin-analytics-panel'
 import { AdminChatPanel } from '@/components/admin-chat-panel'
 import { AdminConfirmationContentPanel } from '@/components/admin-confirmation-content-panel'
+import { AdminDomainRegionsPanel } from '@/components/admin-domain-regions-panel'
 import { AdminLogin } from '@/components/admin-login'
 import { AdminUsersPanel } from '@/components/admin-users-panel'
 import { AdminBlogPanel } from '@/components/admin-blog-panel'
@@ -25,10 +28,12 @@ import { AdminFindOutAboutPanel } from '@/components/admin-find-out-about-panel'
 import { AdminSeedingPanel } from '@/components/admin-seeding-panel'
 import { AdminBookingCalendar } from '@/components/admin-booking-calendar'
 import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
+import { AdminBookingTimezonePanel } from '@/components/admin-booking-timezone-panel'
 import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
 import { AdminCrawlDocsPanel } from '@/components/admin-crawl-docs-panel'
 import { AdminMarketCopyPanel } from '@/components/admin-market-copy-panel'
 import { AdminPageSeoPanel } from '@/components/admin-page-seo-panel'
+import { AdminHomeServicesPanel } from '@/components/admin-home-services-panel'
 import { AdminMailingsPanel } from '@/components/admin-mailings-panel'
 import {
   clearAdminSession,
@@ -48,7 +53,8 @@ type AdminTab = AdminTabId
 
 type BookingSubTab = 'bookings' | 'settings'
 type SettingsSubTab = 'users' | 'thank-you'
-type CmsSubTab = 'site' | 'pages'
+type CmsSubTab = 'site' | 'pages' | 'home-services'
+type MarketingSubTab = 'tags' | 'crawl' | 'domains'
 
 const TABS = ADMIN_TABS
 
@@ -138,6 +144,8 @@ export default function AdminPage() {
   const [settingsSubTab, setSettingsSubTab] =
     useState<SettingsSubTab>('users')
   const [cmsSubTab, setCmsSubTab] = useState<CmsSubTab>('site')
+  const [marketingSubTab, setMarketingSubTab] =
+    useState<MarketingSubTab>('tags')
 
   const [slots, setSlots] = useState<BookingSlot[]>([])
   const [loading, setLoading] = useState(true)
@@ -173,8 +181,8 @@ export default function AdminPage() {
     writeAdminViewMode(mode)
   }
 
-  const loadSlots = useCallback(async () => {
-    setLoading(true)
+  const loadSlots = useCallback(async (opts?: { quiet?: boolean }) => {
+    if (!opts?.quiet) setLoading(true)
     setError(null)
     try {
       const res = await fetch('/api/admin/booking-slots')
@@ -190,7 +198,7 @@ export default function AdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load slots')
     } finally {
-      setLoading(false)
+      if (!opts?.quiet) setLoading(false)
     }
   }, [])
 
@@ -238,6 +246,7 @@ export default function AdminPage() {
             type: newType.trim() || 'discovery',
             status: 'available',
             durationMinutes: 30,
+            regions: { nz: true, uk: true, intl: true },
           },
         }),
       })
@@ -315,41 +324,118 @@ export default function AdminPage() {
     }
   }
 
-  async function disableSlots(targets: BookingSlot[]) {
-    const available = targets.filter((s) => s.status === 'available')
-    if (available.length === 0) return
+  async function setCells(
+    cells: { date: string; time: string }[],
+    scope: 'all' | 'nz' | 'uk' | 'intl',
+    enabled: boolean
+  ) {
+    if (cells.length === 0) return
+    const singleCell = cells.length === 1
+    const cellKeys = new Set(cells.map((cell) => `${cell.date}|${cell.time}`))
+    if (!singleCell) {
+      setBusy(true)
+      setMessage(null)
+    }
+    setError(null)
+    setSlots((prev) =>
+      prev.map((slot) => {
+        if (!cellKeys.has(`${slot.date}|${slot.time}`)) return slot
+        if (slot.status === 'booked') return slot
+        const regions = applyBookingRegionChange(slot.regions, scope, enabled)
+        return {
+          ...slot,
+          regions,
+          status: hasAnyBookingRegion(regions) ? 'available' : 'unavailable',
+        }
+      })
+    )
+    try {
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set-cells', scope, enabled, cells }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        created?: number
+        updated?: number
+        skipped?: number
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not update cells')
+      }
+      const created = data.created ?? 0
+      const updated = data.updated ?? 0
+      const changed = created + updated
+      const regionLabel =
+        scope === 'all' ? 'all regions' : scope === 'intl' ? 'INT' : scope.toUpperCase()
+      if (!singleCell) {
+        if (enabled) {
+          setMessage(
+            changed === 0
+              ? `Nothing to open for ${regionLabel} — those cells are already on or booked.`
+              : `Opened ${changed} cell${changed === 1 ? '' : 's'} for ${regionLabel}${
+                  created > 0 ? ` (${created} new)` : ''
+                }.`
+          )
+        } else {
+          setMessage(
+            changed === 0
+              ? `Nothing to block for ${regionLabel}.`
+              : `Blocked ${changed} cell${changed === 1 ? '' : 's'} for ${regionLabel}.`
+          )
+        }
+      }
+      await loadSlots({ quiet: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update cells')
+      await loadSlots({ quiet: true })
+    } finally {
+      if (!singleCell) setBusy(false)
+    }
+  }
+
+  async function copyWeekToNext(fromMonday: string) {
     setBusy(true)
     setError(null)
     setMessage(null)
     try {
-      let failed = 0
-      for (const slot of available) {
-        const res = await fetch('/api/admin/booking-slots', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: slot.id, action: 'unavailable' }),
-        })
-        const data = (await res.json()) as { ok?: boolean; error?: string }
-        if (!res.ok || !data.ok) {
-          failed += 1
-          continue
-        }
-        setSlots((prev) =>
-          prev.map((s) =>
-            s.id === slot.id
-              ? { ...s, status: 'unavailable', booking: null }
-              : s
-          )
-        )
+      const res = await fetch('/api/admin/booking-slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'copy-week', fromMonday }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        created?: number
+        updated?: number
+        skippedBooked?: number
+        toMonday?: string
+        error?: string
       }
-      const ok = available.length - failed
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not copy week')
+      }
+      const changed = (data.created ?? 0) + (data.updated ?? 0)
+      const booked = data.skippedBooked ?? 0
+      const nextLabel = data.toMonday
+        ? formatDisplayDate(data.toMonday)
+        : 'next week'
       setMessage(
-        failed === 0
-          ? `Occupied ${ok} slot${ok === 1 ? '' : 's'}.`
-          : `Occupied ${ok}; ${failed} failed.`
+        changed === 0 && booked === 0
+          ? `Next week already matches this week (${nextLabel}).`
+          : `Copied this week onto the week of ${nextLabel}: ${changed} cell${
+              changed === 1 ? '' : 's'
+            } updated.${
+              booked > 0
+                ? ` Left ${booked} booked slot${booked === 1 ? '' : 's'} unchanged.`
+                : ''
+            }`
       )
+      await loadSlots({ quiet: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not update slots')
+      setError(err instanceof Error ? err.message : 'Could not copy week')
     } finally {
       setBusy(false)
     }
@@ -807,8 +893,9 @@ export default function AdminPage() {
                       Booking settings
                     </h2>
                     <p className="mt-1 text-sm text-ink-muted">
-                      Week grid of seeded slots — toggle cells, block a whole
-                      time row or day, then seed or add slots below.
+                      Use NZ / UK / INT on each cell so a time can be offered in
+                      one region without showing in another. Australia uses INT.
+                      Open / Block follows the bulk region selected on the grid.
                     </p>
                   </div>
                   <button
@@ -834,12 +921,15 @@ export default function AdminPage() {
                   </div>
                 )}
 
+                <AdminBookingTimezonePanel />
+
                 <AdminBookingCalendar
                   slots={slots}
                   loading={loading}
                   busy={busy}
                   onToggleStatus={handleStatusClick}
-                  onDisableSlots={disableSlots}
+                  onSetCells={setCells}
+                  onCopyWeekToNext={copyWeekToNext}
                 />
 
                 <AdminBookingSeedPanel
@@ -910,7 +1000,11 @@ export default function AdminPage() {
           session &&
           canAccessTab(session, 'enquiries', viewMode) && (
           <div className="mt-8" role="tabpanel">
-            <AdminEnquiriesPanel />
+            <AdminEnquiriesPanel
+              canDelete={
+                session.role === 'admin' && viewMode === 'admin'
+              }
+            />
           </div>
         )}
 
@@ -975,6 +1069,7 @@ export default function AdminPage() {
                 [
                   { id: 'site' as const, label: 'Site CMS' },
                   { id: 'pages' as const, label: 'Pages CMS' },
+                  { id: 'home-services' as const, label: 'Home services' },
                 ] as const
               ).map((item) => {
                 const active = cmsSubTab === item.id
@@ -999,6 +1094,7 @@ export default function AdminPage() {
 
             {cmsSubTab === 'site' && <AdminMarketCopyPanel />}
             {cmsSubTab === 'pages' && <AdminPageSeoPanel />}
+            {cmsSubTab === 'home-services' && <AdminHomeServicesPanel />}
           </div>
         )}
 
@@ -1006,8 +1102,41 @@ export default function AdminPage() {
           session &&
           canAccessTab(session, 'marketing', viewMode) && (
           <div className="mt-8 space-y-6" role="tabpanel">
-            <AdminSiteTagsPanel />
-            <AdminCrawlDocsPanel />
+            <div
+              className="flex flex-wrap gap-1 border-b border-border"
+              role="tablist"
+              aria-label="Marketing sections"
+            >
+              {(
+                [
+                  { id: 'tags' as const, label: 'Analytics tags' },
+                  { id: 'crawl' as const, label: 'SEO crawl' },
+                  { id: 'domains' as const, label: 'Domains' },
+                ] as const
+              ).map((item) => {
+                const active = marketingSubTab === item.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setMarketingSubTab(item.id)}
+                    className={
+                      active
+                        ? 'border-b-2 border-brand px-4 py-2.5 text-sm font-semibold text-brand'
+                        : 'border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-ink-muted transition hover:text-ink'
+                    }
+                  >
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {marketingSubTab === 'tags' && <AdminSiteTagsPanel />}
+            {marketingSubTab === 'crawl' && <AdminCrawlDocsPanel />}
+            {marketingSubTab === 'domains' && <AdminDomainRegionsPanel />}
           </div>
         )}
 
@@ -1091,7 +1220,12 @@ export default function AdminPage() {
                 . Email templates live in{' '}
                 <code className="text-xs">Email Templates</code>, enquiries
                 in <code className="text-xs">enquiries</code>, users in{' '}
-                <code className="text-xs">users</code>, blog posts in{' '}
+                <code className="text-xs">users</code>, domain-to-region
+                bindings in{' '}
+                <code className="text-xs">Site Content / domain-regions</code>
+                , booking display options in{' '}
+                <code className="text-xs">Site Content / booking-display</code>
+                , blog posts in{' '}
                 <code className="text-xs">blogPosts</code> (images in Firebase
                 Storage), booking slots in{' '}
                 <code className="text-xs">Booking Slots</code>, and site

@@ -211,9 +211,11 @@ export function AdminBookingSeedPanel({
             Seed discovery availability
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Ongoing tool to refill public discovery slots. Enable Mon–Fri
-            half-hour cells (8:00 AM–6:00 PM), then seed that pattern across a
-            rolling NZ calendar horizon (default 2 weeks = 14 days).
+            Bulk pattern fill only. For day-to-day on/off work, use the week
+            grid above. Here you can seed a Mon–Fri template across a rolling NZ
+            horizon (default 2 weeks). Rows are 4:00 AM–11:00 PM NZ in clock
+            order. Early NZ hours can still be seeded for UK and International
+            callers.
           </p>
         </div>
         <p className="text-xs text-ink-muted">
@@ -230,7 +232,7 @@ export function AdminBookingSeedPanel({
             30 minutes (fixed)
           </div>
           <span className="text-xs text-ink-muted">
-            Rows: 8:00–8:30, 8:30–9:00, …, 5:30–6:00
+            Rows: 4:00 AM–11:00 PM NZ, in time order
           </span>
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -303,7 +305,7 @@ export function AdminBookingSeedPanel({
         </button>
       </div>
 
-      <div className="mt-5 overflow-x-auto">
+      <div className="mt-5 max-h-[min(70vh,44rem)] overflow-auto">
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
             <tr>

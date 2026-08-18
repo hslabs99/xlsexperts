@@ -1,13 +1,10 @@
 import Link from 'next/link'
-import {
-  ALL_SERVICES_HREF,
-  homeServicePages,
-  type ServicePage,
-} from '@/lib/service-pages'
 import { serviceIcons } from '@/components/service-icons'
+import { getHomeServicesContent } from '@/lib/home-services-server'
+import type { HomeServiceTile } from '@/lib/home-services'
 
-function ServiceTile({ service }: { service: ServicePage }) {
-  const Icon = serviceIcons[service.icon]
+function ServiceTile({ service }: { service: HomeServiceTile }) {
+  const Icon = serviceIcons[service.icon] ?? serviceIcons.spreadsheet
   return (
     <Link
       href={service.href}
@@ -39,7 +36,9 @@ function ServiceTile({ service }: { service: ServicePage }) {
   )
 }
 
-export function Services() {
+export async function Services() {
+  const content = await getHomeServicesContent()
+
   return (
     <section id="services" className="py-20 sm:py-28" style={{ backgroundColor: '#e8f5ee' }}>
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
@@ -47,50 +46,50 @@ export function Services() {
         {/* Section header */}
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#1a6b3c' }}>
-            What we do
+            {content.eyebrow}
           </span>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            Services
+            {content.heading}
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-500">
-            Whether you need a quick formula fix or a full enterprise application, we have the expertise to deliver it — on time, on budget, and built to last.
+            {content.intro}
           </p>
         </div>
 
         {/* Service cards */}
         <div className="mt-14 grid gap-px sm:grid-cols-2 lg:grid-cols-4" style={{ backgroundColor: '#c5e0d0' }}>
-          {homeServicePages.map((service) => (
+          {content.tiles.map((service) => (
             <ServiceTile key={service.href} service={service} />
           ))}
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center sm:gap-8">
           <Link
-            href={ALL_SERVICES_HREF}
+            href={content.viewAllHref}
             className="text-sm font-bold uppercase tracking-widest transition-colors hover:underline"
             style={{ color: '#1a6b3c' }}
           >
-            View all services
+            {content.viewAllLabel}
           </Link>
           <Link
-            href="/use-cases"
+            href={content.useCasesHref}
             className="text-sm font-bold uppercase tracking-widest transition-colors hover:underline"
             style={{ color: '#1a6b3c' }}
           >
-            A.I. use cases for Excel
+            {content.useCasesLabel}
           </Link>
         </div>
 
         {/* Bottom CTA */}
         <div className="mt-12 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center">
           <p className="text-sm text-gray-500">
-            Not sure which service fits your need?
+            {content.ctaPrompt}
           </p>
           <a
-            href="#contact"
+            href={content.ctaHref}
             className="btn-primary inline-flex h-9 items-center rounded-sm px-5 text-sm font-medium"
           >
-            Book a free discovery call
+            {content.ctaLabel}
           </a>
         </div>
 

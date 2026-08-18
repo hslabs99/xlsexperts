@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { Plus, Trash2, Upload, Eye, Sparkles, ArrowUp, ArrowDown, ArrowUpDown, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Upload, Eye, Sparkles, ArrowUp, ArrowDown, ArrowUpDown, Loader2, ImageOff, ImagePlus } from 'lucide-react'
 import type { BlogPostRecord } from '@/lib/blog-shared'
 import { AdminDialog } from '@/components/admin-dialog'
 import {
@@ -30,20 +30,29 @@ import {
   fileFromImageUrl,
   optimizeBlogImageFile,
 } from '@/lib/blog-image-optimize'
+import { hasBlogImageSrc } from '@/lib/blog-image-src'
 
 type EditorMode = 'list' | 'edit' | 'preview' | 'ai'
 type SortKey =
   | 'order'
+  | 'image'
   | 'title'
   | 'category'
   | 'author'
   | 'published'
   | 'nz'
   | 'usa'
+  | 'uk'
   | 'featured'
 type SortDir = 'asc' | 'desc'
-type MarketFilter = 'all' | 'both' | 'nz-only' | 'usa-only' | 'hidden'
-type FlagField = 'showNz' | 'showUsa' | 'featured'
+type MarketFilter =
+  | 'all'
+  | 'both'
+  | 'nz-only'
+  | 'usa-only'
+  | 'uk-only'
+  | 'hidden'
+type FlagField = 'showNz' | 'showUsa' | 'showUk' | 'featured'
 
 function flagSaveKey(slug: string, field: FlagField) {
   return `${slug}:${field}`
@@ -70,6 +79,41 @@ function SortIcon({
     <ArrowUp className="h-3.5 w-3.5 text-brand" />
   ) : (
     <ArrowDown className="h-3.5 w-3.5 text-brand" />
+  )
+}
+
+function BlogListThumb({ src, title }: { src: string; title: string }) {
+  const [failed, setFailed] = useState(false)
+  const url = src.trim()
+  const has = hasBlogImageSrc(url) && !failed
+
+  return (
+    <div
+      className={`relative h-12 w-[4.5rem] shrink-0 overflow-hidden rounded border ${
+        has
+          ? 'border-border bg-white'
+          : 'border-dashed border-amber-400 bg-amber-50'
+      }`}
+      title={has ? `${title} hero image` : `${title} — no hero image`}
+      aria-label={has ? `Hero image for ${title}` : `No hero image for ${title}`}
+    >
+      {has ? (
+        <Image
+          src={url}
+          alt=""
+          fill
+          unoptimized
+          className="object-cover"
+          sizes="72px"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span className="flex h-full items-center justify-center gap-0.5 px-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+          <ImageOff className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          None
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -127,6 +171,7 @@ function emptyPost(): BlogPostRecord {
     featured: false,
     showNz: true,
     showUsa: true,
+    showUk: true,
     sortOrder: 9999,
     createdAt: null,
     updatedAt: null,
@@ -151,6 +196,7 @@ export function AdminBlogPanel() {
   const [previewKind, setPreviewKind] = useState<BlogPreviewKind>('list')
   const [previewReturn, setPreviewReturn] = useState<'list' | 'edit'>('edit')
   const [aiReturn, setAiReturn] = useState<'list' | 'edit'>('list')
+  const [aiIntent, setAiIntent] = useState<'full' | 'image'>('full')
   const [aiSessionTick, setAiSessionTick] = useState(0)
   const [form, setForm] = useState<BlogPostRecord>(emptyPost())
   const [deleteSlug, setDeleteSlug] = useState<string | null>(null)
@@ -202,6 +248,7 @@ export function AdminBlogPanel() {
           ...item,
           showNz: item.showNz !== false,
           showUsa: item.showUsa !== false,
+          showUk: item.showUk !== false,
         }))
       )
     } catch (err) {
@@ -223,13 +270,15 @@ export function AdminBlogPanel() {
       list = list.filter((r) => !r.published)
     }
     if (marketFilter === 'both') {
-      list = list.filter((r) => r.showNz && r.showUsa)
+      list = list.filter((r) => r.showNz && r.showUsa && r.showUk)
     } else if (marketFilter === 'nz-only') {
-      list = list.filter((r) => r.showNz && !r.showUsa)
+      list = list.filter((r) => r.showNz && !r.showUsa && !r.showUk)
     } else if (marketFilter === 'usa-only') {
-      list = list.filter((r) => r.showUsa && !r.showNz)
+      list = list.filter((r) => r.showUsa && !r.showNz && !r.showUk)
+    } else if (marketFilter === 'uk-only') {
+      list = list.filter((r) => r.showUk && !r.showNz && !r.showUsa)
     } else if (marketFilter === 'hidden') {
-      list = list.filter((r) => !r.showNz && !r.showUsa)
+      list = list.filter((r) => !r.showNz && !r.showUsa && !r.showUk)
     }
     const q = search.trim().toLowerCase()
     if (q) {
@@ -247,6 +296,10 @@ export function AdminBlogPanel() {
         case 'title':
           cmp = a.title.localeCompare(b.title, 'en')
           break
+        case 'image':
+          cmp =
+            Number(hasBlogImageSrc(a.image)) - Number(hasBlogImageSrc(b.image))
+          break
         case 'category':
           cmp = a.category.localeCompare(b.category, 'en')
           break
@@ -261,6 +314,9 @@ export function AdminBlogPanel() {
           break
         case 'usa':
           cmp = Number(a.showUsa) - Number(b.showUsa)
+          break
+        case 'uk':
+          cmp = Number(a.showUk) - Number(b.showUk)
           break
         case 'featured':
           cmp = Number(a.featured) - Number(b.featured)
@@ -284,16 +340,27 @@ export function AdminBlogPanel() {
     let both = 0
     let nzOnly = 0
     let usaOnly = 0
+    let ukOnly = 0
     let hidden = 0
     for (const r of rows) {
       if (r.published) published += 1
       else draft += 1
-      if (r.showNz && r.showUsa) both += 1
-      else if (r.showNz) nzOnly += 1
-      else if (r.showUsa) usaOnly += 1
-      else hidden += 1
+      if (r.showNz && r.showUsa && r.showUk) both += 1
+      else if (r.showNz && !r.showUsa && !r.showUk) nzOnly += 1
+      else if (r.showUsa && !r.showNz && !r.showUk) usaOnly += 1
+      else if (r.showUk && !r.showNz && !r.showUsa) ukOnly += 1
+      else if (!r.showNz && !r.showUsa && !r.showUk) hidden += 1
     }
-    return { published, draft, total: rows.length, both, nzOnly, usaOnly, hidden }
+    return {
+      published,
+      draft,
+      total: rows.length,
+      both,
+      nzOnly,
+      usaOnly,
+      ukOnly,
+      hidden,
+    }
   }, [rows])
 
   function toggleSort(key: SortKey) {
@@ -430,8 +497,12 @@ export function AdminBlogPanel() {
     setError(null)
   }
 
-  function startAiAssist(returnTo: 'list' | 'edit' = 'list') {
+  function startAiAssist(
+    returnTo: 'list' | 'edit' = 'list',
+    intent: 'full' | 'image' = 'full'
+  ) {
     setAiReturn(returnTo)
+    setAiIntent(intent)
     setMessage(null)
     setError(null)
     setMode('ai')
@@ -440,38 +511,65 @@ export function AdminBlogPanel() {
   function applyAiDraft(draft: BlogAiDraft | null, imageFile: File | null) {
     clearBlogAiAssistSession()
     setAiSessionTick((n) => n + 1)
+    const fromEditor = aiReturn === 'edit'
+    const keepExisting = fromEditor && !isNew
+
     if (draft) {
-      setForm({
-        ...emptyPost(),
-        title: draft.title,
-        slug: draft.slug,
-        excerpt: draft.excerpt,
-        category: draft.category,
-        author: draft.author || 'Mike',
-        readTime: draft.readTime,
-        sections:
-          draft.sections.length > 0
-            ? draft.sections.map((s) => ({ ...s }))
-            : [{ type: 'p', text: '' }],
-        published: false,
-        featured: false,
-        showNz: true,
-        showUsa: true,
+      setForm((p) => {
+        if (keepExisting) {
+          return {
+            ...p,
+            title: draft.title || p.title,
+            excerpt: draft.excerpt || p.excerpt,
+            category: draft.category || p.category,
+            author: draft.author || p.author,
+            readTime: draft.readTime || p.readTime,
+            sections:
+              draft.sections.length > 0
+                ? draft.sections.map((s) => ({ ...s }))
+                : p.sections,
+          }
+        }
+        return {
+          ...(fromEditor ? p : emptyPost()),
+          title: draft.title,
+          slug: fromEditor && p.slug ? p.slug : draft.slug,
+          excerpt: draft.excerpt,
+          category: draft.category,
+          author: draft.author || 'Mike',
+          readTime: draft.readTime,
+          sections:
+            draft.sections.length > 0
+              ? draft.sections.map((s) => ({ ...s }))
+              : [{ type: 'p', text: '' }],
+          published: fromEditor ? p.published : false,
+          featured: fromEditor ? p.featured : false,
+          showNz: fromEditor ? p.showNz : true,
+          showUsa: fromEditor ? p.showUsa : true,
+          showUk: fromEditor ? p.showUk : true,
+        }
       })
-      setIsNew(true)
-    } else if (imageFile) {
+      if (!fromEditor) setIsNew(true)
+    } else if (imageFile && !fromEditor) {
       setForm(emptyPost())
       setIsNew(true)
     }
+
     setPendingImageFile(imageFile)
     setAiReturn('edit')
     setMode('edit')
     setMessage(
-      draft && imageFile
-        ? 'AI draft and image applied — review and save as a draft.'
-        : draft
-          ? 'AI draft applied — review sections and save as a draft.'
-          : 'AI image applied — complete the post and save.'
+      keepExisting
+        ? draft && imageFile
+          ? 'AI copy and image applied — review and save this post.'
+          : draft
+            ? 'AI copy applied — review sections and save this post.'
+            : 'AI image applied — review and save this post.'
+        : draft && imageFile
+          ? 'AI draft and image applied — review and save as a draft.'
+          : draft
+            ? 'AI draft applied — review sections and save as a draft.'
+            : 'AI image applied — complete the post and save.'
     )
     setError(null)
   }
@@ -514,6 +612,7 @@ export function AdminBlogPanel() {
       ...form,
       slug: form.slug.trim() || slugify(form.title) || 'untitled',
       title: form.title.trim() || 'Untitled post',
+      image: pendingImagePreviewUrl || form.image,
     }
   }
 
@@ -547,7 +646,11 @@ export function AdminBlogPanel() {
       const queuedImage = pendingImageFile
       if (queuedImage) {
         const optimized = await optimizeBlogImageFile(queuedImage)
-        await uploadPendingImage(optimized.file, slug)
+        const imageUrl = await uploadPendingImage(optimized.file, slug)
+        if (!imageUrl) {
+          throw new Error('Image uploaded but the post was not updated with the new URL.')
+        }
+        setForm((p) => ({ ...p, slug, image: imageUrl }))
         setMessage(
           `Saved “${form.title.trim()}” with optimized hero image (${describeOptimization(optimized)}).`
         )
@@ -615,6 +718,8 @@ export function AdminBlogPanel() {
         throw new Error(data.error || 'Image upload failed')
       }
       setForm((p) => ({ ...p, image: data.image!, slug: p.slug || slug }))
+      setPendingImageFile(null)
+      setImageWarn(null)
       const storedBytes = data.bytes ?? file.size
       const original = data.originalBytes
       setMessage(
@@ -622,12 +727,11 @@ export function AdminBlogPanel() {
           ? `Image optimized and uploaded (${formatBytes(original)} → ${formatBytes(storedBytes)}).`
           : `Image uploaded (${formatBytes(storedBytes)}).`
       )
+      return data.image
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed')
       throw err
     } finally {
-      setPendingImageFile(null)
-      setImageWarn(null)
       setBusy(false)
     }
   }
@@ -770,6 +874,9 @@ export function AdminBlogPanel() {
           cancelLabel={
             aiReturn === 'edit' ? 'Back to editor' : 'Back to list'
           }
+          existingPost={aiReturn === 'edit' ? form : null}
+          existingSaved={aiReturn === 'edit' && !isNew}
+          intent={aiIntent}
         />
       </div>
     )
@@ -959,7 +1066,7 @@ export function AdminBlogPanel() {
                 />
               </div>
             ) : null}
-            {pendingImageFile && !form.image ? (
+            {pendingImageFile ? (
               <p className="text-xs text-ink-muted">
                 Pending AI image: {pendingImageFile.name} (uploads on save)
               </p>
@@ -997,6 +1104,15 @@ export function AdminBlogPanel() {
                 className="inline-flex items-center gap-2 rounded-md border border-brand/40 bg-brand-light px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/15 disabled:opacity-60"
               >
                 Optimize for web
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => startAiAssist('edit', 'image')}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+              >
+                <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                AI Image Generator
               </button>
             </div>
           </div>
@@ -1039,7 +1155,17 @@ export function AdminBlogPanel() {
                 setForm((p) => ({ ...p, showUsa: e.target.checked }))
               }
             />
-            Show on USA site
+            Show on International site
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={form.showUk}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, showUk: e.target.checked }))
+              }
+            />
+            Show on UK site
           </label>
         </div>
 
@@ -1273,10 +1399,10 @@ export function AdminBlogPanel() {
               Use <strong>New with AI</strong> to draft markdown copy and a hero
               image from a system prompt library, or create manually. Filter
               drafts vs published, select rows, then batch publish or unpublish
-              (hide from the public blog). NZ and USA checkboxes default to both
-              sites; uncheck one to hide a regional post from the other market.
-              Use the market filters or click column headers to isolate NZ-only
-              or USA-only posts.
+              (hide from the public blog). NZ, International, and UK checkboxes
+              default to all three sites; uncheck one to hide a regional post
+              from that market. Use the market filters or click column headers
+              to isolate NZ-only, International-only, or UK-only posts.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1381,9 +1507,10 @@ export function AdminBlogPanel() {
             {(
               [
                 { id: 'all', label: `All (${counts.total})` },
-                { id: 'both', label: `Both (${counts.both})` },
+                { id: 'both', label: `All markets (${counts.both})` },
                 { id: 'nz-only', label: `NZ only (${counts.nzOnly})` },
-                { id: 'usa-only', label: `USA only (${counts.usaOnly})` },
+                { id: 'usa-only', label: `Intl only (${counts.usaOnly})` },
+                { id: 'uk-only', label: `UK only (${counts.ukOnly})` },
                 { id: 'hidden', label: `Hidden (${counts.hidden})` },
               ] as const
             ).map((opt) => (
@@ -1447,7 +1574,7 @@ export function AdminBlogPanel() {
         </p>
 
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[1080px] text-left text-sm">
+          <table className="w-full min-w-[1160px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-ink-muted">
                 <th className="py-2 pr-2 w-8">
@@ -1461,6 +1588,16 @@ export function AdminBlogPanel() {
                   >
                     Order
                     <SortIcon active={sortKey === 'order'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('image')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Image
+                    <SortIcon active={sortKey === 'image'} dir={sortDir} />
                   </button>
                 </th>
                 <th className="py-2 pr-3">
@@ -1526,6 +1663,16 @@ export function AdminBlogPanel() {
                 <th className="py-2 pr-3">
                   <button
                     type="button"
+                    onClick={() => toggleSort('uk')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    UK
+                    <SortIcon active={sortKey === 'uk'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
                     onClick={() => toggleSort('featured')}
                     className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
                   >
@@ -1539,13 +1686,13 @@ export function AdminBlogPanel() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="py-6 text-ink-muted">
+                  <td colSpan={12} className="py-6 text-ink-muted">
                     Loading from Firebase…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-6 text-ink-muted">
+                  <td colSpan={12} className="py-6 text-ink-muted">
                     {rows.length === 0
                       ? 'No posts in Firebase yet. Add a new post to get started.'
                       : 'No posts match this filter.'}
@@ -1565,6 +1712,9 @@ export function AdminBlogPanel() {
                     </td>
                     <td className="py-2.5 pr-3 text-xs text-ink-muted">
                       {post.sortOrder}
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <BlogListThumb src={post.image} title={post.title} />
                     </td>
                     <td className="py-2.5 pr-3">
                       <button
@@ -1616,14 +1766,26 @@ export function AdminBlogPanel() {
                         checked={post.showUsa}
                         disabled={busy}
                         saving={savingFlags.has(flagSaveKey(post.slug, 'showUsa'))}
-                        label={`Show ${post.title} on USA site`}
-                        title="Show on USA site"
+                        label={`Show ${post.title} on International site`}
+                        title="Show on International site"
                         onChange={() =>
                           void setBooleanFlag(
                             post.slug,
                             'showUsa',
                             !post.showUsa
                           )
+                        }
+                      />
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <SavingCheck
+                        checked={post.showUk}
+                        disabled={busy}
+                        saving={savingFlags.has(flagSaveKey(post.slug, 'showUk'))}
+                        label={`Show ${post.title} on UK site`}
+                        title="Show on United Kingdom site"
+                        onChange={() =>
+                          void setBooleanFlag(post.slug, 'showUk', !post.showUk)
                         }
                       />
                     </td>

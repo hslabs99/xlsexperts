@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { MapPin, Network, Users, Zap } from 'lucide-react'
 import { useMarketCopy } from '@/components/market-provider'
+import { OurBrands } from '@/components/our-brands'
 
 const team = [
   {
@@ -165,28 +166,7 @@ export function About() {
         </div>
 
         {/* Brands note */}
-        <div className="mt-14 border-t border-gray-100 pt-8 text-center">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Our brands</span>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-6">
-            <a
-              href="https://www.excelexperts.co.nz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold text-gray-700 underline-offset-2 hover:underline"
-            >
-              {copy.about.brandNzLabel}
-            </a>
-            <span className="text-gray-300">|</span>
-            <a
-              href="https://www.excelexperts.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold text-gray-700 underline-offset-2 hover:underline"
-            >
-              {copy.about.brandIntlLabel}
-            </a>
-          </div>
-        </div>
+        <OurBrands />
 
       </div>
     </section>

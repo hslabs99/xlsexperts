@@ -1,6 +1,7 @@
 import 'server-only'
 
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import { connection } from 'next/server'
 import {
   DEFAULT_MARKET,
   MARKET_COOKIE,
@@ -17,19 +18,27 @@ import {
   type MarketCopyBundle,
 } from '@/lib/market-copy'
 import { PUBLISHED_MARKET_COPY } from '@/data/market-copy.generated'
+import { withTimeout } from '@/lib/with-timeout'
 
 /**
  * Market for this request.
- * Middleware sets x-xls-market. On localhost the cookie persists /nz|/usa.
+ * Middleware sets x-xls-market. On localhost the cookie persists /nz|/usa|/uk.
  * Without a switch or recognizable domain → New Zealand.
  */
 export async function getMarket(): Promise<MarketId> {
+  await connection()
   const h = await headers()
   const fromHeader = parseMarketId(h.get(MARKET_HEADER))
   if (fromHeader) return fromHeader
 
   const host = h.get('x-forwarded-host') || h.get('host') || ''
   if (isLocalHost(host)) {
+    const cookieStore = await cookies()
+    const fromCookieStore = parseMarketId(
+      cookieStore.get(MARKET_COOKIE)?.value
+    )
+    if (fromCookieStore) return fromCookieStore
+
     const cookieHeader = h.get('cookie') ?? ''
     const cookieMatch = cookieHeader.match(
       new RegExp(`(?:^|;\\s*)${MARKET_COOKIE}=([^;]+)`)
@@ -49,10 +58,35 @@ export function getPublishedMarketCopyBundle(): MarketCopyBundle {
   return PUBLISHED_MARKET_COPY.markets
 }
 
+/**
+ * Public copy for this request.
+ * Localhost reads the CMS draft so Save draft is enough to preview NZ / UK / International.
+ * Production reads the published static file.
+ */
+async function liveMarketCopyBundle(): Promise<MarketCopyBundle> {
+  if (await getIsLocalDev()) {
+    try {
+      const { fetchMarketCopyDraft } = await import('@/lib/market-copy-db')
+      const draft = await withTimeout(
+        fetchMarketCopyDraft(),
+        6_000,
+        'fetchMarketCopyDraft'
+      )
+      return draft.markets
+    } catch (error) {
+      console.error(
+        '[market] localhost CMS draft unavailable, using published copy',
+        error instanceof Error ? error.message : error
+      )
+    }
+  }
+  return getPublishedMarketCopyBundle()
+}
+
 /** Published copy for the current request market. */
 export async function getMarketCopy(): Promise<MarketCopy> {
   const market = await getMarket()
-  return pickMarketCopy(getPublishedMarketCopyBundle(), market)
+  return pickMarketCopy(await liveMarketCopyBundle(), market)
 }
 
 export function getMarketCopyFor(market: MarketId): MarketCopy {
@@ -60,8 +94,15 @@ export function getMarketCopyFor(market: MarketId): MarketCopy {
   return pickMarketCopy(getPublishedMarketCopyBundle(), id)
 }
 
-/** Absolute site origin for the current request market (.co.nz or .com). */
+/** Absolute site origin for the current request market (.co.nz, .com, or .co.uk). */
 export async function getSiteOrigin(): Promise<string> {
   const copy = await getMarketCopy()
   return copy.site.origin
+}
+
+/** True when this request is on localhost (local region switcher). */
+export async function getIsLocalDev(): Promise<boolean> {
+  const h = await headers()
+  const host = h.get('x-forwarded-host') || h.get('host') || ''
+  return isLocalHost(host)
 }

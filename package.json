@@ -11,7 +11,8 @@
     "seed:blogs:snapshot": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-blogs-from-v0.ts --snapshot-only",
     "seed:blogs:images": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-blogs-from-v0.ts --images",
     "seed:case-studies": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-case-studies.ts",
-    "seed:case-studies:images": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-case-studies.ts --images"
+    "seed:case-studies:images": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/seed-case-studies.ts --images",
+    "ensure:uk-market": "node -r ./scripts/stub-server-only.cjs ./node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/ensure-uk-market.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

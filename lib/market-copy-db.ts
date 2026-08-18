@@ -8,7 +8,9 @@ import {
   MARKET_COPY_DOC_ID,
   SITE_CONTENT_COLLECTION,
 } from '@/lib/firebase'
+import { PUBLISHED_MARKET_COPY } from '@/data/market-copy.generated'
 import {
+  applySiteOrigins,
   defaultMarketCopyBundle,
   normalizeMarketCopyBundle,
   type MarketCopyBundle,
@@ -19,7 +21,7 @@ const GENERATED_RELATIVE = path.join('data', 'market-copy.generated.ts')
 
 /**
  * Load draft market copy from Firestore.
- * Falls back to built-in defaults (intl = nz) if missing.
+ * Falls back to built-in defaults (missing markets seeded from defaults) if missing.
  */
 export async function fetchMarketCopyDraft(): Promise<{
   markets: MarketCopyBundle
@@ -131,4 +133,28 @@ export async function publishMarketCopy(
     )
 
   return { markets: bundle, publishedAt, filePath: GENERATED_RELATIVE }
+}
+
+/**
+ * Update canonical origins in draft + published market copy without publishing
+ * other marketing strings. Used by Settings → Domains.
+ */
+export async function patchPublishedSiteOrigins(origins: {
+  nz: string
+  intl: string
+  uk: string
+}): Promise<void> {
+  const draft = await fetchMarketCopyDraft()
+  await saveMarketCopyDraft(applySiteOrigins(draft.markets, origins))
+
+  const payload: PublishedMarketCopyFile = {
+    version: 1,
+    publishedAt: PUBLISHED_MARKET_COPY.publishedAt,
+    markets: applySiteOrigins(PUBLISHED_MARKET_COPY.markets, origins),
+  }
+  await fs.writeFile(
+    path.join(process.cwd(), GENERATED_RELATIVE),
+    serializeGeneratedFile(payload),
+    'utf8'
+  )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
 
 export type AdminDialogTone = 'default' | 'danger'
 
@@ -15,20 +15,13 @@ export type AdminDialogProps = {
   cancelLabel?: string
   dismissLabel?: string
   busy?: boolean
-  /**
-   * When set, user must type this exact value (case-sensitive trim) before
-   * Confirm unlocks — used for enquiry delete password, never for booking clear.
-   */
-  requireText?: string
-  requireTextLabel?: string
-  requireTextPlaceholder?: string
   onConfirm?: () => void | Promise<void>
   onClose: () => void
 }
 
 /**
- * In-app modal for admin confirms / alerts. Prefer this over window.alert,
- * window.confirm, and window.prompt everywhere in the admin portal.
+ * In-app modal for admin confirms, alerts, and questions.
+ * Never use window.alert, window.confirm, or window.prompt.
  */
 export function AdminDialog({
   open,
@@ -40,18 +33,10 @@ export function AdminDialog({
   cancelLabel = 'Cancel',
   dismissLabel = 'OK',
   busy = false,
-  requireText,
-  requireTextLabel,
-  requireTextPlaceholder,
   onConfirm,
   onClose,
 }: AdminDialogProps) {
   const titleId = useId()
-  const [typed, setTyped] = useState('')
-
-  useEffect(() => {
-    if (!open) setTyped('')
-  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -64,11 +49,8 @@ export function AdminDialog({
 
   if (!open) return null
 
-  const requireOk =
-    !requireText || typed.trim() === requireText.trim()
-
   async function handleConfirm() {
-    if (!requireOk || busy) return
+    if (busy) return
     await onConfirm?.()
   }
 
@@ -98,23 +80,6 @@ export function AdminDialog({
           <div className="mt-3 space-y-2 text-sm text-ink-muted">{children}</div>
         ) : null}
 
-        {requireText ? (
-          <label className="mt-4 flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">
-              {requireTextLabel || 'Type to confirm'}
-            </span>
-            <input
-              type="password"
-              autoComplete="off"
-              value={typed}
-              disabled={busy}
-              placeholder={requireTextPlaceholder}
-              onChange={(e) => setTyped(e.target.value)}
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-        ) : null}
-
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           {mode === 'alert' ? (
             <button
@@ -137,7 +102,7 @@ export function AdminDialog({
               </button>
               <button
                 type="button"
-                disabled={busy || !requireOk}
+                disabled={busy}
                 onClick={() => void handleConfirm()}
                 className={`rounded-md px-4 py-2 text-sm font-semibold ${confirmClass}`}
               >

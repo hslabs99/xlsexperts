@@ -21,6 +21,7 @@ import {
 import {
   isMailingContactStatus,
   isMailingRegion,
+  parseMailingRegion,
   type MailingContactInput,
 } from '@/lib/mailings'
 import { withTimeout } from '@/lib/with-timeout'
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
           company: String(row.company ?? '').trim(),
           sector: String(row.sector ?? '').trim(),
           status: isMailingContactStatus(row.status) ? row.status : 'prospect',
-          region: isMailingRegion(row.region) ? row.region : 'NZ',
+          region: parseMailingRegion(row.region),
           source: 'upload',
           notes: String(row.notes ?? '').trim(),
         })
@@ -134,7 +135,7 @@ export async function POST(request: Request) {
         company: String(body.company ?? '').trim(),
         sector: String(body.sector ?? '').trim(),
         status: isMailingContactStatus(body.status) ? body.status : 'prospect',
-        region: isMailingRegion(body.region) ? body.region : 'NZ',
+        region: parseMailingRegion(body.region),
         source: 'manual',
         notes: String(body.notes ?? '').trim(),
       }),

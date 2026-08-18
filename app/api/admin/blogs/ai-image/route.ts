@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       imagePrompt?: string
       brief?: string
       userPrompt?: string
+      imageStyle?: string
     }
 
     if (!body.title?.trim()) {
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
         imagePrompt: body.imagePrompt,
         brief: body.brief,
         userPrompt: body.userPrompt,
+        imageStyle: body.imageStyle,
       }),
       85_000,
       'generateBlogImage'

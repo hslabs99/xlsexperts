@@ -1,24 +1,31 @@
 /**
  * SEO crawl documents editable from the Marketing admin tab.
  * Stored in Firestore Site Content / crawl-documents — one set per market
- * so NZ and International SEO campaigns never share sitemap/robots/llms data.
+ * so NZ, International, and UK SEO campaigns never share sitemap/robots/llms data.
  */
 
+import { PUBLISHED_DOMAIN_REGIONS } from '@/data/domain-regions.generated'
 import {
   DEFAULT_MARKET,
   MARKET_IDS,
   isMarketId,
+  marketLabel,
   type MarketId,
 } from '@/lib/market'
 
 export const NZ_SITE_ORIGIN = 'https://www.xlsexperts.co.nz'
 export const INTL_SITE_ORIGIN = 'https://www.xlsexperts.com'
+export const UK_SITE_ORIGIN = 'https://www.xlsexperts.co.uk'
 
 /** @deprecated Use marketSiteOrigin() / getSiteOrigin() — NZ only. */
 export const SITE_BASE_URL = NZ_SITE_ORIGIN
 
 export function siteOriginForMarket(market: MarketId): string {
-  return market === 'intl' ? INTL_SITE_ORIGIN : NZ_SITE_ORIGIN
+  const fromPublished = PUBLISHED_DOMAIN_REGIONS.regions[market]?.origin
+  if (fromPublished) return fromPublished
+  if (market === 'uk') return UK_SITE_ORIGIN
+  if (market === 'intl') return INTL_SITE_ORIGIN
+  return NZ_SITE_ORIGIN
 }
 
 export type SitemapChangeFrequency =
@@ -102,6 +109,42 @@ Sitemap: ${origin}/sitemap.xml
 }
 
 export function defaultLlmsTxt(market: MarketId, origin: string): string {
+  if (market === 'uk') {
+    return `# XLS Experts — Excel & Spreadsheet Consulting, United Kingdom
+
+XLS Experts is a business systems consultancy serving clients in the United Kingdom. We design and build practical systems that may combine Excel, Microsoft 365, cloud applications, databases and integrations — helping organisations improve, automate or replace spreadsheet-driven processes.
+
+## What we do
+
+- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
+- **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
+- **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and A.I.-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
+- **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
+- **Financial Modelling**: Budget vs actual reporting, cash flow forecasting, scenario analysis, and management reporting tools for finance teams.
+- **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
+- **SQL Database Connectivity**: Connecting Excel directly to SQL Server, MySQL, PostgreSQL, Oracle, and cloud databases to eliminate manual exports.
+- **ERP Integration**: Building the analytical layer on top of SAP, Oracle, Microsoft Dynamics, MYOB Acumatica, Epicor, and other ERP platforms.
+
+## Who we work with
+
+We work with businesses and organisations across industries in the United Kingdom, including finance, insurance, energy, construction, retail, healthcare, logistics, hospitality, not-for-profit, government, and professional services.
+
+## Key pages
+
+- Homepage: ${origin}
+- Solutions: ${origin}/solutions
+- Excel in Enterprise Operational Applications: ${origin}/enterprise
+- A.I. Use Cases for Excel, VBA and Power Query: ${origin}/use-cases
+- Web Applications: ${origin}/web-applications
+- Blog: ${origin}/blog
+
+## Contact
+
+Website: ${origin}
+Location: United Kingdom (serving all of the UK)
+`
+  }
+
   if (market === 'intl') {
     return `# XLS Experts — Excel & Spreadsheet Consulting
 
@@ -226,10 +269,11 @@ export function defaultCrawlDocs(market: MarketId = DEFAULT_MARKET): CrawlDocsCo
 export const DEFAULT_CRAWL_DOCS: CrawlDocsContent = defaultCrawlDocs('nz')
 
 export function defaultCrawlDocsBundle(): CrawlDocsBundle {
-  return {
-    nz: defaultCrawlDocs('nz'),
-    intl: defaultCrawlDocs('intl'),
+  const bundle = {} as CrawlDocsBundle
+  for (const id of MARKET_IDS) {
+    bundle[id] = defaultCrawlDocs(id)
   }
+  return bundle
 }
 
 const CHANGE_FREQS = new Set<SitemapChangeFrequency>([
@@ -349,8 +393,8 @@ export function normalizeCrawlDocs(
 }
 
 /**
- * Accepts `{ markets: { nz, intl } }` or a legacy flat crawl-documents doc
- * (mapped to NZ; intl starts from international defaults).
+ * Accepts `{ markets: { nz, intl, uk } }` or a legacy flat crawl-documents doc
+ * (mapped to NZ; other markets start from their defaults).
  */
 export function normalizeCrawlDocsBundle(raw: unknown): CrawlDocsBundle {
   const bundle = defaultCrawlDocsBundle()
@@ -438,7 +482,7 @@ export function validateCrawlDocs(docs: CrawlDocsContent): string | null {
 export function validateCrawlDocsBundle(bundle: CrawlDocsBundle): string | null {
   for (const id of MARKET_IDS) {
     const err = validateCrawlDocs(bundle[id])
-    if (err) return `${id === 'nz' ? 'New Zealand' : 'International'}: ${err}`
+    if (err) return `${marketLabel(id)}: ${err}`
   }
   return null
 }

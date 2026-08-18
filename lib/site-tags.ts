@@ -1,13 +1,14 @@
 /**
  * Marketing / analytics tag configuration for the public site.
  * Stored in Firestore Site Content / analytics-tags — one set per market
- * so NZ (.co.nz) and International (.com) never share campaign tags.
+ * so NZ (.co.nz), International (.com), and UK (.co.uk) never share campaign tags.
  */
 
 import {
   DEFAULT_MARKET,
   MARKET_IDS,
   isMarketId,
+  marketLabel,
   type MarketId,
 } from '@/lib/market'
 
@@ -50,10 +51,11 @@ export function cloneSiteTags(source: SiteTagsContent): SiteTagsContent {
 }
 
 export function defaultSiteTagsBundle(): SiteTagsBundle {
-  return {
-    nz: cloneSiteTags(DEFAULT_SITE_TAGS),
-    intl: cloneSiteTags(DEFAULT_SITE_TAGS),
+  const bundle = {} as SiteTagsBundle
+  for (const id of MARKET_IDS) {
+    bundle[id] = cloneSiteTags(DEFAULT_SITE_TAGS)
   }
+  return bundle
 }
 
 export function normalizeSiteTags(raw: unknown): SiteTagsContent {
@@ -73,8 +75,8 @@ export function normalizeSiteTags(raw: unknown): SiteTagsContent {
 }
 
 /**
- * Accepts either the new `{ markets: { nz, intl } }` shape or a legacy flat
- * document (pre market-split). Legacy docs map to NZ; intl starts empty.
+ * Accepts either the new `{ markets: { nz, intl, uk } }` shape or a legacy flat
+ * document (pre market-split). Legacy docs map to NZ; other markets start empty.
  */
 export function normalizeSiteTagsBundle(raw: unknown): SiteTagsBundle {
   const bundle = defaultSiteTagsBundle()
@@ -133,7 +135,7 @@ export function validateSiteTags(tags: SiteTagsContent): string | null {
 export function validateSiteTagsBundle(bundle: SiteTagsBundle): string | null {
   for (const id of MARKET_IDS) {
     const err = validateSiteTags(bundle[id])
-    if (err) return `${id === 'nz' ? 'New Zealand' : 'International'}: ${err}`
+    if (err) return `${marketLabel(id)}: ${err}`
   }
   return null
 }

@@ -115,12 +115,14 @@ function SortIcon({
 function EnquiryDetailModal({
   enquiry,
   busy,
+  canDelete,
   onClose,
   onStatusChange,
   onDelete,
 }: {
   enquiry: EnquiryRecord
   busy: boolean
+  canDelete: boolean
   onClose: () => void
   onStatusChange: (status: EnquiryStatus) => void
   onDelete: () => void
@@ -439,15 +441,19 @@ function EnquiryDetailModal({
         </div>
 
         <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-border bg-white px-5 py-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onDelete}
-            className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onDelete}
+              className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -461,7 +467,11 @@ function EnquiryDetailModal({
   )
 }
 
-export function AdminEnquiriesPanel() {
+export function AdminEnquiriesPanel({
+  canDelete = false,
+}: {
+  canDelete?: boolean
+}) {
   const [rows, setRows] = useState<EnquiryRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -607,7 +617,7 @@ export function AdminEnquiriesPanel() {
   }
 
   async function confirmDeleteEnquiry() {
-    if (!deleteEnquiryId) return
+    if (!canDelete || !deleteEnquiryId) return
     const id = deleteEnquiryId
     setBusy(true)
     setError(null)
@@ -660,8 +670,11 @@ export function AdminEnquiriesPanel() {
             <h2 className="text-lg font-semibold text-ink">Inquiries</h2>
             <p className="mt-1 text-sm text-ink-muted">
               Click a row to open the submission exactly as filled in. Filter
-              above each column; click headers to sort. Use the trash icon to
-              delete test enquiries. Data is live Firebase{' '}
+              above each column; click headers to sort.
+              {canDelete
+                ? ' Use the trash icon to delete test enquiries.'
+                : ''}{' '}
+              Data is live Firebase{' '}
               <code className="text-xs">enquiries</code>.
             </p>
           </div>
@@ -747,6 +760,7 @@ export function AdminEnquiriesPanel() {
                       setFilters((p) => ({ ...p, email: e.target.value }))
                     }
                     placeholder="Filter email…"
+                    autoComplete="off"
                     className={filterInputClass}
                   />
                 </th>
@@ -943,19 +957,21 @@ export function AdminEnquiriesPanel() {
                         >
                           View
                         </button>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          title="Delete enquiry"
-                          aria-label={`Delete enquiry from ${row.name || row.email}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setDeleteEnquiryId(row.id)
-                          }}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {canDelete ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            title="Delete enquiry"
+                            aria-label={`Delete enquiry from ${row.name || row.email}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteEnquiryId(row.id)
+                            }}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -970,45 +986,44 @@ export function AdminEnquiriesPanel() {
         <EnquiryDetailModal
           enquiry={selected}
           busy={busy}
+          canDelete={canDelete}
           onClose={() => setSelectedId(null)}
           onStatusChange={(status) => void handleStatusChange(selected.id, status)}
           onDelete={() => setDeleteEnquiryId(selected.id)}
         />
       )}
 
-      <AdminDialog
-        open={deleteEnquiryId != null}
-        title="Delete this enquiry?"
-        mode="confirm"
-        tone="danger"
-        confirmLabel="Delete permanently"
-        busy={busy}
-        requireText="2166"
-        requireTextLabel="Delete password"
-        requireTextPlaceholder="Enter delete password"
-        onClose={() => {
-          if (!busy) setDeleteEnquiryId(null)
-        }}
-        onConfirm={confirmDeleteEnquiry}
-      >
-        <p>
-          Permanently remove this enquiry from Firebase. This cannot be undone —
-          use this to clear test submissions from the enquiries collection.
-        </p>
-        {deleteTarget ? (
-          <div className="rounded-md border border-red-200 bg-red-50/60 p-3 text-ink">
-            <p className="font-semibold">{deleteTarget.name || 'Untitled enquiry'}</p>
-            <p className="mt-1 font-mono text-xs">{deleteTarget.email || '—'}</p>
-            <p className="mt-2 text-xs text-ink-muted">
-              <span className="capitalize">{deleteTarget.type}</span>
-              {deleteTarget.company ? ` · ${deleteTarget.company}` : ''}
-              {' · '}
-              {formatEnquiryCreatedAt(deleteTarget.createdAt)}
-            </p>
-          </div>
-        ) : null}
-        <p className="text-xs">Enter the delete password to continue.</p>
-      </AdminDialog>
+      {canDelete ? (
+        <AdminDialog
+          open={deleteEnquiryId != null}
+          title="Delete this enquiry?"
+          mode="confirm"
+          tone="danger"
+          confirmLabel="Delete permanently"
+          busy={busy}
+          onClose={() => {
+            if (!busy) setDeleteEnquiryId(null)
+          }}
+          onConfirm={confirmDeleteEnquiry}
+        >
+          <p>
+            Permanently remove this enquiry from Firebase. This cannot be undone —
+            use this to clear test submissions from the enquiries collection.
+          </p>
+          {deleteTarget ? (
+            <div className="rounded-md border border-red-200 bg-red-50/60 p-3 text-ink">
+              <p className="font-semibold">{deleteTarget.name || 'Untitled enquiry'}</p>
+              <p className="mt-1 font-mono text-xs">{deleteTarget.email || '—'}</p>
+              <p className="mt-2 text-xs text-ink-muted">
+                <span className="capitalize">{deleteTarget.type}</span>
+                {deleteTarget.company ? ` · ${deleteTarget.company}` : ''}
+                {' · '}
+                {formatEnquiryCreatedAt(deleteTarget.createdAt)}
+              </p>
+            </div>
+          ) : null}
+        </AdminDialog>
+      ) : null}
     </div>
   )
 }

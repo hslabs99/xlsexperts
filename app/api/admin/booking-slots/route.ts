@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server'
 import {
   clearBookingAndReopen,
+  copyBookingWeek,
   createBookingSlot,
   deleteAllBookingSlots,
   deleteBookingSlot,
   fetchAllBookingSlots,
   normalizeAllBookingSlotDurations,
   seedBookingSlots,
+  setBookingCells,
   setBookingSlotStatus,
 } from '@/lib/booking-slots-db'
 import {
   SEED_SLOT_MINUTES,
+  type BookingRegionId,
   type BookingSlotStatus,
   type SeedTemplateConfig,
 } from '@/lib/booking-slots'
@@ -69,12 +72,18 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       action?: string
       config?: SeedTemplateConfig
+      status?: BookingSlotStatus
+      enabled?: boolean
+      scope?: 'all' | BookingRegionId
+      cells?: { date: string; time: string }[]
+      fromMonday?: string
       slot?: {
         date: string
         time: string
         type: string
         status: BookingSlotStatus
         durationMinutes: 15 | 30
+        regions?: { nz: boolean; uk: boolean; intl: boolean }
       }
     }
 
@@ -105,11 +114,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, ...result })
     }
 
+    if (body.action === 'set-cells') {
+      const cells = Array.isArray(body.cells) ? body.cells : []
+      if (cells.length === 0) {
+        return NextResponse.json(
+          { ok: false, error: 'cells are required' },
+          { status: 400 }
+        )
+      }
+      const enabled =
+        typeof body.enabled === 'boolean'
+          ? body.enabled
+          : body.status !== 'unavailable'
+      const scope = body.scope === 'nz' || body.scope === 'uk' || body.scope === 'intl'
+        ? body.scope
+        : 'all'
+      const result = await withTimeout(
+        setBookingCells(
+          cells,
+          scope === 'all' ? { scope: 'all', enabled } : { scope, enabled }
+        ),
+        60_000,
+        'setBookingCells'
+      )
+      return NextResponse.json({ ok: true, scope, enabled, ...result })
+    }
+
+    if (body.action === 'copy-week') {
+      const fromMonday = body.fromMonday?.trim() ?? ''
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fromMonday)) {
+        return NextResponse.json(
+          { ok: false, error: 'fromMonday (YYYY-MM-DD) is required' },
+          { status: 400 }
+        )
+      }
+      const result = await withTimeout(
+        copyBookingWeek(fromMonday),
+        60_000,
+        'copyBookingWeek'
+      )
+      return NextResponse.json({ ok: true, ...result })
+    }
+
     if (body.action === 'create' && body.slot) {
       const id = await withTimeout(
         createBookingSlot({
           ...body.slot,
           durationMinutes: SEED_SLOT_MINUTES,
+          regions: body.slot.regions ?? {
+            nz: true,
+            uk: true,
+            intl: true,
+          },
         }),
         8_000,
         'createBookingSlot'

@@ -6,6 +6,10 @@ import {
   slugifyBlogTitle,
 } from '@/lib/blog-markdown'
 import type { BlogAiDraft } from '@/lib/blog-ai-types'
+import {
+  BLOG_AI_IMAGE_SHARED_CONSTRAINTS,
+  blogAiImageStylePrompt,
+} from '@/lib/blog-ai-image-styles'
 
 export type { BlogAiDraft } from '@/lib/blog-ai-types'
 
@@ -61,7 +65,7 @@ Rules for markdown:
 - Optional FAQ: a "## FAQ" section with "### Question" headings and paragraph answers.
 - Keep excerpt to 1–2 sentences for the blog card.
 - slug must be lowercase kebab-case.
-- imagePrompt should describe a simple professional abstract blog hero for a fast mobile web page (no text in image; not high-resolution).
+- imagePrompt should describe the subject and scene for a blog hero (setting, objects, people if relevant). Do not specify infographic vs photograph vs illustration — visual style is chosen separately. No readable text or logos in the image; not high-resolution.
 - readTime like "6 min read".
 - category should be a short topic tag (e.g. Excel, Dashboards, A.I. Solutions).
 
@@ -130,12 +134,14 @@ export async function generateBlogImage(options: {
   imagePrompt?: string
   brief?: string
   userPrompt?: string
+  imageStyle?: string
 }): Promise<BlogAiImageResult> {
   const title = options.title.trim()
   if (!title) throw new Error('Title is required')
 
   const openai = requireOpenAIClient()
-  const style = options.systemPrompt.trim()
+  const libraryStyle = options.systemPrompt.trim()
+  const chosenStyle = blogAiImageStylePrompt(options.imageStyle)
   const subject =
     options.imagePrompt?.trim() ||
     options.userPrompt?.trim() ||
@@ -143,11 +149,15 @@ export async function generateBlogImage(options: {
     'Business systems, spreadsheets, and practical automation.'
 
   const promptParts = [
-    style ||
-      'Create a wide website blog hero image (abstract, professional) for XLS Experts New Zealand. Style: clean corporate, soft forest-green accents, light neutrals. No readable text, no logos, no photorealistic faces.',
-    'This is a small web hero only — simple graphic suitable for a fast mobile blog card, not a high-resolution print or marketing billboard.',
+    chosenStyle ||
+      'Create a wide website blog hero image for XLS Experts New Zealand. Clean professional visual, soft forest-green accents, light neutrals.',
+    BLOG_AI_IMAGE_SHARED_CONSTRAINTS,
+    libraryStyle,
     `Blog title context: ${title}.`,
     subject,
+    chosenStyle
+      ? 'Honour the visual treatment above even if the subject description sounds like a different medium (infographic, photo, or illustration).'
+      : '',
   ]
     .filter(Boolean)
     .join(' ')

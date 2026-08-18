@@ -17,6 +17,28 @@ export type ServiceIconKey =
   | 'audit'
   | 'migration'
 
+export const SERVICE_ICON_KEYS: readonly ServiceIconKey[] = [
+  'spreadsheet',
+  'dashboard',
+  'vba',
+  'macro',
+  'integrations',
+  'sql',
+  'enterprise',
+  'web',
+  'financial',
+  'process',
+  'ai',
+  'sheets',
+  'powerQuery',
+  'audit',
+  'migration',
+] as const
+
+export function isServiceIconKey(value: string): value is ServiceIconKey {
+  return (SERVICE_ICON_KEYS as readonly string[]).includes(value)
+}
+
 export type ServicePage = {
   label: string
   href: string
@@ -24,7 +46,7 @@ export type ServicePage = {
   description: string
   tags: string[]
   icon: ServiceIconKey
-  /** Shown as one of the 8 homepage service tiles */
+  /** Seed hint for homepage CMS defaults — live home tiles are CMS-managed */
   showOnHome?: boolean
 }
 
@@ -220,7 +242,7 @@ export const servicePageHrefAliases: Readonly<Record<string, readonly string[]>>
     '/excel-integrations': ['/excel-sql-integration'],
   }
 
-/** Homepage services section — featured tiles in display order. */
+/** Seed order for homepage CMS defaults — live home tiles are CMS-managed. */
 const homeHrefs = [
   '/excel-spreadsheet-development',
   '/excel-dashboard-development',

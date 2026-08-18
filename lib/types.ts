@@ -89,4 +89,6 @@ export interface BookingPayload {
   time: string
   method: string
   slotId: string
+  /** Visitor IANA time zone (used to show local time in confirmation emails). */
+  timeZone?: string
 }

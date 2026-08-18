@@ -18,9 +18,10 @@ import {
 const GENERATED_RELATIVE = path.join('data', 'page-seo.generated.ts')
 
 /**
- * Load draft page SEO from Firestore (NZ + Global).
+ * Load draft page SEO from Firestore (NZ + International + UK).
  * Falls back to built-in defaults if missing.
- * Migrates legacy single-bundle docs to markets on read.
+ * Migrates legacy single-bundle docs to markets on read; missing UK is seeded
+ * from International.
  */
 export async function fetchPageSeoDraft(): Promise<{
   markets: PageSeoMarkets
@@ -83,7 +84,7 @@ function serializeGeneratedFile(payload: PublishedPageSeoFile): string {
   const json = JSON.stringify(payload, null, 2)
   return `/**
  * PUBLISHED page SEO (H1 + meta) by market — imported by the public site (no Firestore on first paint).
- * Edit drafts in Admin → H1 (NZ / Global mode), then click Publish to regenerate this file.
+ * Edit drafts in Admin → H1 (NZ / International / UK mode), then click Publish to regenerate this file.
  *
  * Generated at ${payload.publishedAt}
  * Do not edit by hand; Publish overwrites it.

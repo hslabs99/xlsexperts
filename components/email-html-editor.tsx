@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -19,6 +19,7 @@ import {
 import { FontSize } from '@/lib/tiptap-font-size'
 import { EMAIL_FONT_FAMILIES, EMAIL_FONT_SIZES } from '@/lib/email-templates'
 import { cn } from '@/lib/utils'
+import { AdminDialog } from '@/components/admin-dialog'
 
 const FONT_FAMILIES = [
   { label: 'Default', value: '' },
@@ -74,6 +75,8 @@ export function EmailHtmlEditor({
   onChange,
   className,
 }: EmailHtmlEditorProps) {
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('https://')
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -127,18 +130,24 @@ export function EmailHtmlEditor({
     )
   }
 
-  const setLink = () => {
+  const openLinkDialog = () => {
     const previous = editor.getAttributes('link').href as string | undefined
-    const url = window.prompt('Link URL', previous || 'https://')
-    if (url === null) return
-    if (url.trim() === '') {
+    setLinkUrl(previous || 'https://')
+    setLinkOpen(true)
+  }
+
+  const applyLink = () => {
+    const url = linkUrl.trim()
+    setLinkOpen(false)
+    if (url === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run()
       return
     }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url.trim() }).run()
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }
 
   return (
+    <>
     <div className={cn('overflow-hidden rounded-md border border-border bg-white', className)}>
       <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface-raised px-2 py-1.5">
         <ToolbarButton
@@ -224,7 +233,7 @@ export function EmailHtmlEditor({
         <ToolbarButton
           title="Link"
           active={editor.isActive('link')}
-          onClick={setLink}
+          onClick={openLinkDialog}
         >
           <Link2 className="h-4 w-4" />
         </ToolbarButton>
@@ -259,5 +268,33 @@ export function EmailHtmlEditor({
       </div>
       <EditorContent editor={editor} />
     </div>
+      <AdminDialog
+        open={linkOpen}
+        title="Add link"
+        confirmLabel="Apply link"
+        cancelLabel="Cancel"
+        onClose={() => setLinkOpen(false)}
+        onConfirm={applyLink}
+      >
+        <label className="block text-sm">
+          <span className="font-medium text-ink">Link URL</span>
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                applyLink()
+              }
+            }}
+            placeholder="https://"
+            className="mt-1.5 w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-ink outline-none focus:border-brand"
+            autoFocus
+          />
+        </label>
+        <p>Leave blank to remove the link from the selected text.</p>
+      </AdminDialog>
+    </>
   )
 }

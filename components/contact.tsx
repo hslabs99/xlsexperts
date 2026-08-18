@@ -8,7 +8,7 @@ import {
   MessageSquare,
   Phone,
 } from 'lucide-react'
-import { BookingCalendar } from '@/components/booking-calendar'
+import { BookingCalendar, type BookingCalendarConfirm } from '@/components/booking-calendar'
 import {
   DEFAULT_CONFIRMATION_CONTENT,
   type ConfirmationContent,
@@ -23,12 +23,15 @@ import {
   buildThankYouPath,
   markLeadConversionPending,
 } from '@/lib/lead-conversion'
+import { formatTimeZoneShort } from '@/lib/booking-timezone'
+import { BOOKING_TIMEZONE } from '@/lib/booking-slots'
 import {
   contactLabelForService,
   contactLabelForServicePath,
 } from '@/lib/service-pages'
 import { contactLabelForSolutionSlug } from '@/lib/solutions'
 import { useMarketCopy } from '@/components/market-provider'
+import { OurBrands } from '@/components/our-brands'
 
 const concernOptions = [...CONTACT_SERVICE_OPTIONS]
 const servicePageOptions = [...CONTACT_SERVICE_PAGE_OPTIONS]
@@ -200,16 +203,16 @@ export function Contact() {
     setStep('calendar')
   }
 
-  const handleCalendarConfirm = async (payload: {
-    day: string
-    date: string
-    time: string
-    method: string
-    slotId: string
-  }) => {
+  const handleCalendarConfirm = async (payload: BookingCalendarConfirm) => {
+    const displayDay = payload.displayDay || payload.day
+    const displayTime = payload.displayTime || payload.time
+    const tzShort =
+      payload.timeZone && payload.timeZone !== BOOKING_TIMEZONE
+        ? formatTimeZoneShort(payload.timeZone)
+        : ''
     const summary: BookedSlotSummary = {
-      day: payload.day,
-      time: payload.time,
+      day: displayDay,
+      time: tzShort ? `${displayTime} (${tzShort})` : displayTime,
       method: payload.method,
     }
     setBookedSlot(summary)
@@ -235,6 +238,7 @@ export function Contact() {
           time: payload.time,
           method: payload.method,
           slotId: payload.slotId,
+          timeZone: payload.timeZone,
         }),
       })
       const data = (await res.json().catch(() => ({}))) as {
@@ -248,8 +252,8 @@ export function Contact() {
       router.push(
         buildThankYouPath({
           type: 'discovery',
-          day: payload.day,
-          time: payload.time,
+          day: displayDay,
+          time: tzShort ? `${displayTime} (${tzShort})` : displayTime,
           method: payload.method,
         })
       )
@@ -323,7 +327,9 @@ export function Contact() {
               id="contact-details"
               className="flex scroll-mt-28 flex-col gap-4 border-t border-gray-100 pt-6"
             >
-              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-700">Contact directly</h3>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-gray-700">
+                {marketCopy.contact.heading}
+              </h3>
 
               <a
                 href={`tel:${marketCopy.contact.phoneTel}`}
@@ -340,7 +346,7 @@ export function Contact() {
                 className="flex items-center gap-3 text-sm text-gray-600 transition-colors hover:text-gray-900"
               >
                 <MessageSquare className="h-4 w-4 shrink-0" style={{ color: '#25D366' }} aria-hidden="true" />
-                WhatsApp us
+                {marketCopy.contact.whatsappLabel}
               </a>
 
               <div className="flex items-start gap-3 text-sm text-gray-500">
@@ -349,6 +355,8 @@ export function Contact() {
                 </span>
                 {marketCopy.contact.locationLine}
               </div>
+
+              <OurBrands compact />
             </div>
           </div>
 

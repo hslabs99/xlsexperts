@@ -8,9 +8,12 @@
 import { NextResponse } from 'next/server'
 import {
   BOOKING_MIN_LEAD_MINUTES,
+  bookingRegionForMarket,
   isSlotBookableWithLead,
+  slotOpenForRegion,
 } from '@/lib/booking-slots'
-import { markBookingSlotBooked } from '@/lib/booking-slots-db'
+import { fetchBookingSlotById, markBookingSlotBooked } from '@/lib/booking-slots-db'
+import { getMarket } from '@/lib/market-server'
 import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
 import { upsertProspectFromLead } from '@/lib/mailings-db'
 import { isEmailError } from '@/lib/email/errors'
@@ -57,6 +60,24 @@ export async function POST(request: Request) {
       {
         error: `This time is no longer available. Please choose a slot at least ${BOOKING_MIN_LEAD_MINUTES / 60} hours from now (New Zealand time).`,
       },
+      { status: 400 }
+    )
+  }
+
+  const market = await getMarket()
+  const region = bookingRegionForMarket(market)
+  const existingSlot = await withTimeout(
+    fetchBookingSlotById(body.slotId.trim()),
+    8_000,
+    'fetchBookingSlotById'
+  )
+  if (
+    !existingSlot ||
+    existingSlot.status !== 'available' ||
+    !slotOpenForRegion(existingSlot, region)
+  ) {
+    return NextResponse.json(
+      { error: 'This time is not available in your region. Please choose another slot.' },
       { status: 400 }
     )
   }

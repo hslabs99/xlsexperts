@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { Metadata } from 'next'
 import { getMarketCopy } from '@/lib/market-server'
+import { SITE_ICONS } from '@/lib/site-icons'
 
 type PageSeoInput = {
   path: string
@@ -42,6 +43,7 @@ export async function marketPageMetadata({
   return {
     title,
     description,
+    icons: SITE_ICONS,
     ...(keywordList && keywordList.length > 0
       ? { keywords: keywordList }
       : {}),

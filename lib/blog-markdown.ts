@@ -162,3 +162,50 @@ export function slugifyBlogTitle(value: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 }
+
+/** Inverse of markdownToBlogSections — used to seed AI Assist from an existing post. */
+export function blogSectionsToMarkdown(sections: BlogSection[]): string {
+  const parts: string[] = []
+  for (const s of sections) {
+    switch (s.type) {
+      case 'intro':
+      case 'p': {
+        const text = s.text?.trim()
+        if (text) parts.push(text)
+        break
+      }
+      case 'h2': {
+        const heading = s.heading?.trim()
+        if (heading) parts.push(`## ${heading}`)
+        break
+      }
+      case 'h3': {
+        const heading = s.heading?.trim()
+        if (heading) parts.push(`### ${heading}`)
+        break
+      }
+      case 'ul': {
+        const items = (s.items ?? []).map((item) => item.trim()).filter(Boolean)
+        if (items.length > 0) {
+          parts.push(items.map((item) => `- ${item}`).join('\n'))
+        }
+        break
+      }
+      case 'faq': {
+        const faqs = s.faqs ?? []
+        if (faqs.length > 0) {
+          const faqParts = ['## FAQ']
+          for (const faq of faqs) {
+            const q = faq.q.trim()
+            const a = faq.a.trim()
+            if (q) faqParts.push(`### ${q}`)
+            if (a) faqParts.push(a)
+          }
+          parts.push(faqParts.join('\n\n'))
+        }
+        break
+      }
+    }
+  }
+  return parts.join('\n\n').trim()
+}

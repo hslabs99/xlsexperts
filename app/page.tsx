@@ -7,9 +7,10 @@ import { CaseStudiesSection } from '@/components/case-studies-section'
 import { About } from '@/components/about'
 import { Contact } from '@/components/contact'
 import { getMarketCopy } from '@/lib/market-server'
+import { SITE_ICONS } from '@/lib/site-icons'
 
-/** Cache homepage (incl. case-study snapshot) briefly — admin “Publish homepage” is the source of truth. */
-export const revalidate = 120
+/** Market is chosen from host / localhost cookie — never share one cached `/` across NZ, UK, and International. */
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getMarketCopy()
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
       absolute: copy.home.metaTitle,
     },
     description: copy.home.metaDescription,
+    icons: SITE_ICONS,
     alternates: {
       canonical: copy.site.origin,
     },

@@ -6,7 +6,7 @@
 export const MAILING_CONTACT_STATUSES = ['prospect', 'client'] as const
 export type MailingContactStatus = (typeof MAILING_CONTACT_STATUSES)[number]
 
-export const MAILING_REGIONS = ['NZ', 'International'] as const
+export const MAILING_REGIONS = ['NZ', 'International', 'UK'] as const
 export type MailingRegion = (typeof MAILING_REGIONS)[number]
 
 export const MAILING_CONTACT_SOURCES = [
@@ -207,6 +207,32 @@ export function isMailingRegion(value: unknown): value is MailingRegion {
     typeof value === 'string' &&
     (MAILING_REGIONS as readonly string[]).includes(value)
   )
+}
+
+/** Parse a CSV / form region string into a mailing region (unknown → NZ). */
+export function parseMailingRegion(value: unknown): MailingRegion {
+  if (isMailingRegion(value)) return value
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase()
+  if (
+    normalized === 'uk' ||
+    normalized === 'gb' ||
+    normalized === 'united kingdom' ||
+    normalized === 'co.uk'
+  ) {
+    return 'UK'
+  }
+  if (
+    normalized === 'international' ||
+    normalized === 'intl' ||
+    normalized === 'usa' ||
+    normalized === 'us' ||
+    normalized === 'global'
+  ) {
+    return 'International'
+  }
+  return 'NZ'
 }
 
 export function parseMailingAudienceFilter(

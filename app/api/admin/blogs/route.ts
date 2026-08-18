@@ -3,6 +3,7 @@ import {
   deleteBlogPost,
   fetchAllBlogPostRecords,
   saveBlogPost,
+  saveBlogPostImage,
   toPublicBlogPost,
   updateBlogPostFields,
   type BlogPostInput,
@@ -34,6 +35,7 @@ function serializeBlog(record: BlogPostRecord) {
     featured: record.featured,
     showNz: record.showNz,
     showUsa: record.showUsa,
+    showUk: record.showUk,
     sortOrder: record.sortOrder,
     createdAt: serializeTimestamp(record.createdAt),
     updatedAt: serializeTimestamp(record.updatedAt),
@@ -104,6 +106,11 @@ export async function POST(request: Request) {
           ),
           20_000,
           'uploadBlogImageAdmin'
+        )
+        await withTimeout(
+          saveBlogPostImage(slug, url),
+          8_000,
+          'saveBlogPostImage'
         )
         return NextResponse.json({
           ok: true,

@@ -8,7 +8,7 @@ import {
   type PageSeoKind,
   type PageSeoMarkets,
 } from '@/lib/page-seo'
-import { marketLabel, type MarketId } from '@/lib/market'
+import { MARKET_IDS, marketLabel, marketShortLabel, type MarketId } from '@/lib/market'
 
 const FIELD_HELP: {
   key: keyof PageSeoFields
@@ -169,20 +169,20 @@ export function AdminPageSeoPanel() {
     }))
   }
 
-  function copyNzToGlobalPage() {
-    if (!selected) return
+  function copyNzToMarket(target: MarketId) {
+    if (!selected || target === 'nz') return
     const nzFields = markets.nz[selected.path]
     if (!nzFields) return
     setMarkets((prev) => ({
       ...prev,
-      intl: {
-        ...prev.intl,
+      [target]: {
+        ...prev[target],
         [selected.path]: { ...nzFields },
       },
     }))
-    setMarket('intl')
+    setMarket(target)
     setMessage(
-      `Copied NZ fields for ${selected.path} into Global. Review and save draft.`
+      `Copied NZ fields for ${selected.path} into ${marketLabel(target)}. Review and save draft.`
     )
   }
 
@@ -217,7 +217,7 @@ export function AdminPageSeoPanel() {
       setUpdatedAt(new Date().toISOString())
       setMessage(
         data.message ||
-          'Draft saved for the full catalog (all services, solutions, NZ + Global). Click Publish when ready for the public site.'
+          'Draft saved for the full catalog (all services, solutions, NZ + International + UK). Click Publish when ready for the public site.'
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
@@ -251,7 +251,7 @@ export function AdminPageSeoPanel() {
       setPublishedAt(data.publishedAt ?? null)
       setMessage(
         data.message ||
-          `Published full catalog (all pages, NZ + Global) to ${data.filePath ?? 'data/page-seo.generated.ts'}.`
+          `Published full catalog (all pages, NZ + International + UK) to ${data.filePath ?? 'data/page-seo.generated.ts'}.`
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Publish failed')
@@ -277,13 +277,15 @@ export function AdminPageSeoPanel() {
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-muted">
             Per service and solution landing pages: H1, hero intro, and SEO
-            meta. Separate fields for <strong>New Zealand</strong> and{' '}
-            <strong>Global</strong>. Site-wide defaults, homepage, and contact
-            live under <strong>CMS → Site CMS</strong>. Use the left column for
-            Services/Solutions navigation. The public site picks market from
-            the arrival domain (or local{' '}
+            meta. Separate fields for <strong>New Zealand</strong>,{' '}
+            <strong>International</strong>, and the{' '}
+            <strong>United Kingdom</strong>. Site-wide defaults, homepage, and
+            contact live under <strong>CMS → Site CMS</strong>. Use the left
+            column for Services/Solutions navigation. The public site picks
+            market from the arrival domain (or local{' '}
             <code className="text-xs">/nz</code> /{' '}
-            <code className="text-xs">/usa</code>
+            <code className="text-xs">/usa</code> /{' '}
+            <code className="text-xs">/uk</code>
             ). Commit{' '}
             <code className="text-xs">data/page-seo.generated.ts</code> after
             Publish on production deploys.
@@ -319,8 +321,8 @@ export function AdminPageSeoPanel() {
           </div>
           <p className="max-w-xs text-right text-xs text-ink-muted">
             Saves the full CMS catalog: every service and solution page (H1, intro,
-            and meta), for <strong>both</strong> NZ and Global — not only the
-            page open on the right.
+            and meta), for <strong>NZ, International, and UK</strong> — not only
+            the page open on the right.
           </p>
         </div>
       </div>
@@ -340,19 +342,14 @@ export function AdminPageSeoPanel() {
         <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
           Market
         </span>
-        {(
-          [
-            { id: 'nz' as const, label: 'NZ' },
-            { id: 'intl' as const, label: 'Global' },
-          ] as const
-        ).map((opt) => {
-          const active = market === opt.id
+        {MARKET_IDS.map((id) => {
+          const active = market === id
           return (
             <button
-              key={opt.id}
+              key={id}
               type="button"
               onClick={() => {
-                setMarket(opt.id)
+                setMarket(id)
                 setMessage(null)
               }}
               className={
@@ -361,7 +358,7 @@ export function AdminPageSeoPanel() {
                   : 'rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50'
               }
             >
-              {opt.label}
+              {marketShortLabel(id)}
             </button>
           )
         })}
@@ -442,7 +439,7 @@ export function AdminPageSeoPanel() {
                   <p className="text-xs text-ink-muted">
                     {selected.path}
                     {' · '}
-                    {market === 'nz' ? 'NZ' : 'Global'}
+                    {marketShortLabel(market)}
                     {' · '}
                     {selectedIndex + 1} of {list.length}
                     {' · '}
@@ -458,13 +455,13 @@ export function AdminPageSeoPanel() {
                   >
                     Open page
                   </a>
-                  {market === 'intl' ? (
+                  {market !== 'nz' ? (
                     <button
                       type="button"
-                      onClick={copyNzToGlobalPage}
+                      onClick={() => copyNzToMarket(market)}
                       className="rounded-md border border-border bg-white px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-gray-50"
                     >
-                      Copy NZ → Global
+                      Copy NZ → {marketShortLabel(market)}
                     </button>
                   ) : null}
                   <button

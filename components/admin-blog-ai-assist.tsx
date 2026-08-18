@@ -15,18 +15,31 @@ import {
 import type { AiSystemPrompt, AiSystemPromptKind } from '@/lib/ai-system-prompts'
 import type { BlogAiDraft } from '@/lib/blog-ai-types'
 import {
+  BLOG_AI_IMAGE_STYLES,
+  type BlogAiImageStyleId,
+} from '@/lib/blog-ai-image-styles'
+import {
   blogAiAssistSessionHasWork,
   clearBlogAiAssistSession,
   combineSystemPrompts,
   dataUrlToFile,
+  existingBlogPostHasContent,
   loadBlogAiAssistSession,
   saveBlogAiAssistSession,
+  seedBlogAiAssistFromPost,
+  type BlogAiAssistExistingPost,
 } from '@/lib/blog-ai-assist-session'
 
 type Props = {
   onApply: (draft: BlogAiDraft | null, imageFile: File | null) => void
   onCancel: () => void
   cancelLabel?: string
+  /** Current editor post — pre-fills AI Assist so existing blogs can generate an image immediately. */
+  existingPost?: BlogAiAssistExistingPost | null
+  /** True when the editor is updating a saved post rather than creating one. */
+  existingSaved?: boolean
+  /** Opened from the hero-image shortcut — emphasise image generation. */
+  intent?: 'full' | 'image'
 }
 
 type PromptFormState = {
@@ -55,18 +68,39 @@ export function AdminBlogAiAssist({
   onApply,
   onCancel,
   cancelLabel = 'Back to list',
+  existingPost = null,
+  existingSaved = false,
+  intent = 'full',
 }: Props) {
-  const [title, setTitle] = useState('')
-  const [brief, setBrief] = useState('')
-  const [userPrompt, setUserPrompt] = useState('')
-  const [categoryHint, setCategoryHint] = useState('')
+  const initialSeed =
+    existingBlogPostHasContent(existingPost) && existingPost
+      ? seedBlogAiAssistFromPost(existingPost, { saved: existingSaved })
+      : null
+  const [title, setTitle] = useState(initialSeed?.title ?? '')
+  const [brief, setBrief] = useState(initialSeed?.brief ?? '')
+  const [userPrompt, setUserPrompt] = useState(initialSeed?.userPrompt ?? '')
+  const [categoryHint, setCategoryHint] = useState(
+    initialSeed?.categoryHint ?? ''
+  )
+  const [sourceSlug, setSourceSlug] = useState(
+    initialSeed?.sourceSlug ?? existingPost?.slug?.trim() ?? ''
+  )
   const [prompts, setPrompts] = useState<AiSystemPrompt[]>([])
   const [draftPromptIds, setDraftPromptIds] = useState<string[]>([])
   const [imagePromptIds, setImagePromptIds] = useState<string[]>([])
+  const [imageStyleId, setImageStyleId] = useState<BlogAiImageStyleId | ''>('')
   const [busy, setBusy] = useState<'draft' | 'image' | 'prompts' | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [draft, setDraft] = useState<BlogAiDraft | null>(null)
+  const [message, setMessage] = useState<string | null>(
+    initialSeed?.title
+      ? `Loaded “${initialSeed.title}” from the editor. Generate a hero image whenever you are ready.`
+      : initialSeed
+        ? 'Loaded the post from the editor. Generate a hero image whenever you are ready.'
+        : null
+  )
+  const [draft, setDraft] = useState<BlogAiDraft | null>(
+    initialSeed?.draft ?? null
+  )
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [showLibrary, setShowLibrary] = useState(false)
@@ -103,21 +137,36 @@ export function AdminBlogAiAssist({
 
   useEffect(() => {
     const restored = loadBlogAiAssistSession()
-    if (restored && blogAiAssistSessionHasWork(restored)) {
-      setTitle(restored.title)
-      setBrief(restored.brief)
-      setUserPrompt(restored.userPrompt)
-      setCategoryHint(restored.categoryHint)
-      setDraftPromptIds(restored.draftPromptIds)
-      setImagePromptIds(restored.imagePromptIds)
-      setDraft(restored.draft)
-      setImageDataUrl(restored.imageDataUrl)
-      if (restored.imageDataUrl) {
+    const postSlug = existingPost?.slug?.trim() ?? ''
+    const seed =
+      existingBlogPostHasContent(existingPost) && existingPost
+        ? seedBlogAiAssistFromPost(existingPost, { saved: existingSaved })
+        : null
+    const sameSource = !existingPost || (restored?.sourceSlug || '') === postSlug
+    const restoredMarkdown = restored?.draft?.markdown?.trim() || ''
+    const seedMarkdown = seed?.draft.markdown.trim() || ''
+    const hasGeneratedOutput = Boolean(
+      restored?.imageDataUrl ||
+        (restoredMarkdown && seedMarkdown && restoredMarkdown !== seedMarkdown)
+    )
+
+    function applyRestored(session: NonNullable<typeof restored>) {
+      setTitle(session.title)
+      setBrief(session.brief)
+      setUserPrompt(session.userPrompt)
+      setCategoryHint(session.categoryHint)
+      setSourceSlug(session.sourceSlug || postSlug)
+      setDraftPromptIds(session.draftPromptIds)
+      setImagePromptIds(session.imagePromptIds)
+      setImageStyleId(session.imageStyleId || '')
+      setDraft(session.draft)
+      setImageDataUrl(session.imageDataUrl)
+      if (session.imageDataUrl) {
         setImageFile(
           dataUrlToFile(
-            restored.imageDataUrl,
-            restored.imageFileName || 'blog-ai-image.png',
-            restored.imageMimeType
+            session.imageDataUrl,
+            session.imageFileName || 'blog-ai-image.png',
+            session.imageMimeType
           )
         )
       }
@@ -125,8 +174,38 @@ export function AdminBlogAiAssist({
         'Restored your in-progress AI Assist work from this browser session.'
       )
     }
+
+    if (seed && restored && sameSource && hasGeneratedOutput) {
+      applyRestored(restored)
+    } else if (seed) {
+      setTitle(seed.title)
+      setBrief(seed.brief)
+      setUserPrompt(seed.userPrompt)
+      setCategoryHint(seed.categoryHint)
+      setSourceSlug(seed.sourceSlug)
+      setDraft(seed.draft)
+      setMessage(
+        seed.title
+          ? `Loaded “${seed.title}” from the editor. Generate a hero image whenever you are ready.`
+          : 'Loaded the post from the editor. Generate a hero image whenever you are ready.'
+      )
+    } else if (
+      restored &&
+      blogAiAssistSessionHasWork(restored) &&
+      !existingPost
+    ) {
+      applyRestored(restored)
+    }
     setSessionReady(true)
+    // Remounts each time AI Assist opens; seed from the post at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (intent !== 'image') return
+    const el = document.getElementById('ai-image-style')
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [intent])
 
   useEffect(() => {
     if (!sessionReady) return
@@ -135,8 +214,10 @@ export function AdminBlogAiAssist({
       brief,
       userPrompt,
       categoryHint,
+      sourceSlug,
       draftPromptIds,
       imagePromptIds,
+      imageStyleId,
       draft,
       imageDataUrl,
       imageMimeType: imageFile?.type ?? null,
@@ -149,8 +230,10 @@ export function AdminBlogAiAssist({
     brief,
     userPrompt,
     categoryHint,
+    sourceSlug,
     draftPromptIds,
     imagePromptIds,
+    imageStyleId,
     draft,
     imageDataUrl,
     imageFile,
@@ -210,11 +293,9 @@ export function AdminBlogAiAssist({
         if (kept.length > 0) return kept
         return drafts[0]?.id ? [drafts[0].id] : []
       })
-      setImagePromptIds((prev) => {
-        const kept = prev.filter((id) => images.some((p) => p.id === id))
-        if (kept.length > 0) return kept
-        return images[0]?.id ? [images[0].id] : []
-      })
+      setImagePromptIds((prev) =>
+        prev.filter((id) => images.some((p) => p.id === id))
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load prompts')
     } finally {
@@ -241,10 +322,12 @@ export function AdminBlogAiAssist({
         body: JSON.stringify({
           title,
           brief,
-          userPrompt,
+          userPrompt: draft?.markdown?.trim()
+            ? `${userPrompt.trim()}\n\nExisting article body (markdown):\n${draft.markdown.trim()}`
+            : userPrompt,
           systemPrompt: combinedDraftSystemPrompt,
           categoryHint,
-          authorHint: 'Mike',
+          authorHint: existingPost?.author?.trim() || 'Mike',
         }),
       })
       const data = (await res.json()) as {
@@ -270,6 +353,10 @@ export function AdminBlogAiAssist({
       setError('Title is required before generating an image.')
       return
     }
+    if (!imageStyleId) {
+      setError('Choose an image style before generating (infographic, photo, or illustration).')
+      return
+    }
     setBusy('image')
     setError(null)
     setMessage(null)
@@ -283,6 +370,7 @@ export function AdminBlogAiAssist({
           imagePrompt: draft?.imagePrompt,
           brief,
           userPrompt,
+          imageStyle: imageStyleId,
         }),
       })
       const data = (await res.json()) as {
@@ -440,20 +528,80 @@ export function AdminBlogAiAssist({
 
   const canApplyAnything = Boolean(draft || imageFile)
   const generating = busy === 'draft' || busy === 'image'
+  const imagePathway = intent === 'image'
+  const generateBlogButton = (
+    <button
+      type="button"
+      disabled={
+        generating ||
+        !title.trim() ||
+        (!brief.trim() && !userPrompt.trim()) ||
+        selectedDraftPrompts.length === 0
+      }
+      onClick={() => void generateDraft()}
+      className={
+        imagePathway
+          ? 'inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60'
+          : 'inline-flex items-center gap-1.5 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60'
+      }
+    >
+      {busy === 'draft' ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      ) : (
+        <Sparkles className="h-4 w-4" aria-hidden="true" />
+      )}
+      {busy === 'draft' ? 'Generating blog…' : 'Generate blog'}
+    </button>
+  )
+  const generateImageButton = (
+    <button
+      type="button"
+      disabled={generating || !title.trim()}
+      title={
+        !title.trim()
+          ? 'Title is required'
+          : !imageStyleId
+            ? 'Choose an image style, then generate'
+            : undefined
+      }
+      onClick={() => void generateImage()}
+      className={
+        imagePathway
+          ? 'inline-flex items-center gap-1.5 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60'
+          : 'inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60'
+      }
+    >
+      {busy === 'image' ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      ) : (
+        <ImagePlus className="h-4 w-4" aria-hidden="true" />
+      )}
+      {busy === 'image' ? 'Generating image…' : 'Generate image'}
+    </button>
+  )
 
   return (
     <div className="space-y-6 rounded-lg border border-border bg-surface p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
-            <Sparkles className="h-4 w-4 text-brand" aria-hidden="true" />
-            AI Assist — create blog post
+            {intent === 'image' ? (
+              <ImagePlus className="h-4 w-4 text-brand" aria-hidden="true" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-brand" aria-hidden="true" />
+            )}
+            {intent === 'image'
+              ? 'AI Image Generator'
+              : existingSaved
+                ? 'AI Assist — existing blog post'
+                : 'AI Assist — create blog post'}
           </h3>
           <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Select one or more system prompts, enter a title, brief and your
-            writing angle, then generate markdown copy and/or a hero image.
-            Your work is kept while you manage the prompt library or leave and
-            come back in this browser session.
+            {intent === 'image'
+              ? 'This is the same AI generation page. Pick a visual style, generate a hero image, then Apply image. Title, excerpt and body are already loaded from the post you are editing.'
+              : existingSaved
+                ? 'Title, excerpt, category and body are loaded from the post you are editing. Generate a hero image now without re-entering those details. Applying an image updates this post — it will not create a new draft.'
+                : 'Select one or more system prompts, enter a title, brief and your writing angle, then generate markdown copy and/or a hero image. Your work is kept while you manage the prompt library or leave and come back in this browser session.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -772,12 +920,12 @@ export function AdminBlogAiAssist({
           <legend className="mb-1 font-medium text-ink">
             Image system prompts
             <span className="ml-1 font-normal text-ink-muted">
-              (optional, multi-select)
+              (optional extras — brand overlay)
             </span>
           </legend>
           {imagePrompts.length === 0 ? (
             <p className="rounded-md border border-border bg-surface-raised px-3 py-2 text-ink-muted">
-              Default style (no library prompt)
+              No library overlay. Visual style below is enough.
             </p>
           ) : (
             <ul className="space-y-2 rounded-md border border-border bg-white p-3">
@@ -795,7 +943,14 @@ export function AdminBlogAiAssist({
                           setImagePromptIds((prev) => toggleId(prev, p.id))
                         }
                       />
-                      <span className="font-semibold text-ink">{p.name}</span>
+                      <span>
+                        <span className="font-semibold text-ink">{p.name}</span>
+                        {p.description ? (
+                          <span className="mt-0.5 block text-xs font-normal text-ink-muted">
+                            {p.description}
+                          </span>
+                        ) : null}
+                      </span>
                     </label>
                   </li>
                 )
@@ -825,38 +980,73 @@ export function AdminBlogAiAssist({
         </label>
       </div>
 
+      <fieldset
+        id="ai-image-style"
+        className={`rounded-md border p-4 ${
+          intent === 'image'
+            ? 'border-brand/40 bg-brand-light/40'
+            : 'border-border bg-surface-raised'
+        }`}
+      >
+        <legend className="px-1 text-sm font-medium text-ink">
+          Image style
+          <span className="ml-1 font-normal text-ink-muted">
+            (required for Generate image)
+          </span>
+        </legend>
+        <p className="mb-3 text-xs text-ink-muted">
+          Choose how the hero should look. This is what stops every post landing
+          on the same infographic.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {BLOG_AI_IMAGE_STYLES.map((style) => {
+            const selected = imageStyleId === style.id
+            return (
+              <label
+                key={style.id}
+                className={`flex cursor-pointer items-start gap-2 rounded-md border bg-white px-3 py-2.5 text-sm ${
+                  selected
+                    ? 'border-brand ring-1 ring-brand'
+                    : 'border-border hover:bg-surface-raised'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="blog-ai-image-style"
+                  className="mt-1"
+                  checked={selected}
+                  disabled={generating}
+                  onChange={() => setImageStyleId(style.id)}
+                />
+                <span>
+                  <span className="font-semibold text-ink">{style.label}</span>
+                  <span className="mt-0.5 block text-xs font-normal text-ink-muted">
+                    {style.description}
+                  </span>
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      </fieldset>
+
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={
-            generating ||
-            !title.trim() ||
-            (!brief.trim() && !userPrompt.trim()) ||
-            selectedDraftPrompts.length === 0
-          }
-          onClick={() => void generateDraft()}
-          className="inline-flex items-center gap-1.5 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
-        >
-          {busy === 'draft' ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-          )}
-          {busy === 'draft' ? 'Generating blog…' : 'Generate blog'}
-        </button>
-        <button
-          type="button"
-          disabled={generating || !title.trim()}
-          onClick={() => void generateImage()}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-4 py-2.5 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
-        >
-          {busy === 'image' ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <ImagePlus className="h-4 w-4" aria-hidden="true" />
-          )}
-          {busy === 'image' ? 'Generating image…' : 'Generate image'}
-        </button>
+        {imagePathway ? (
+          <>
+            {generateImageButton}
+            {generateBlogButton}
+          </>
+        ) : (
+          <>
+            {generateBlogButton}
+            {generateImageButton}
+          </>
+        )}
+        {!imageStyleId ? (
+          <p className="w-full text-xs text-ink-muted">
+            Choose an image style above, then Generate image.
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-border pt-4">
@@ -893,7 +1083,9 @@ export function AdminBlogAiAssist({
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-md border border-border bg-surface-raised p-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-ink-muted">
-              Markdown / copy preview
+              {existingSaved
+                ? 'Current article'
+                : 'Markdown / copy preview'}
             </h4>
             {draft ? (
               <>
@@ -936,8 +1128,17 @@ export function AdminBlogAiAssist({
               </div>
             ) : (
               <p className="mt-3 text-sm text-ink-muted">
-                No image yet. Click <strong>Generate image</strong> after (or
-                before) generating copy.
+                {existingSaved ? (
+                  <>
+                    No image yet. Click <strong>Generate image</strong> — title,
+                    excerpt and body are already loaded.
+                  </>
+                ) : (
+                  <>
+                    No image yet. Click <strong>Generate image</strong> after
+                    (or before) generating copy.
+                  </>
+                )}
               </p>
             )}
             {draft?.imagePrompt && (
@@ -945,9 +1146,15 @@ export function AdminBlogAiAssist({
                 Image prompt: {draft.imagePrompt}
               </p>
             )}
+            {imageStyleId && (
+              <p className="mt-2 text-xs text-ink-muted">
+                Image style:{' '}
+                {BLOG_AI_IMAGE_STYLES.find((s) => s.id === imageStyleId)?.label}
+              </p>
+            )}
             {selectedImagePrompts.length > 0 && (
               <p className="mt-2 text-xs text-ink-muted">
-                Image style
+                Image overlay
                 {selectedImagePrompts.length > 1 ? 's' : ''}:{' '}
                 {selectedImagePrompts.map((p) => p.name).join(', ')}
               </p>

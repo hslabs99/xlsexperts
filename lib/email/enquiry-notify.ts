@@ -16,6 +16,14 @@ import { fetchActiveEmailTemplate } from '@/lib/email-templates-db'
 import { sendEmail } from '@/lib/email/sendgrid'
 import { withTimeout } from '@/lib/with-timeout'
 import type { BookingPayload, ContactPayload } from '@/lib/types'
+import { BOOKING_TIMEZONE, formatDayLabel } from '@/lib/booking-slots'
+import {
+  aucklandWallTimeToUtc,
+  dateKeyInTimeZone,
+  formatTimeInTimeZone,
+  formatTimeZoneShort,
+  isValidTimeZone,
+} from '@/lib/booking-timezone'
 
 function concernsHtml(services: string[] | undefined): string {
   if (!services || services.length === 0) {
@@ -99,7 +107,35 @@ export function buildDiscoveryMergeContext(
   const dateRaw = payload.date?.trim() || ''
   const date = formatDisplayDate(dateRaw)
   const time = payload.time?.trim() || ''
-  const when = [day, date, time].filter(Boolean).join(' · ')
+  const visitorTz = payload.timeZone?.trim() || ''
+  let when = [day, date, time].filter(Boolean).join(' · ')
+  let mergeDay = day
+  let mergeDate = date
+  let mergeTime = time
+
+  if (
+    visitorTz &&
+    visitorTz !== BOOKING_TIMEZONE &&
+    isValidTimeZone(visitorTz) &&
+    dateRaw &&
+    time
+  ) {
+    try {
+      const instant = aucklandWallTimeToUtc(dateRaw, time)
+      const localDateKey = dateKeyInTimeZone(instant, visitorTz)
+      const localTime = formatTimeInTimeZone(instant, visitorTz)
+      const localDay = formatDayLabel(localDateKey)
+      const localDate = formatDisplayDate(localDateKey)
+      const localTz = formatTimeZoneShort(visitorTz, instant)
+      const nzTz = formatTimeZoneShort(BOOKING_TIMEZONE, instant)
+      mergeDay = localDay
+      mergeDate = localDate
+      mergeTime = `${localTime} ${localTz}`
+      when = `${localDay} · ${localDate} · ${localTime} ${localTz} (${time} ${nzTz})`
+    } catch {
+      // Keep NZ wall-clock copy if conversion fails
+    }
+  }
 
   return {
     ...base,
@@ -107,9 +143,9 @@ export function buildDiscoveryMergeContext(
     enquiryType: `Discovery request${payload.method ? ` (${payload.method})` : ''}`,
     when,
     method: payload.method?.trim() || '',
-    day,
-    date,
-    time,
+    day: mergeDay,
+    date: mergeDate,
+    time: mergeTime,
   }
 }
 
