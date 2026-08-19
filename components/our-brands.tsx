@@ -1,28 +1,21 @@
 'use client'
 
 import { Fragment } from 'react'
-import { useMarketCopy } from '@/components/market-provider'
+import { useBrandLabels } from '@/components/market-provider'
+import { PUBLISHED_DOMAIN_REGIONS } from '@/data/domain-regions.generated'
+import {
+  siteOriginsFromRegions,
+  type DomainRegionId,
+} from '@/lib/domain-regions'
 
-const BRANDS = [
-  {
-    href: 'https://www.excelexperts.co.nz',
-    labelKey: 'brandNzLabel' as const,
-  },
-  {
-    href: 'https://www.excelexperts.com',
-    labelKey: 'brandIntlLabel' as const,
-  },
-  {
-    href: 'https://www.excelexperts.co.uk',
-    labelKey: 'brandUkLabel' as const,
-  },
-]
+const BRAND_REGIONS: DomainRegionId[] = ['nz', 'intl', 'uk']
 
 export function OurBrands({ compact = false }: { compact?: boolean }) {
-  const copy = useMarketCopy()
-  const labels = BRANDS.map((brand) => ({
-    href: brand.href,
-    label: copy.about[brand.labelKey],
+  const brandLabels = useBrandLabels()
+  const origins = siteOriginsFromRegions(PUBLISHED_DOMAIN_REGIONS.regions)
+  const labels = BRAND_REGIONS.map((region) => ({
+    href: origins[region],
+    label: brandLabels[region],
   }))
 
   if (compact) {

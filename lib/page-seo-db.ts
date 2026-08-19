@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { promises as fs } from 'fs'
 import path from 'path'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
@@ -8,6 +7,7 @@ import {
   PAGE_SEO_DOC_ID,
   SITE_CONTENT_COLLECTION,
 } from '@/lib/firebase'
+import { writeGeneratedFile } from '@/lib/write-generated-file'
 import {
   defaultPageSeoMarkets,
   normalizePageSeoMarkets,
@@ -123,8 +123,7 @@ export async function publishPageSeo(
     markets: bundle,
   }
 
-  const filePath = path.join(process.cwd(), GENERATED_RELATIVE)
-  await fs.writeFile(filePath, serializeGeneratedFile(payload), 'utf8')
+  await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
 
   await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
@@ -134,7 +133,7 @@ export async function publishPageSeo(
         markets: bundle,
         pages: FieldValue.delete(),
         publishedAt,
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: publishedAt,
       },
       { merge: true }
     )

@@ -5,8 +5,17 @@ import { FloatingConsultationCta } from '@/components/floating-consultation-cta'
 import { FunnelTracker } from '@/components/funnel-tracker'
 import { MarketProvider } from '@/components/market-provider'
 import { LocalMarketSwitcher } from '@/components/local-market-switcher'
-import { keywordsToArray } from '@/lib/market-copy'
-import { getIsLocalDev, getMarket, getMarketCopy } from '@/lib/market-server'
+import {
+  brandLabelsFromBundle,
+  keywordsToArray,
+  pickMarketCopy,
+} from '@/lib/market-copy'
+import {
+  getIsLocalDev,
+  getLiveMarketCopyBundle,
+  getMarket,
+  getMarketCopy,
+} from '@/lib/market-server'
 import { SITE_ICONS } from '@/lib/site-icons'
 import './globals.css'
 
@@ -86,7 +95,8 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const market = await getMarket()
-  const copy = await getMarketCopy()
+  const copyBundle = await getLiveMarketCopyBundle()
+  const copy = pickMarketCopy(copyBundle, market)
   const localDev = await getIsLocalDev()
 
   return (
@@ -96,6 +106,7 @@ export default async function RootLayout({
           key={market}
           market={market}
           copy={copy}
+          brandLabels={brandLabelsFromBundle(copyBundle)}
           localDev={localDev}
         >
           <LocalMarketSwitcher />

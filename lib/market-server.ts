@@ -58,6 +58,11 @@ export function getPublishedMarketCopyBundle(): MarketCopyBundle {
   return PUBLISHED_MARKET_COPY.markets
 }
 
+/** Live bundle: CMS draft on localhost, published file in production. */
+export async function getLiveMarketCopyBundle(): Promise<MarketCopyBundle> {
+  return liveMarketCopyBundle()
+}
+
 /**
  * Public copy for this request.
  * Localhost reads the CMS draft so Save draft is enough to preview NZ / UK / International.

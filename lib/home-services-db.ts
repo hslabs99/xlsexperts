@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { promises as fs } from 'fs'
 import path from 'path'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
@@ -8,6 +7,7 @@ import {
   HOME_SERVICES_DOC_ID,
   SITE_CONTENT_COLLECTION,
 } from '@/lib/firebase'
+import { writeGeneratedFile } from '@/lib/write-generated-file'
 import {
   defaultHomeServicesContent,
   normalizeHomeServicesContent,
@@ -120,8 +120,7 @@ export async function publishHomeServices(
     content: bundle,
   }
 
-  const filePath = path.join(process.cwd(), GENERATED_RELATIVE)
-  await fs.writeFile(filePath, serializeGeneratedFile(payload), 'utf8')
+  await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
 
   await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
@@ -130,7 +129,7 @@ export async function publishHomeServices(
       {
         content: bundle,
         publishedAt,
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: publishedAt,
       },
       { merge: true }
     )

@@ -634,6 +634,8 @@ export function AdminCaseStudiesPanel() {
       const data = (await res.json()) as {
         ok?: boolean
         items?: unknown[]
+        filePath?: string
+        message?: string
         error?: string
       }
       if (!res.ok || !data.ok) {
@@ -641,7 +643,8 @@ export function AdminCaseStudiesPanel() {
       }
       const count = data.items?.length ?? 0
       setMessage(
-        `Homepage snapshot published (${count} card${count === 1 ? '' : 's'}). Public site reads this document only — no live collection query on first paint.`
+        data.message ||
+          `Published ${count} homepage card${count === 1 ? '' : 's'} to ${data.filePath ?? 'data/case-studies-home.generated.ts'}. Commit and deploy for production.`
       )
     } catch (err) {
       setError(
@@ -713,10 +716,11 @@ export function AdminCaseStudiesPanel() {
               Firestore collection <code className="text-xs">caseStudies</code>.
               Use <strong>AI Assist</strong> to draft copy and images from a
               short brief, or create manually. Tag studies to services and
-              solutions for page linking. Homepage first paint uses a published
-              snapshot in{' '}
-              <code className="text-xs">Site Content / case-studies-home</code>{' '}
-              (one document read). Visitors load more only when they click{' '}
+              solutions for page linking. <strong>Publish homepage</strong>{' '}
+              writes{' '}
+              <code className="text-xs">data/case-studies-home.generated.ts</code>
+              {' '}so first paint has no database read. Commit that file and
+              deploy. Visitors load more only when they click{' '}
               <strong>Show more</strong>.
             </p>
           </div>

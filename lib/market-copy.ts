@@ -64,9 +64,8 @@ export type MarketCopy = {
     pillarBasedTitle: string
     pillarBasedBody: string
     pillarSmeBody: string
-    brandNzLabel: string
-    brandIntlLabel: string
-    brandUkLabel: string
+    /** Link text for this region's site in Our brands (Contact Us / About). */
+    brandLabel: string
   }
   caseStudies: {
     homeIntro: string
@@ -80,6 +79,8 @@ export type MarketCopyFieldMeta = {
   group: string
   multiline?: boolean
   hint?: string
+  /** Hide NZ → Intl / NZ → UK; each column is this region's own value. */
+  independentPerMarket?: boolean
 }
 
 export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
@@ -189,9 +190,13 @@ export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
     group: 'About',
     multiline: true,
   },
-  { path: 'about.brandNzLabel', label: 'Brand link label (NZ)', group: 'About' },
-  { path: 'about.brandIntlLabel', label: 'Brand link label (USA)', group: 'About' },
-  { path: 'about.brandUkLabel', label: 'Brand link label (UK)', group: 'About' },
+  {
+    path: 'about.brandLabel',
+    label: 'Brand link label',
+    group: 'About',
+    hint: "Name for this region's site on Contact Us and About. All three regions are listed on every site.",
+    independentPerMarket: true,
+  },
 
   {
     path: 'caseStudies.homeIntro',
@@ -270,9 +275,7 @@ export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
       'Our entire team works from Auckland. No offshore handoffs, no timezone delays — you deal directly with the people doing the work.',
     pillarSmeBody:
       'We work with solo operators, engineers, construction firms, retailers, and NZX-listed corporates alike. Every client gets the same quality of attention.',
-    brandNzLabel: 'Excel Experts NZ',
-    brandIntlLabel: 'Excel Experts USA',
-    brandUkLabel: 'Excel Experts UK',
+    brandLabel: 'XLS Experts NZ',
   },
   caseStudies: {
     homeIntro:
@@ -327,6 +330,10 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
   hero: {
     ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).hero,
     badgeSpecialists: 'Global Microsoft Excel Specialists',
+  },
+  about: {
+    ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).about,
+    brandLabel: 'XLS Experts International',
   },
 }
 
@@ -394,9 +401,7 @@ export const DEFAULT_UK_MARKET_COPY: MarketCopy = {
     pillarBasedTitle: 'United Kingdom',
     pillarBasedBody:
       'We work with UK organisations remotely, with one project manager as your point of contact and 20+ years of experience. No offshore handoffs — you deal directly with the people doing the work.',
-    brandNzLabel: 'Excel Experts NZ',
-    brandIntlLabel: 'Excel Experts USA',
-    brandUkLabel: 'Excel Experts UK',
+    brandLabel: 'XLS Experts UK',
   },
   caseStudies: {
     homeIntro:
@@ -480,9 +485,39 @@ function normalizeSection<T extends Record<string, string>>(
   return out
 }
 
-export function normalizeMarketCopy(raw: unknown, fallback: MarketCopy): MarketCopy {
+const LEGACY_BRAND_LABEL_KEY: Record<
+  MarketId,
+  'brandNzLabel' | 'brandIntlLabel' | 'brandUkLabel'
+> = {
+  nz: 'brandNzLabel',
+  intl: 'brandIntlLabel',
+  uk: 'brandUkLabel',
+}
+
+/** Prefer brandLabel; else the old per-region key for this market. */
+function pickBrandLabel(
+  rawAbout: unknown,
+  fallback: string,
+  legacyKey: 'brandNzLabel' | 'brandIntlLabel' | 'brandUkLabel'
+): string {
+  if (!rawAbout || typeof rawAbout !== 'object') return fallback
+  const data = rawAbout as Record<string, unknown>
+  return pickString(data.brandLabel, pickString(data[legacyKey], fallback))
+}
+
+export function normalizeMarketCopy(
+  raw: unknown,
+  fallback: MarketCopy,
+  market: MarketId = 'nz'
+): MarketCopy {
   if (!raw || typeof raw !== 'object') return cloneMarketCopy(fallback)
   const data = raw as Record<string, unknown>
+  const about = normalizeSection(data.about, fallback.about)
+  about.brandLabel = pickBrandLabel(
+    data.about,
+    fallback.about.brandLabel,
+    LEGACY_BRAND_LABEL_KEY[market]
+  )
   return {
     site: normalizeSection(data.site, fallback.site),
     contact: normalizeSection(data.contact, fallback.contact),
@@ -494,7 +529,7 @@ export function normalizeMarketCopy(raw: unknown, fallback: MarketCopy): MarketC
         'badgeAiHref',
       ],
     }),
-    about: normalizeSection(data.about, fallback.about),
+    about,
     caseStudies: normalizeSection(data.caseStudies, fallback.caseStudies),
   }
 }
@@ -508,9 +543,23 @@ export function normalizeMarketCopyBundle(raw: unknown): MarketCopyBundle {
       ? (data.markets as Record<string, unknown>)
       : data
   return {
-    nz: normalizeMarketCopy(markets.nz, defaults.nz),
-    intl: normalizeMarketCopy(markets.intl, defaults.intl),
-    uk: normalizeMarketCopy(markets.uk ?? markets.intl, defaults.uk),
+    nz: normalizeMarketCopy(markets.nz, defaults.nz, 'nz'),
+    intl: normalizeMarketCopy(markets.intl, defaults.intl, 'intl'),
+    uk: normalizeMarketCopy(markets.uk ?? markets.intl, defaults.uk, 'uk'),
+  }
+}
+
+export type BrandLabels = {
+  nz: string
+  intl: string
+  uk: string
+}
+
+export function brandLabelsFromBundle(bundle: MarketCopyBundle): BrandLabels {
+  return {
+    nz: bundle.nz.about.brandLabel,
+    intl: bundle.intl.about.brandLabel,
+    uk: bundle.uk.about.brandLabel,
   }
 }
 

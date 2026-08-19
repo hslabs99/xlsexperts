@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server'
 import {
   deleteCaseStudy,
   fetchAllCaseStudyRecords,
-  publishHomeCaseStudiesSnapshot,
   saveCaseStudy,
   toPublicCaseStudy,
   updateCaseStudyFields,
   type CaseStudyInput,
   type CaseStudyRecord,
 } from '@/lib/case-studies-db'
+import { publishHomeCaseStudiesSnapshot } from '@/lib/case-studies-home-db'
 import { uploadCaseStudyImageAdmin } from '@/lib/case-studies-storage-admin'
 import { withTimeout } from '@/lib/with-timeout'
 
@@ -123,6 +123,10 @@ export async function PATCH(request: Request) {
         ok: true,
         items: snapshot.items,
         slugs: snapshot.slugs,
+        publishedAt: snapshot.publishedAt,
+        filePath: snapshot.filePath,
+        message:
+          'Published to data/case-studies-home.generated.ts. Commit that file and deploy for production.',
       })
     }
 

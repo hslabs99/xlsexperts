@@ -446,7 +446,7 @@ export function AdminCaseStudiesPreviewShell({
                 Case Studies
               </h2>
               <p className="mt-3 text-sm text-ink-muted">
-                Published homepage snapshot from Firebase (
+                Published homepage snapshot (
                 {homeItems.length} card{homeItems.length === 1 ? '' : 's'})
               </p>
             </div>

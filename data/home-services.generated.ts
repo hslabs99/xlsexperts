@@ -2,7 +2,7 @@
  * PUBLISHED homepage services — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → CMS → Home services, then click Publish to regenerate this file.
  *
- * Generated at 2026-08-17T22:15:14.577Z
+ * Generated at 2026-08-19T02:13:05.689Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedHomeServicesFile } from '@/lib/home-services'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-17T22:15:14.577Z",
+  "publishedAt": "2026-08-19T02:13:05.689Z",
   "content": {
     "eyebrow": "What we do",
     "heading": "Services",

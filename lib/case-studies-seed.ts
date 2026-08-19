@@ -13,10 +13,10 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   HOME_CASE_STUDIES_LIMIT,
-  publishHomeCaseStudiesSnapshot,
   stripArchivedServiceSlugsFromCms,
   updateCaseStudyFields,
 } from '@/lib/case-studies-db'
+import { publishHomeCaseStudiesSnapshot } from '@/lib/case-studies-home-db'
 import { uploadCaseStudyImageAdmin } from '@/lib/case-studies-storage-admin'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { CASE_STUDIES_COLLECTION } from '@/lib/firebase'

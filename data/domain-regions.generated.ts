@@ -2,7 +2,7 @@
  * PUBLISHED domain → region bindings — imported by middleware (no Firestore).
  * Edit in Admin → Settings → Domains, then click Publish to regenerate this file.
  *
- * Generated at 2026-08-17T07:00:18.033Z
+ * Generated at 2026-08-19T02:12:40.309Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedDomainRegionsFile } from '@/lib/domain-regions'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-17T07:00:18.033Z",
+  "publishedAt": "2026-08-19T02:12:40.309Z",
   "regions": {
     "nz": {
       "hosts": [

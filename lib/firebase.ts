@@ -119,8 +119,8 @@ export const CASE_STUDIES_COLLECTION = 'caseStudies'
 export const SERVICE_PAGE_TILES_COLLECTION = 'servicePageTiles'
 
 /**
- * Site Content doc: pre-rendered homepage case studies (usually 4 cards).
- * Homepage reads this single document instead of querying the collection.
+ * Site Content doc: homepage case studies snapshot (draft / localhost preview).
+ * Public site reads `data/case-studies-home.generated.ts` after Publish.
  */
 export const CASE_STUDIES_HOME_DOC_ID = 'case-studies-home'
 

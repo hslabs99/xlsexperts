@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { promises as fs } from 'fs'
 import path from 'path'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
@@ -16,6 +15,7 @@ import {
   type PublishedDomainRegionsFile,
 } from '@/lib/domain-regions'
 import { patchPublishedSiteOrigins } from '@/lib/market-copy-db'
+import { writeGeneratedFile } from '@/lib/write-generated-file'
 
 const GENERATED_RELATIVE = path.join('data', 'domain-regions.generated.ts')
 
@@ -121,8 +121,7 @@ export async function publishDomainRegions(
     regions: bundle,
   }
 
-  const filePath = path.join(process.cwd(), GENERATED_RELATIVE)
-  await fs.writeFile(filePath, serializeGeneratedFile(payload), 'utf8')
+  await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
 
   await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
@@ -131,7 +130,7 @@ export async function publishDomainRegions(
       {
         regions: bundle,
         publishedAt,
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: publishedAt,
       },
       { merge: true }
     )

@@ -30,6 +30,8 @@ export type CaseStudyInput = CaseStudy & {
 export type CaseStudiesHomeSnapshot = {
   items: CaseStudy[]
   slugs: string[]
+  hasMore?: boolean
+  publishedAt?: string | null
   updatedAt: unknown
 }
 

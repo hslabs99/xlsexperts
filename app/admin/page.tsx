@@ -34,6 +34,7 @@ import { AdminCrawlDocsPanel } from '@/components/admin-crawl-docs-panel'
 import { AdminMarketCopyPanel } from '@/components/admin-market-copy-panel'
 import { AdminPageSeoPanel } from '@/components/admin-page-seo-panel'
 import { AdminHomeServicesPanel } from '@/components/admin-home-services-panel'
+import { AdminCmsPublishPanel } from '@/components/admin-cms-publish-panel'
 import { AdminMailingsPanel } from '@/components/admin-mailings-panel'
 import {
   clearAdminSession,
@@ -53,7 +54,7 @@ type AdminTab = AdminTabId
 
 type BookingSubTab = 'bookings' | 'settings'
 type SettingsSubTab = 'users' | 'thank-you'
-type CmsSubTab = 'site' | 'pages' | 'home-services'
+type CmsSubTab = 'site' | 'pages' | 'home-services' | 'publish'
 type MarketingSubTab = 'tags' | 'crawl' | 'domains'
 
 const TABS = ADMIN_TABS
@@ -1070,6 +1071,7 @@ export default function AdminPage() {
                   { id: 'site' as const, label: 'Site CMS' },
                   { id: 'pages' as const, label: 'Pages CMS' },
                   { id: 'home-services' as const, label: 'Home services' },
+                  { id: 'publish' as const, label: 'Publish' },
                 ] as const
               ).map((item) => {
                 const active = cmsSubTab === item.id
@@ -1095,6 +1097,7 @@ export default function AdminPage() {
             {cmsSubTab === 'site' && <AdminMarketCopyPanel />}
             {cmsSubTab === 'pages' && <AdminPageSeoPanel />}
             {cmsSubTab === 'home-services' && <AdminHomeServicesPanel />}
+            {cmsSubTab === 'publish' && <AdminCmsPublishPanel />}
           </div>
         )}
 

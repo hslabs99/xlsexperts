@@ -2,7 +2,7 @@
  * PUBLISHED market copy — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → International, then click Publish to regenerate this file.
  *
- * Generated at 2026-08-17T06:59:30.918Z
+ * Generated at 2026-08-19T02:12:55.160Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedMarketCopyFile } from '@/lib/market-copy'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-17T06:59:30.918Z",
+  "publishedAt": "2026-08-19T02:12:55.160Z",
   "markets": {
     "nz": {
       "site": {
@@ -68,9 +68,7 @@ const published = {
         "pillarBasedTitle": "100% New Zealand based",
         "pillarBasedBody": "Our team works from Auckland. No offshore handoffs, no time-zone delays — you deal directly with the people doing the work.",
         "pillarSmeBody": "We work with solo operators, engineers, construction firms, retailers, and NZX-listed corporates alike. Every client gets the same quality of attention.",
-        "brandNzLabel": "Excel Experts NZ",
-        "brandIntlLabel": "Excel Experts USA",
-        "brandUkLabel": "Excel Experts UK"
+        "brandLabel": "Excel Experts NZ"
       },
       "caseStudies": {
         "homeIntro": "Real problems, real solutions. A sample of what we have built for NZ businesses across industries."
@@ -132,9 +130,7 @@ const published = {
         "pillarBasedTitle": "Global Client Services",
         "pillarBasedBody": "Our team works with you, wherever you are. One project manager as point of contact with 20+ years of experience.",
         "pillarSmeBody": "We work with solo operators, engineers, construction firms, retailers, and corporates alike. Every client gets the same quality of attention.",
-        "brandNzLabel": "Excel Experts",
-        "brandIntlLabel": "Excel Experts International",
-        "brandUkLabel": "Excel Experts UK"
+        "brandLabel": "Excel Experts International"
       },
       "caseStudies": {
         "homeIntro": "Real problems, real solutions. A sample of what we have built for businesses across USA, Canada, United Kingdom, Australia"
@@ -196,9 +192,7 @@ const published = {
         "pillarBasedTitle": "Global Client Services",
         "pillarBasedBody": "Our team works with you, wherever you are. One project manager as point of contact with 20+ years of experience.",
         "pillarSmeBody": "We work with solo operators, engineers, construction firms, retailers, and corporates alike. Every client gets the same quality of attention.",
-        "brandNzLabel": "Excel Experts",
-        "brandIntlLabel": "Excel Experts UK",
-        "brandUkLabel": "Excel Experts UK"
+        "brandLabel": "Excel Experts UK"
       },
       "caseStudies": {
         "homeIntro": "Real problems, real solutions. A sample of what we have built for businesses just like yours"

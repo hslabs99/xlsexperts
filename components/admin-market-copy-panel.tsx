@@ -458,6 +458,11 @@ export function AdminMarketCopyPanel() {
                     <div className="mt-1 text-[11px] text-ink-muted">
                       {field.group}
                     </div>
+                    {field.hint ? (
+                      <div className="mt-1 text-[11px] text-ink-muted">
+                        {field.hint}
+                      </div>
+                    ) : null}
                   </td>
                   {MARKET_IDS.map((id) => (
                     <td key={id} className="px-3 py-3">
@@ -470,26 +475,32 @@ export function AdminMarketCopyPanel() {
                     </td>
                   ))}
                   <td className="px-3 py-3">
-                    <div className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        disabled={busy || nzValue === intlValue}
-                        onClick={() => copyNzToIntl(field.path)}
-                        className="rounded border border-border px-2 py-1 text-xs font-medium text-ink hover:bg-gray-50 disabled:opacity-40"
-                        title="Copy NZ value into International"
-                      >
-                        NZ → Intl
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy || nzValue === ukValue}
-                        onClick={() => copyNzToUk(field.path)}
-                        className="rounded border border-border px-2 py-1 text-xs font-medium text-ink hover:bg-gray-50 disabled:opacity-40"
-                        title="Copy NZ value into United Kingdom"
-                      >
-                        NZ → UK
-                      </button>
-                    </div>
+                    {field.independentPerMarket ? (
+                      <span className="text-[11px] text-ink-muted">
+                        One label per region
+                      </span>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          disabled={busy || nzValue === intlValue}
+                          onClick={() => copyNzToIntl(field.path)}
+                          className="rounded border border-border px-2 py-1 text-xs font-medium text-ink hover:bg-gray-50 disabled:opacity-40"
+                          title="Copy NZ value into International"
+                        >
+                          NZ → Intl
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy || nzValue === ukValue}
+                          onClick={() => copyNzToUk(field.path)}
+                          className="rounded border border-border px-2 py-1 text-xs font-medium text-ink hover:bg-gray-50 disabled:opacity-40"
+                          title="Copy NZ value into United Kingdom"
+                        >
+                          NZ → UK
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               )

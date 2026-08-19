@@ -3,17 +3,13 @@ import { getAdminDb } from '@/lib/firebase-admin'
 import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
 import {
   CASE_STUDIES_COLLECTION,
-  CASE_STUDIES_HOME_DOC_ID,
-  SITE_CONTENT_COLLECTION,
 } from '@/lib/firebase'
 import { withoutArchivedServiceSlugs } from '@/lib/service-pages'
 import type { CaseStudy } from '@/lib/types'
 import {
   HOME_CASE_STUDIES_LIMIT,
   MORE_CASE_STUDIES_PAGE_SIZE,
-  selectHomeCaseStudies,
   toPublicCaseStudy,
-  type CaseStudiesHomeSnapshot,
   type CaseStudyInput,
   type CaseStudyRecord,
 } from '@/lib/case-studies-shared'
@@ -21,9 +17,7 @@ import {
 export {
   HOME_CASE_STUDIES_LIMIT,
   MORE_CASE_STUDIES_PAGE_SIZE,
-  selectHomeCaseStudies,
   toPublicCaseStudy,
-  type CaseStudiesHomeSnapshot,
   type CaseStudyInput,
   type CaseStudyRecord,
 } from '@/lib/case-studies-shared'
@@ -185,61 +179,6 @@ export async function stripArchivedServiceSlugsFromCms(): Promise<number> {
     updated += 1
   }
   return updated
-}
-
-/**
- * Write a single Site Content document with the homepage cards.
- * Call this from admin after choosing which studies appear on home —
- * the public homepage reads only this document (one Firestore read).
- */
-export async function publishHomeCaseStudiesSnapshot(
-  records?: CaseStudyRecord[]
-): Promise<CaseStudiesHomeSnapshot> {
-  const all = records ?? (await fetchAllCaseStudyRecords())
-  const items = selectHomeCaseStudies(all)
-  const payload = {
-    items,
-    slugs: items.map((i) => i.slug),
-    updatedAt: FieldValue.serverTimestamp(),
-  }
-  await getAdminDb()
-    .collection(SITE_CONTENT_COLLECTION)
-    .doc(CASE_STUDIES_HOME_DOC_ID)
-    .set(payload, { merge: true })
-  return { items, slugs: payload.slugs, updatedAt: null }
-}
-
-export async function fetchHomeCaseStudiesSnapshot(): Promise<CaseStudy[]> {
-  const snap = await getAdminDb()
-    .collection(SITE_CONTENT_COLLECTION)
-    .doc(CASE_STUDIES_HOME_DOC_ID)
-    .get()
-  if (!snap.exists) return []
-  const data = snap.data() as Record<string, unknown>
-  if (!Array.isArray(data.items)) return []
-  return data.items
-    .map((raw): CaseStudy | null => {
-      if (!raw || typeof raw !== 'object') return null
-      const r = raw as Record<string, unknown>
-      const slug = String(r.slug ?? '').trim()
-      const title = String(r.title ?? '').trim()
-      if (!slug || !title) return null
-      return {
-        slug,
-        client: String(r.client ?? ''),
-        sector: String(r.sector ?? ''),
-        title,
-        image: String(r.image ?? ''),
-        problem: String(r.problem ?? ''),
-        solution: String(r.solution ?? ''),
-        outcome: String(r.outcome ?? ''),
-        tags: mapTags(r.tags),
-        serviceSlugs: mapServiceSlugList(r.serviceSlugs),
-        solutionSlugs: mapSlugList(r.solutionSlugs),
-      }
-    })
-    .filter((item): item is CaseStudy => item !== null)
-    .slice(0, HOME_CASE_STUDIES_LIMIT)
 }
 
 /**

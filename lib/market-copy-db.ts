@@ -8,7 +8,6 @@ import {
   MARKET_COPY_DOC_ID,
   SITE_CONTENT_COLLECTION,
 } from '@/lib/firebase'
-import { PUBLISHED_MARKET_COPY } from '@/data/market-copy.generated'
 import {
   applySiteOrigins,
   defaultMarketCopyBundle,
@@ -16,6 +15,10 @@ import {
   type MarketCopyBundle,
   type PublishedMarketCopyFile,
 } from '@/lib/market-copy'
+import {
+  parseGeneratedPublishedJson,
+  writeGeneratedFile,
+} from '@/lib/write-generated-file'
 
 const GENERATED_RELATIVE = path.join('data', 'market-copy.generated.ts')
 
@@ -117,8 +120,7 @@ export async function publishMarketCopy(
     markets: bundle,
   }
 
-  const filePath = path.join(process.cwd(), GENERATED_RELATIVE)
-  await fs.writeFile(filePath, serializeGeneratedFile(payload), 'utf8')
+  await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
 
   await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
@@ -127,7 +129,7 @@ export async function publishMarketCopy(
       {
         markets: bundle,
         publishedAt,
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: publishedAt,
       },
       { merge: true }
     )
@@ -147,14 +149,30 @@ export async function patchPublishedSiteOrigins(origins: {
   const draft = await fetchMarketCopyDraft()
   await saveMarketCopyDraft(applySiteOrigins(draft.markets, origins))
 
+  const published = await readPublishedMarketCopyFromDisk()
+  const markets = applySiteOrigins(
+    published?.markets ?? draft.markets,
+    origins
+  )
   const payload: PublishedMarketCopyFile = {
     version: 1,
-    publishedAt: PUBLISHED_MARKET_COPY.publishedAt,
-    markets: applySiteOrigins(PUBLISHED_MARKET_COPY.markets, origins),
+    publishedAt:
+      published?.publishedAt ?? draft.publishedAt ?? new Date().toISOString(),
+    markets,
   }
-  await fs.writeFile(
-    path.join(process.cwd(), GENERATED_RELATIVE),
-    serializeGeneratedFile(payload),
-    'utf8'
-  )
+  await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
+}
+
+async function readPublishedMarketCopyFromDisk(): Promise<PublishedMarketCopyFile | null> {
+  try {
+    const text = await fs.readFile(
+      path.join(process.cwd(), GENERATED_RELATIVE),
+      'utf8'
+    )
+    const parsed = parseGeneratedPublishedJson(text)
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed as PublishedMarketCopyFile
+  } catch {
+    return null
+  }
 }

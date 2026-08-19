@@ -1,42 +1,59 @@
 /**
  * Public façade for homepage case studies.
- * Prefer the published Site Content snapshot (one read) for first paint.
+ * Production reads the published static file — never Firestore on first paint.
+ * Localhost reads the CMS snapshot so Publish homepage previews without a deploy.
  */
 
 import 'server-only'
 
-import { CASE_STUDIES_ARCHIVE } from '@/lib/case-studies-archive'
+import { PUBLISHED_CASE_STUDIES_HOME } from '@/data/case-studies-home.generated'
 import {
-  HOME_CASE_STUDIES_LIMIT,
-  fetchHomeCaseStudiesSnapshot,
-  toPublicCaseStudy,
-  type CaseStudyRecord,
-} from '@/lib/case-studies-db'
-import type { CaseStudy } from '@/lib/types'
+  archiveHomeCaseStudies,
+  normalizeHomeCaseStudiesContent,
+  type HomeCaseStudiesContent,
+} from '@/lib/case-studies-home'
+import { getIsLocalDev } from '@/lib/market-server'
+import { withTimeout } from '@/lib/with-timeout'
+import { toPublicCaseStudy, type CaseStudyRecord } from '@/lib/case-studies-shared'
 
-function archiveFallbackHome(): CaseStudy[] {
-  return CASE_STUDIES_ARCHIVE.slice(0, HOME_CASE_STUDIES_LIMIT).map(
-    ({ localImage: _local, ...publicFields }) => publicFields
-  )
+/** Published homepage cards — static import, zero DB. */
+export function getPublishedHomeCaseStudies(): HomeCaseStudiesContent {
+  try {
+    return normalizeHomeCaseStudiesContent(PUBLISHED_CASE_STUDIES_HOME)
+  } catch {
+    return archiveHomeCaseStudies()
+  }
 }
 
 /**
- * Homepage first paint: read the pre-rendered snapshot document.
- * Falls back to the frozen archive so the section still renders before seed.
+ * Homepage first paint.
+ * Localhost: Firestore snapshot after Publish homepage.
+ * Production: generated file.
  */
-export async function getHomeCaseStudies(): Promise<CaseStudy[]> {
-  try {
-    const snapshot = await fetchHomeCaseStudiesSnapshot()
-    if (snapshot.length > 0) return snapshot
-  } catch (error) {
-    console.error(
-      '[case-studies] Failed to load home snapshot',
-      error instanceof Error ? error.message : undefined
-    )
+export async function getHomeCaseStudies(): Promise<HomeCaseStudiesContent> {
+  if (await getIsLocalDev()) {
+    try {
+      const { fetchHomeCaseStudiesDraft } = await import(
+        '@/lib/case-studies-home-db'
+      )
+      const draft = await withTimeout(
+        fetchHomeCaseStudiesDraft(),
+        6_000,
+        'fetchHomeCaseStudiesDraft'
+      )
+      if (draft.items.length > 0) {
+        return { items: draft.items, hasMore: draft.hasMore }
+      }
+    } catch (error) {
+      console.error(
+        '[case-studies] localhost snapshot unavailable, using published file',
+        error instanceof Error ? error.message : error
+      )
+    }
   }
-  return archiveFallbackHome()
+  return getPublishedHomeCaseStudies()
 }
 
-export function recordsToPublic(records: CaseStudyRecord[]): CaseStudy[] {
+export function recordsToPublic(records: CaseStudyRecord[]) {
   return records.map(toPublicCaseStudy)
 }
