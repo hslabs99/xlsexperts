@@ -1,6 +1,7 @@
 /**
  * Built-in visual treatments for AI blog hero images.
- * Client-safe — used by the admin picker and the image API.
+ * Keep these short and descriptive — image models reject long
+ * instruction/override prompts and stacked “do not” rules.
  */
 
 export const BLOG_AI_IMAGE_STYLES = [
@@ -9,62 +10,48 @@ export const BLOG_AI_IMAGE_STYLES = [
     label: 'Infographic',
     description:
       'Clean diagram, process steps, or data visual — graphic, not a photo.',
-    prompt: `Visual treatment: infographic / diagram.
-Flat or lightly isometric graphic design. Simple process steps, systems motifs, geometric shapes, or a restrained chart-like composition.
-Not a photograph and not a painted illustration. No photorealistic people.
-Soft forest-green (#1a6b3c) accents and light neutrals. Limited detail so the file stays small after compression.`,
+    prompt:
+      'Clean flat infographic of a business process or data workflow, simple geometric shapes, forest green and light grey, no people, not a photograph.',
   },
   {
     id: 'photo-office',
     label: 'Photo — office',
     description:
       'Realistic workplace: desk, laptop, screens — contemporary office, not a diagram.',
-    prompt: `Visual treatment: photorealistic office photograph.
-Natural light in a contemporary professional office. Desk with a laptop or monitor showing a spreadsheet-like grid that is not readable. Supporting detail: documents, coffee, plants — not a posed stock-photo handshake.
-Do not render this as an infographic, isometric diagram, or flat vector graphic.
-Wide landscape crop suitable for a website blog hero.`,
+    prompt:
+      'Photorealistic contemporary office: desk, laptop, natural light, professional workplace, not a diagram.',
   },
   {
     id: 'photo-collaboration',
     label: 'Photo — collaboration',
     description:
       'People working together around a laptop or whiteboard in an office.',
-    prompt: `Visual treatment: photorealistic candid of colleagues collaborating.
-Two or three professionals around a laptop, printouts, or whiteboard in a modern office. Natural expressions, not looking at camera. Diverse ages. Faces may be visible but this is not a close-up portrait.
-Do not render this as an infographic, isometric diagram, or flat vector graphic.
-Wide landscape crop suitable for a website blog hero.`,
+    prompt:
+      'Photorealistic candid of colleagues collaborating around a laptop in a modern office, natural expressions, not looking at camera.',
   },
   {
     id: 'photo-factory',
     label: 'Photo — factory',
     description:
       'Manufacturing plant, production line, or workshop — industrial, not an office.',
-    prompt: `Visual treatment: photorealistic manufacturing / factory photograph.
-A contemporary factory, production line, or light-industrial workshop. Machinery, workbenches, safety gear, or assembled parts in natural or industrial lighting. People may be present at work, not posing for camera.
-Do not render this as an infographic, isometric diagram, or flat vector graphic.
-No readable text, logos, or brand names on machines, PPE, or signage.
-Wide landscape crop suitable for a website blog hero.`,
+    prompt:
+      'Photorealistic manufacturing plant or workshop: production line, machinery, industrial lighting, people at work not posing.',
   },
   {
     id: 'photo-construction',
     label: 'Photo — construction',
     description:
       'Building site, plant, or civil works — hi-vis and structure, not a desk.',
-    prompt: `Visual treatment: photorealistic construction-site photograph.
-A real building site, plant upgrade, or civil works setting. Scaffolding, steel, concrete, hi-vis, plans or a tablet in someone's hands. Candid working atmosphere, not a posed stock-photo handshake.
-Do not render this as an infographic, isometric diagram, or flat vector graphic.
-No readable text, logos, or brand names on signage, vehicles, or drawings.
-Wide landscape crop suitable for a website blog hero.`,
+    prompt:
+      'Photorealistic construction site: scaffolding, steel, hi-vis, plans or a tablet, candid working atmosphere.',
   },
   {
     id: 'editorial',
     label: 'Editorial illustration',
     description:
       'Magazine-style illustrated scene — atmospheric, not a process diagram.',
-    prompt: `Visual treatment: editorial illustration (magazine / thought-leadership).
-Painted or digital-illustrated scene suggesting business systems, spreadsheets, or decision-making. Atmospheric and human-scale.
-Not a process infographic, not a flat icon collage, and not a photograph.
-Soft forest-green accents and warm neutrals. Wide landscape crop.`,
+    prompt:
+      'Editorial magazine illustration of business systems and decision-making, painted digital style, forest green and warm neutrals, not a photo and not a process diagram.',
   },
 ] as const
 
@@ -85,5 +72,57 @@ export function blogAiImageStylePrompt(id: unknown): string {
   return style?.prompt ?? ''
 }
 
-export const BLOG_AI_IMAGE_SHARED_CONSTRAINTS = `This is a small website blog hero / card image for XLS Experts New Zealand — not print, not a billboard.
-No readable text, numbers, logos, watermarks, or brand names on screens, paper, or signage.`
+export function blogAiImageStyleLabel(id: unknown): string {
+  if (!isBlogAiImageStyleId(id)) return ''
+  return BLOG_AI_IMAGE_STYLES.find((item) => item.id === id)?.label ?? ''
+}
+
+export const BLOG_AI_IMAGE_SHARED_CONSTRAINTS =
+  'Wide landscape website blog hero. No readable text, logos, or watermarks.'
+
+const META_SUBJECT_LINE =
+  /describe the subject and setting only[. ]*visual style \(infographic, photo, or illustration\) is chosen separately\.?/i
+
+export function shortenBlogImageSubject(
+  text: string,
+  maxChars = 280
+): string {
+  const cleaned = text.replace(META_SUBJECT_LINE, '').replace(/\s+/g, ' ').trim()
+  if (cleaned.length <= maxChars) return cleaned
+  return `${cleaned.slice(0, maxChars).trim()}…`
+}
+
+export function buildBlogAiImagePrompt(options: {
+  title: string
+  imageStyle?: string
+  subject?: string
+  libraryPrompt?: string
+  compact?: boolean
+}): string {
+  const title = options.title.trim()
+  const style = blogAiImageStylePrompt(options.imageStyle)
+  const label = blogAiImageStyleLabel(options.imageStyle)
+  const subject = shortenBlogImageSubject(options.subject ?? '')
+  const brandHint = 'Soft forest-green and light neutrals when they fit.'
+
+  if (options.compact) {
+    return [
+      label ? `${label} style.` : 'Professional website blog hero.',
+      `Topic: ${title}.`,
+      BLOG_AI_IMAGE_SHARED_CONSTRAINTS,
+    ]
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  return [
+    style ||
+      'Clean professional website blog hero, forest green and light neutrals.',
+    brandHint,
+    BLOG_AI_IMAGE_SHARED_CONSTRAINTS,
+    `Topic: ${title}.`,
+    subject && subject.toLowerCase() !== title.toLowerCase() ? subject : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}

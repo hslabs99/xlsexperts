@@ -78,24 +78,12 @@ export function existingBlogPostHasContent(
 export function imagePromptFromExistingBlog(
   post: BlogAiAssistExistingPost
 ): string {
-  const headings = post.sections
-    .filter(
-      (s) => (s.type === 'h2' || s.type === 'h3') && Boolean(s.heading?.trim())
-    )
-    .map((s) => s.heading!.trim())
-    .slice(0, 8)
-  const opening = post.sections.find(
-    (s) => (s.type === 'intro' || s.type === 'p') && Boolean(s.text?.trim())
-  )?.text?.trim()
   const excerpt = post.excerpt.trim()
 
   return [
-    `Website blog hero for the article “${post.title.trim()}”.`,
+    `Blog hero about “${post.title.trim()}”.`,
     post.category.trim() ? `Category: ${post.category.trim()}.` : '',
-    excerpt ? `Summary: ${excerpt}` : '',
-    headings.length ? `Themes: ${headings.join('; ')}.` : '',
-    opening && opening !== excerpt ? `Opening: ${opening.slice(0, 320)}` : '',
-    'Describe the subject and setting only. Visual style (infographic, photo, or illustration) is chosen separately.',
+    excerpt ? excerpt.slice(0, 180) : '',
   ]
     .filter(Boolean)
     .join(' ')

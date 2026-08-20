@@ -6,10 +6,7 @@ import {
   slugifyBlogTitle,
 } from '@/lib/blog-markdown'
 import type { BlogAiDraft } from '@/lib/blog-ai-types'
-import {
-  BLOG_AI_IMAGE_SHARED_CONSTRAINTS,
-  blogAiImageStylePrompt,
-} from '@/lib/blog-ai-image-styles'
+import { buildBlogAiImagePrompt } from '@/lib/blog-ai-image-styles'
 
 export type { BlogAiDraft } from '@/lib/blog-ai-types'
 
@@ -128,6 +125,23 @@ export type BlogAiImageResult = {
   optimizedBytes?: number
 }
 
+function openaiErrorText(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return error instanceof Error ? error.message : String(error)
+  }
+  const record = error as {
+    message?: string
+    error?: { message?: string; code?: string }
+    code?: string
+  }
+  const nested = record.error?.message?.trim()
+  if (nested) {
+    const code = record.error?.code || record.code
+    return code ? `${nested} (${code})` : nested
+  }
+  return record.message?.trim() || 'Unknown OpenAI error'
+}
+
 export async function generateBlogImage(options: {
   title: string
   systemPrompt: string
@@ -140,87 +154,103 @@ export async function generateBlogImage(options: {
   if (!title) throw new Error('Title is required')
 
   const openai = requireOpenAIClient()
-  const libraryStyle = options.systemPrompt.trim()
-  const chosenStyle = blogAiImageStylePrompt(options.imageStyle)
   const subject =
     options.imagePrompt?.trim() ||
-    options.userPrompt?.trim() ||
     options.brief?.trim() ||
     'Business systems, spreadsheets, and practical automation.'
 
-  const promptParts = [
-    chosenStyle ||
-      'Create a wide website blog hero image for XLS Experts New Zealand. Clean professional visual, soft forest-green accents, light neutrals.',
-    BLOG_AI_IMAGE_SHARED_CONSTRAINTS,
-    libraryStyle,
-    `Blog title context: ${title}.`,
+  const prompt = buildBlogAiImagePrompt({
+    title,
+    imageStyle: options.imageStyle,
     subject,
-    chosenStyle
-      ? 'Honour the visual treatment above even if the subject description sounds like a different medium (infographic, photo, or illustration).'
-      : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+  })
+  const compactPrompt = buildBlogAiImagePrompt({
+    title,
+    imageStyle: options.imageStyle,
+    compact: true,
+  })
 
-  let rawBase64: string
-  let revisedPrompt: string | undefined
-
-  try {
+  async function fromGptImage1(imagePrompt: string) {
     const result = await openai.images.generate({
       model: 'gpt-image-1',
-      prompt: promptParts,
-      // Smallest landscape size the model supports; we compress further below.
+      prompt: imagePrompt,
       size: '1536x1024',
       quality: 'low',
       output_format: 'webp',
       output_compression: 60,
     })
-
     const first = result.data?.[0]
     const b64 = first?.b64_json
-    if (!b64) {
-      throw new Error('OpenAI gpt-image-1 returned no image data')
+    if (!b64) throw new Error('OpenAI gpt-image-1 returned no image data')
+    return {
+      rawBase64: b64,
+      revisedPrompt:
+        first && 'revised_prompt' in first
+          ? String((first as { revised_prompt?: string }).revised_prompt ?? '')
+          : undefined,
     }
-    rawBase64 = b64
-    revisedPrompt =
-      first && 'revised_prompt' in first
-        ? String((first as { revised_prompt?: string }).revised_prompt ?? '')
-        : undefined
-  } catch (primaryError) {
-    const fallback = await openai.images.generate({
+  }
+
+  async function fromDalle3(imagePrompt: string) {
+    const result = await openai.images.generate({
       model: 'dall-e-3',
-      prompt: promptParts.slice(0, 3800),
+      prompt: imagePrompt.slice(0, 3800),
       size: '1792x1024',
       quality: 'standard',
       response_format: 'b64_json',
       n: 1,
     })
-
-    const first = fallback.data?.[0]
+    const first = result.data?.[0]
     const b64 = first?.b64_json
-    if (!b64) {
-      const detail =
-        primaryError instanceof Error ? primaryError.message : 'unknown error'
-      throw new Error(
-        `Image generation failed (gpt-image-1 and dall-e-3). Last error: ${detail}`
-      )
+    if (!b64) throw new Error('OpenAI dall-e-3 returned no image data')
+    return {
+      rawBase64: b64,
+      revisedPrompt: first?.revised_prompt,
     }
-    rawBase64 = b64
-    revisedPrompt = first?.revised_prompt
   }
 
-  const { compressBlogImageBuffer } = await import('@/lib/blog-image-compress')
-  const compressed = await compressBlogImageBuffer(Buffer.from(rawBase64, 'base64'), {
-    baseName: 'blog-ai-hero',
-  })
+  let rawBase64: string
+  let revisedPrompt: string | undefined
+  let mimeType: BlogAiImageResult['mimeType'] = 'image/webp'
+  const errors: string[] = []
 
+  try {
+    const generated = await fromGptImage1(prompt)
+    rawBase64 = generated.rawBase64
+    revisedPrompt = generated.revisedPrompt
+    mimeType = 'image/webp'
+  } catch (primaryError) {
+    errors.push(`gpt-image-1: ${openaiErrorText(primaryError)}`)
+    try {
+      const retry = await fromGptImage1(compactPrompt)
+      rawBase64 = retry.rawBase64
+      revisedPrompt = retry.revisedPrompt
+      mimeType = 'image/webp'
+    } catch (compactError) {
+      errors.push(`gpt-image-1 compact: ${openaiErrorText(compactError)}`)
+      try {
+        const fallback = await fromDalle3(compactPrompt)
+        rawBase64 = fallback.rawBase64
+        revisedPrompt = fallback.revisedPrompt
+        mimeType = 'image/png'
+      } catch (dalleError) {
+        errors.push(`dall-e-3: ${openaiErrorText(dalleError)}`)
+        throw new Error(`Image generation failed. ${errors.join(' | ')}`)
+      }
+    }
+  }
+
+  // Do not import sharp here. Next/Turbopack bundles it as a native module
+  // that fails on App Hosting (missing libvips). OpenAI already returns a
+  // compressed webp; the editor also optimizes on save in the browser.
+  const byteLength = Buffer.from(rawBase64, 'base64').byteLength
   return {
-    imageBase64: compressed.bytes.toString('base64'),
-    mimeType: compressed.contentType,
+    imageBase64: rawBase64,
+    mimeType,
     revisedPrompt,
-    width: compressed.width,
-    height: compressed.height,
-    originalBytes: compressed.originalBytes,
-    optimizedBytes: compressed.bytes.byteLength,
+    width: null,
+    height: null,
+    originalBytes: byteLength,
+    optimizedBytes: byteLength,
   }
 }

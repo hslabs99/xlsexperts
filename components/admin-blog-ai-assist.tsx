@@ -366,10 +366,8 @@ export function AdminBlogAiAssist({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
-          systemPrompt: combinedImageSystemPrompt,
           imagePrompt: draft?.imagePrompt,
           brief,
-          userPrompt,
           imageStyle: imageStyleId,
         }),
       })
