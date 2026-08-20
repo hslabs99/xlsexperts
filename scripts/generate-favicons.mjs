@@ -79,6 +79,8 @@ for (const [size, dest] of Object.entries(sizes)) {
   writeFileSync(dest, img.data)
 }
 
+writeFileSync(join(root, 'public', 'favicon-32x32.png'), pngs[32].data)
+
 copyFileSync(source, join(root, 'public', 'apple-icon.png'))
 
 const ico = pngToIco([await pngAt(16), pngs[32], pngs[48]])

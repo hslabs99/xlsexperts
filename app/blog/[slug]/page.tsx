@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { hasBlogImageSrc } from '@/lib/blog-image-src'
@@ -14,6 +14,11 @@ import { ArrowLeft } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true
 
+/** Old Wix / external links often hit slugs that were never migrated. */
+function redirectUnknownBlogSlug(): never {
+  redirect('/blog')
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -21,7 +26,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const post = await getBlogPost(slug)
-  if (!post) return {}
+  if (!post) redirectUnknownBlogSlug()
 
   const origin = await getSiteOrigin()
   const url = `${origin}/blog/${post.slug}`
@@ -65,7 +70,7 @@ export default async function BlogPost({
 }) {
   const { slug } = await params
   const post = await getBlogPost(slug)
-  if (!post) notFound()
+  if (!post) redirectUnknownBlogSlug()
 
   const origin = await getSiteOrigin()
   const allPosts = await getAllBlogPosts()

@@ -79,6 +79,6 @@ export const config = {
      * Include robots.txt / sitemap.xml / llms.txt so market is resolved
      * from the arrival host for separate SEO properties.
      */
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|icon-32.png|icon-48.png|icon-192.png|apple-icon.png|images/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon-32x32.png|icon.svg|icon-32.png|icon-48.png|icon-192.png|apple-icon.png|images/).*)',
   ],
 }
