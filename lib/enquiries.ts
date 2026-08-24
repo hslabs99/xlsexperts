@@ -2,6 +2,8 @@
  * Enquiry records stored in Firestore collection `enquiries`.
  */
 
+import type { MarketId } from '@/lib/market'
+
 export const ENQUIRY_TYPES = ['standard', 'discovery'] as const
 export type EnquiryType = (typeof ENQUIRY_TYPES)[number]
 
@@ -31,6 +33,10 @@ export type EnquiryRecord = {
   method: string
   slotId: string
   emailNotified: boolean
+  /** Arrival market (.co.nz / .com / .co.uk). Legacy rows default to nz. */
+  market: MarketId
+  /** Arrival hostname when submitted. */
+  host: string
   createdAt: unknown
   updatedAt: unknown
 }
@@ -53,4 +59,6 @@ export type EnquiryInput = {
   slotId?: string
   emailNotified?: boolean
   status?: EnquiryStatus
+  market?: MarketId
+  host?: string
 }

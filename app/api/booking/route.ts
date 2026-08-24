@@ -13,7 +13,7 @@ import {
   slotOpenForRegion,
 } from '@/lib/booking-slots'
 import { fetchBookingSlotById, markBookingSlotBooked } from '@/lib/booking-slots-db'
-import { getMarket } from '@/lib/market-server'
+import { getMarketStamp } from '@/lib/market-server'
 import { createEnquiry, updateEnquiryEmailNotified } from '@/lib/enquiries-db'
 import { upsertProspectFromLead } from '@/lib/mailings-db'
 import { isEmailError } from '@/lib/email/errors'
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const market = await getMarket()
+  const { market, host } = await getMarketStamp()
   const region = bookingRegionForMarket(market)
   const existingSlot = await withTimeout(
     fetchBookingSlotById(body.slotId.trim()),
@@ -102,6 +102,8 @@ export async function POST(request: Request) {
         method: body.method,
         slotId: body.slotId,
         emailNotified: false,
+        market,
+        host,
       }),
       8_000,
       'createEnquiry'

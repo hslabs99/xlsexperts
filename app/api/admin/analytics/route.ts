@@ -1,11 +1,11 @@
 /**
- * GET /api/admin/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD
- * Enquiry chart + CTA click summary for the admin Analytics tab.
+ * GET /api/admin/analytics?from=YYYY-MM-DD&to=YYYY-MM-DD&market=all|nz|intl|uk
+ * Enquiry chart + CTA click summary for the admin Analytics tab, split by domain.
  */
 
 import { NextResponse } from 'next/server'
 import { fetchAnalyticsSummary } from '@/lib/funnel-events-db'
-import { toDateKey } from '@/lib/funnel-events'
+import { parseAnalyticsMarketFilter, toDateKey } from '@/lib/funnel-events'
 import { withTimeout } from '@/lib/with-timeout'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     const defaults = defaultRange()
     const from = searchParams.get('from') || defaults.from
     const to = searchParams.get('to') || defaults.to
+    const market = parseAnalyticsMarketFilter(searchParams.get('market'))
 
     if (!DATE_RE.test(from) || !DATE_RE.test(to)) {
       return NextResponse.json(
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
     }
 
     const summary = await withTimeout(
-      fetchAnalyticsSummary(from, to),
+      fetchAnalyticsSummary(from, to, market),
       15_000,
       'fetchAnalyticsSummary'
     )

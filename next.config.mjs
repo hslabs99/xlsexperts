@@ -3,7 +3,8 @@ const nextConfig = {
   experimental: {
     staleTimes: {
       dynamic: 0,
-      static: 0,
+      // Next.js 16 enforces a 30s minimum; 0 caused a prefetch loop.
+      static: 30,
     },
   },
   typescript: {

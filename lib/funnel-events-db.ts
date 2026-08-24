@@ -10,14 +10,24 @@ import {
   enumerateDateKeys,
   firestoreRangeForDateKeys,
   toDateKey,
+  type AnalyticsMarketFilter,
   type AnalyticsSummary,
   type CtaLabelBucket,
   type FunnelEventInput,
+  type MarketTrafficBucket,
   type PageViewBucket,
 } from '@/lib/funnel-events'
 import type { EnquiryType } from '@/lib/enquiries'
 import { ALL_SERVICES_HREF, servicePages } from '@/lib/service-pages'
 import { ALL_SOLUTIONS_HREF, solutionPages } from '@/lib/solutions'
+import {
+  DEFAULT_MARKET,
+  MARKET_IDS,
+  isMarketId,
+  marketHostHint,
+  storedMarket,
+  type MarketId,
+} from '@/lib/market'
 
 function createdAtToDate(value: unknown): Date | null {
   if (!value) return null
@@ -64,19 +74,37 @@ function normalizePath(path: string): string {
 export async function createFunnelEvent(
   input: FunnelEventInput
 ): Promise<string> {
+  const market: MarketId = isMarketId(input.market)
+    ? input.market
+    : DEFAULT_MARKET
+  const host = String(input.host || '').trim().slice(0, 120)
   const ref = await getAdminDb().collection(FUNNEL_EVENTS_COLLECTION).add({
     type: input.type,
     label: input.label.slice(0, 120),
     href: input.href.slice(0, 500),
     path: input.path.slice(0, 300),
+    market,
+    host,
     createdAt: FieldValue.serverTimestamp(),
   })
   return ref.id
 }
 
+function emptyMarketTotals(): Record<
+  MarketId,
+  { enquiries: number; ctaClicks: number; pageViews: number }
+> {
+  return {
+    nz: { enquiries: 0, ctaClicks: 0, pageViews: 0 },
+    intl: { enquiries: 0, ctaClicks: 0, pageViews: 0 },
+    uk: { enquiries: 0, ctaClicks: 0, pageViews: 0 },
+  }
+}
+
 export async function fetchAnalyticsSummary(
   fromKey: string,
-  toKey: string
+  toKey: string,
+  marketFilter: AnalyticsMarketFilter = 'all'
 ): Promise<AnalyticsSummary> {
   const { from, to } = firestoreRangeForDateKeys(fromKey, toKey)
   const dateKeys = enumerateDateKeys(fromKey, toKey)
@@ -97,6 +125,8 @@ export async function fetchAnalyticsSummary(
       .get(),
   ])
 
+  const marketTotals = emptyMarketTotals()
+
   const enquiryByDay = new Map<
     string,
     { total: number; standard: number; discovery: number }
@@ -115,6 +145,9 @@ export async function fetchAnalyticsSummary(
     if (!created) continue
     const key = toDateKey(created)
     if (!dateKeySet.has(key)) continue
+    const market = storedMarket(data.market, data.host)
+    marketTotals[market].enquiries += 1
+    if (marketFilter !== 'all' && market !== marketFilter) continue
     const bucket = enquiryByDay.get(key)
     if (!bucket) continue
     const type: EnquiryType =
@@ -143,8 +176,13 @@ export async function fetchAnalyticsSummary(
     const key = toDateKey(created)
     if (!dateKeySet.has(key)) continue
 
+    const market = storedMarket(data.market, data.host)
     const type = String(data.type || '')
+    const include = marketFilter === 'all' || market === marketFilter
+
     if (type === 'cta_click') {
+      marketTotals[market].ctaClicks += 1
+      if (!include) continue
       ctaByDay.set(key, (ctaByDay.get(key) || 0) + 1)
       ctaTotal += 1
       const label = String(data.label || 'Contact CTA').slice(0, 120)
@@ -154,15 +192,25 @@ export async function fetchAnalyticsSummary(
 
     if (type === 'page_view') {
       const path = normalizePath(String(data.path || data.href || ''))
-      if (SERVICE_LABELS.has(path)) {
+      const isService = SERVICE_LABELS.has(path)
+      const isSolution = SOLUTION_LABELS.has(path)
+      if (!isService && !isSolution) continue
+      marketTotals[market].pageViews += 1
+      if (!include) continue
+      if (isService) {
         serviceCounts.set(path, (serviceCounts.get(path) || 0) + 1)
-        pageViewTotal += 1
-      } else if (SOLUTION_LABELS.has(path)) {
+      } else {
         solutionCounts.set(path, (solutionCounts.get(path) || 0) + 1)
-        pageViewTotal += 1
       }
+      pageViewTotal += 1
     }
   }
+
+  const byMarket: MarketTrafficBucket[] = MARKET_IDS.map((id) => ({
+    market: id,
+    hostHint: marketHostHint(id),
+    ...marketTotals[id],
+  }))
 
   const byLabel: CtaLabelBucket[] = [...labelCounts.entries()]
     .map(([label, total]) => ({ label, total }))
@@ -188,7 +236,9 @@ export async function fetchAnalyticsSummary(
   return {
     from: fromKey,
     to: toKey,
+    market: marketFilter,
     dataSource: 'firestore',
+    byMarket,
     enquiries: {
       total: enquiryTotal,
       standard,

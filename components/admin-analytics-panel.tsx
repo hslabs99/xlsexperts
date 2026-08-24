@@ -2,8 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { HelpCircle } from 'lucide-react'
-import type { AnalyticsSummary, PageViewBucket } from '@/lib/funnel-events'
+import type {
+  AnalyticsMarketFilter,
+  AnalyticsSummary,
+  PageViewBucket,
+} from '@/lib/funnel-events'
 import { toLocalDateKey } from '@/lib/funnel-events'
+import {
+  MARKET_IDS,
+  marketHostHint,
+  marketLabel,
+  marketShortLabel,
+} from '@/lib/market'
 
 type Preset = '7d' | '30d' | '90d' | 'custom'
 
@@ -170,42 +180,56 @@ const CARD_META = [
   },
 ]
 
+const MARKET_FILTERS: { id: AnalyticsMarketFilter; label: string; hint: string }[] =
+  [
+    { id: 'all', label: 'All domains', hint: 'Combined traffic' },
+    ...MARKET_IDS.map((id) => ({
+      id,
+      label: marketShortLabel(id),
+      hint: marketHostHint(id),
+    })),
+  ]
+
 export function AdminAnalyticsPanel() {
   const initial = useMemo(() => presetRange('30d'), [])
   const [preset, setPreset] = useState<Preset>('30d')
   const [from, setFrom] = useState(initial.from)
   const [to, setTo] = useState(initial.to)
+  const [market, setMarket] = useState<AnalyticsMarketFilter>('all')
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async (fromKey: string, toKey: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(
-        `/api/admin/analytics?from=${encodeURIComponent(fromKey)}&to=${encodeURIComponent(toKey)}`
-      )
-      const data = (await res.json()) as {
-        ok?: boolean
-        error?: string
-        summary?: AnalyticsSummary | null
+  const load = useCallback(
+    async (fromKey: string, toKey: string, marketFilter: AnalyticsMarketFilter) => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(
+          `/api/admin/analytics?from=${encodeURIComponent(fromKey)}&to=${encodeURIComponent(toKey)}&market=${encodeURIComponent(marketFilter)}`
+        )
+        const data = (await res.json()) as {
+          ok?: boolean
+          error?: string
+          summary?: AnalyticsSummary | null
+        }
+        if (!res.ok || !data.ok || !data.summary) {
+          throw new Error(data.error || 'Failed to load analytics')
+        }
+        setSummary(data.summary)
+      } catch (err) {
+        setSummary(null)
+        setError(err instanceof Error ? err.message : 'Failed to load analytics')
+      } finally {
+        setLoading(false)
       }
-      if (!res.ok || !data.ok || !data.summary) {
-        throw new Error(data.error || 'Failed to load analytics')
-      }
-      setSummary(data.summary)
-    } catch (err) {
-      setSummary(null)
-      setError(err instanceof Error ? err.message : 'Failed to load analytics')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+    },
+    []
+  )
 
   useEffect(() => {
-    void load(from, to)
-  }, [from, to, load])
+    void load(from, to, market)
+  }, [from, to, market, load])
 
   const applyPreset = (next: Exclude<Preset, 'custom'>) => {
     const range = presetRange(next)
@@ -235,6 +259,16 @@ export function AdminAnalyticsPanel() {
     return summary.ctaClicks.total
   }
 
+  const byMarketRows =
+    summary?.byMarket ??
+    MARKET_IDS.map((id) => ({
+      market: id,
+      hostHint: marketHostHint(id),
+      enquiries: 0,
+      ctaClicks: 0,
+      pageViews: 0,
+    }))
+
   return (
     <div className="space-y-6">
       <div>
@@ -243,7 +277,10 @@ export function AdminAnalyticsPanel() {
           Numbers come from your{' '}
           <strong className="font-semibold text-ink">cloud Firestore</strong>{' '}
           project (same database as live enquiries), whether you open Admin on
-          localhost or production. Hover the{' '}
+          localhost or production. Use the domain buttons to split{' '}
+          <code className="text-xs">{marketHostHint('nz')}</code>,{' '}
+          <code className="text-xs">{marketHostHint('intl')}</code>, and{' '}
+          <code className="text-xs">{marketHostHint('uk')}</code>. Hover the{' '}
           <HelpCircle className="inline h-3.5 w-3.5" aria-hidden="true" /> icons
           for what each metric means.
         </p>
@@ -253,10 +290,39 @@ export function AdminAnalyticsPanel() {
           design. CTA clicks and page views only count from{' '}
           <strong className="font-semibold text-ink">6 Aug 2026</strong> onward
           (when this tracker went live), and <em>localhost browsing is ignored</em>{' '}
-          so local testing does not inflate the charts. Until there is more than
-          a week of funnel data, Last 7 days and Last 30 days will look the same
-          for page views and CTA clicks.
+          so local testing does not inflate the charts. Domain split on funnel
+          events starts when this filter shipped; older events without a host
+          are counted as New Zealand. Until there is more than a week of funnel
+          data, Last 7 days and Last 30 days will look the same for page views
+          and CTA clicks.
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {MARKET_FILTERS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setMarket(item.id)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+              market === item.id
+                ? 'bg-brand text-white'
+                : 'border border-border bg-white text-ink hover:bg-surface'
+            }`}
+            title={item.hint}
+          >
+            {item.label}
+            {item.id !== 'all' ? (
+              <span
+                className={`ml-1.5 text-xs font-normal ${
+                  market === item.id ? 'text-white/80' : 'text-ink-muted'
+                }`}
+              >
+                {item.hint}
+              </span>
+            ) : null}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-col gap-3 rounded-md border border-border bg-white p-4 sm:flex-row sm:flex-wrap sm:items-end">
@@ -314,7 +380,7 @@ export function AdminAnalyticsPanel() {
         </label>
         <button
           type="button"
-          onClick={() => void load(from, to)}
+          onClick={() => void load(from, to, market)}
           disabled={loading}
           className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-surface disabled:opacity-60"
         >
@@ -327,6 +393,69 @@ export function AdminAnalyticsPanel() {
           {error}
         </div>
       ) : null}
+
+      <div className="rounded-md border border-border bg-white p-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink">
+            Traffic by domain
+            <MetricTip text="Enquiries, CTA clicks, and tracked page views in this date range, grouped by the site the visitor arrived on. Charts below follow the domain button you selected." />
+          </h3>
+          <span className="text-xs text-ink-muted">
+            {market === 'all'
+              ? 'All domains'
+              : `${marketLabel(market)} · ${marketHostHint(market)}`}
+          </span>
+        </div>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[28rem] text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-ink-muted">
+                <th className="py-2 pr-3 font-medium">Domain</th>
+                <th className="py-2 px-3 font-medium text-right">Enquiries</th>
+                <th className="py-2 px-3 font-medium text-right">CTA clicks</th>
+                <th className="py-2 pl-3 font-medium text-right">Page views</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byMarketRows.map((row) => {
+                const active = market === row.market
+                return (
+                  <tr
+                    key={row.market}
+                    className={`border-b border-border last:border-0 ${
+                      active ? 'bg-brand-light/40' : ''
+                    }`}
+                  >
+                    <td className="py-2 pr-3">
+                      <button
+                        type="button"
+                        onClick={() => setMarket(row.market)}
+                        className="text-left"
+                      >
+                        <span className="font-medium text-ink">
+                          {marketLabel(row.market)}
+                        </span>
+                        <span className="ml-2 text-xs text-ink-muted">
+                          {row.hostHint}
+                        </span>
+                      </button>
+                    </td>
+                    <td className="py-2 px-3 text-right tabular-nums text-ink">
+                      {loading && !summary ? '…' : row.enquiries}
+                    </td>
+                    <td className="py-2 px-3 text-right tabular-nums text-ink">
+                      {loading && !summary ? '…' : row.ctaClicks}
+                    </td>
+                    <td className="py-2 pl-3 text-right tabular-nums text-ink">
+                      {loading && !summary ? '…' : row.pageViews}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {CARD_META.map((card) => (

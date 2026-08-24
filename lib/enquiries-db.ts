@@ -3,6 +3,7 @@ import 'server-only'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { ENQUIRIES_COLLECTION } from '@/lib/firebase'
+import { DEFAULT_MARKET, isMarketId, storedMarket } from '@/lib/market'
 import {
   ENQUIRY_STATUSES,
   ENQUIRY_TYPES,
@@ -41,6 +42,8 @@ function mapEnquiry(id: string, data: Record<string, unknown>): EnquiryRecord {
     method: String(data.method ?? ''),
     slotId: String(data.slotId ?? ''),
     emailNotified: Boolean(data.emailNotified),
+    market: storedMarket(data.market, data.host),
+    host: String(data.host ?? ''),
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
   }
@@ -66,6 +69,8 @@ export async function createEnquiry(input: EnquiryInput): Promise<string> {
     method: input.method?.trim() || '',
     slotId: input.slotId?.trim() || '',
     emailNotified: Boolean(input.emailNotified),
+    market: isMarketId(input.market) ? input.market : DEFAULT_MARKET,
+    host: String(input.host || '').trim().slice(0, 120),
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   })

@@ -1,10 +1,19 @@
 /**
  * First-party funnel events — CTA clicks + service/solution page views.
  * Enquiries themselves live in `enquiries`; this collection is for pre-submit signals.
+ * Events are stamped with market/host so NZ (.co.nz), International (.com),
+ * and UK (.co.uk) traffic can be viewed separately.
  */
+
+import {
+  isMarketId,
+  type MarketId,
+} from '@/lib/market'
 
 export const FUNNEL_EVENT_TYPES = ['cta_click', 'page_view'] as const
 export type FunnelEventType = (typeof FUNNEL_EVENT_TYPES)[number]
+
+export type AnalyticsMarketFilter = 'all' | MarketId
 
 export type FunnelEventInput = {
   type: FunnelEventType
@@ -14,11 +23,23 @@ export type FunnelEventInput = {
   href: string
   /** Page path when the event happened */
   path: string
+  /** Arrival market from the request host (.co.nz / .com / .co.uk). */
+  market: MarketId
+  /** Arrival hostname, e.g. www.xlsexperts.co.uk */
+  host?: string
 }
 
 export type FunnelEventRecord = FunnelEventInput & {
   id: string
   createdAt: unknown
+}
+
+export type MarketTrafficBucket = {
+  market: MarketId
+  hostHint: string
+  enquiries: number
+  ctaClicks: number
+  pageViews: number
 }
 
 export type DayBucket = {
@@ -47,8 +68,12 @@ export type PageViewBucket = {
 export type AnalyticsSummary = {
   from: string
   to: string
+  /** `all` or a single market (nz / intl / uk). */
+  market: AnalyticsMarketFilter
   /** Always cloud Firestore for the configured Firebase project. */
   dataSource: 'firestore'
+  /** Totals for every domain in this date range (not affected by the market filter). */
+  byMarket: MarketTrafficBucket[]
   enquiries: {
     total: number
     standard: number
@@ -69,6 +94,13 @@ export type AnalyticsSummary = {
 
 export function isFunnelEventType(value: string): value is FunnelEventType {
   return (FUNNEL_EVENT_TYPES as readonly string[]).includes(value)
+}
+
+export function parseAnalyticsMarketFilter(
+  value: string | null | undefined
+): AnalyticsMarketFilter {
+  if (!value || value === 'all') return 'all'
+  return isMarketId(value) ? value : 'all'
 }
 
 /** YYYY-MM-DD in Pacific/Auckland (site market calendar). */

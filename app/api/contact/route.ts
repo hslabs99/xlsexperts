@@ -15,6 +15,7 @@ import {
   sendEnquiryNotificationEmail,
 } from '@/lib/email/enquiry-notify'
 import { withTimeout } from '@/lib/with-timeout'
+import { getMarketStamp } from '@/lib/market-server'
 import type { ContactPayload } from '@/lib/types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
 
   let enquiryId: string | null = null
   try {
+    const { market, host } = await getMarketStamp()
     enquiryId = await withTimeout(
       createEnquiry({
         type: 'standard',
@@ -78,6 +80,8 @@ export async function POST(request: Request) {
         solution: body.solution,
         hear: body.hear,
         emailNotified: false,
+        market,
+        host,
       }),
       8_000,
       'createEnquiry'

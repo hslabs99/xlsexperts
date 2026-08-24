@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { createFunnelEvent } from '@/lib/funnel-events-db'
 import { isFunnelEventType } from '@/lib/funnel-events'
+import { getMarketStamp } from '@/lib/market-server'
 import { withTimeout } from '@/lib/with-timeout'
 
 export async function POST(request: Request) {
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
+    const { market, host } = await getMarketStamp()
+
     // Don't await forever — drop if Firestore is slow
     await withTimeout(
       createFunnelEvent({
@@ -38,6 +41,8 @@ export async function POST(request: Request) {
         label,
         href: href || '#',
         path: path || '/',
+        market,
+        host,
       }),
       4_000,
       'createFunnelEvent'

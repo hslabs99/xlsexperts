@@ -30,6 +30,23 @@ export function isMarketId(value: unknown): value is MarketId {
   return value === 'nz' || value === 'intl' || value === 'uk'
 }
 
+/** Hostname only (no port, no comma-separated extras). */
+export function normalizeRequestHost(hostHeader: string): string {
+  return hostHeader.split(',')[0]?.trim().split(':')[0]?.toLowerCase() ?? ''
+}
+
+/**
+ * Market stamped on a stored record (enquiry, funnel event).
+ * Missing field (legacy NZ-only data) falls back to host matching, then NZ.
+ */
+export function storedMarket(market: unknown, host?: unknown): MarketId {
+  if (isMarketId(market)) return market
+  if (typeof host === 'string' && host.trim()) {
+    return marketFromHost(host)
+  }
+  return DEFAULT_MARKET
+}
+
 export function parseMarketId(value: string | null | undefined): MarketId | null {
   if (!value) return null
   const normalized = value.trim().toLowerCase()

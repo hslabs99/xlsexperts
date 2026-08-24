@@ -1,5 +1,5 @@
 /**
- * PUBLISHED domain → region bindings — imported by middleware (no Firestore).
+ * PUBLISHED domain → region bindings — imported by proxy (no Firestore).
  * Edit in Admin → Settings → Domains, then click Publish to regenerate this file.
  *
  * Generated at 2026-08-19T02:12:40.309Z

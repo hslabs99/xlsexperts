@@ -24,7 +24,7 @@ function applyMarketHeaders(
   return response
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host =
     request.headers.get('x-forwarded-host') ||
     request.headers.get('host') ||

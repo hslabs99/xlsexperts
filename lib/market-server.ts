@@ -9,6 +9,7 @@ import {
   isLocalHost,
   isMarketId,
   marketFromHost,
+  normalizeRequestHost,
   parseMarketId,
   type MarketId,
 } from '@/lib/market'
@@ -103,6 +104,23 @@ export function getMarketCopyFor(market: MarketId): MarketCopy {
 export async function getSiteOrigin(): Promise<string> {
   const copy = await getMarketCopy()
   return copy.site.origin
+}
+
+/** Arrival host for this request (no port). */
+export async function getRequestHost(): Promise<string> {
+  await connection()
+  const h = await headers()
+  const raw = h.get('x-forwarded-host') || h.get('host') || ''
+  return normalizeRequestHost(raw)
+}
+
+/** Market + host to stamp on enquiries and funnel events. */
+export async function getMarketStamp(): Promise<{
+  market: MarketId
+  host: string
+}> {
+  const [market, host] = await Promise.all([getMarket(), getRequestHost()])
+  return { market, host }
 }
 
 /** True when this request is on localhost (local region switcher). */

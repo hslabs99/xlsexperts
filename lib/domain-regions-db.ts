@@ -81,7 +81,7 @@ export async function saveDomainRegionsDraft(
 function serializeGeneratedFile(payload: PublishedDomainRegionsFile): string {
   const json = JSON.stringify(payload, null, 2)
   return `/**
- * PUBLISHED domain → region bindings — imported by middleware (no Firestore).
+ * PUBLISHED domain → region bindings — imported by proxy (no Firestore).
  * Edit in Admin → Settings → Domains, then click Publish to regenerate this file.
  *
  * Generated at ${payload.publishedAt}

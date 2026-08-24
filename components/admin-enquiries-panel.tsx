@@ -16,6 +16,10 @@ import {
   CONTACT_SOLUTION_OPTIONS,
 } from '@/lib/contact-options'
 import { AdminDialog } from '@/components/admin-dialog'
+import {
+  marketHostHint,
+  marketShortLabel,
+} from '@/lib/market'
 
 function formatEnquiryCreatedAt(value: unknown): string {
   if (typeof value === 'string') {
@@ -172,6 +176,8 @@ function EnquiryDetailModal({
             <p className="mt-0.5 text-xs text-ink-muted">
               {formatEnquiryCreatedAt(enquiry.createdAt)} ·{' '}
               <span className="capitalize">{enquiry.type}</span>
+              {' · '}
+              {marketShortLabel(enquiry.market)} ({enquiry.host || marketHostHint(enquiry.market)})
             </p>
           </div>
           <button
