@@ -365,6 +365,10 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
               href: '/vba-to-office-scripts-migration',
               label: 'VBA to Office Scripts Migration',
             },
+            {
+              href: '/power-apps-dataverse-development',
+              label: 'Microsoft Power Apps & Dataverse',
+            },
           ]}
         />
 

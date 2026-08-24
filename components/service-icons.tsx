@@ -9,6 +9,7 @@ import {
   Globe,
   AppWindow,
   LayoutDashboard,
+  LayoutGrid,
   Link2,
   RefreshCw,
   Sheet,
@@ -31,6 +32,7 @@ export const serviceIcons: Record<ServiceIconKey, LucideIcon> = {
   ai: Bot,
   sheets: Sheet,
   powerQuery: RefreshCw,
+  powerApps: LayoutGrid,
   audit: FileCheck2,
   migration: Code2,
 }

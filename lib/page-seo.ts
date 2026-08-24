@@ -165,6 +165,19 @@ const SERVICE_DEFAULTS: Record<string, Partial<PageSeoFields>> = {
     ogDescription:
       'Expert Power Query consulting for NZ businesses. Automated data pipelines that eliminate manual data preparation.',
   },
+  '/power-apps-dataverse-development': {
+    h1: 'Microsoft Power Apps & Dataverse Development',
+    heroIntro:
+      'Many organisations already hold substantial business data, processes and security inside Microsoft Dynamics 365, Dataverse, Microsoft 365, SharePoint, Excel, Power BI, Teams and Outlook. The out-of-the-box screens rarely match how a particular team actually works. We design purpose-built Power Apps around that workflow — using your existing Microsoft environment rather than asking staff to navigate a large enterprise system for a narrow operational task.',
+    metaTitle: 'Microsoft Power Apps & Dataverse Development',
+    metaDescription:
+      'Custom Microsoft Power Apps and Dataverse development. Extend Dynamics 365, automate workflows and create purpose-built business applications.',
+    keywords:
+      'Microsoft Power Apps development, Power Apps developer, Power Apps development company, Power Apps consultant, Power Apps consulting, Microsoft Power Platform developer, Microsoft Power Platform consultant, Dataverse developer, Microsoft Dataverse development, Dynamics 365 Power Apps, Microsoft Dynamics app development, Dynamics 365 custom apps, custom Power Apps, Power Apps Dynamics integration, Power Apps Dataverse integration, Microsoft business automation, Power Automate development, Microsoft 365 business automation, business process automation Microsoft, custom Microsoft business applications',
+    ogTitle: 'Microsoft Power Apps & Dataverse Development | XLS Experts',
+    ogDescription:
+      'Custom Power Apps and Dataverse development. Extend Dynamics 365 and Microsoft 365 with applications built around the way your team actually works.',
+  },
   '/spreadsheet-auditing': {
     h1: 'Is the spreadsheet you rely on actually correct?',
     heroIntro:

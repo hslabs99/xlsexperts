@@ -3,11 +3,23 @@
 import { useEffect, useState } from 'react'
 import { webAppNavItems } from '@/lib/web-applications-page'
 
-export function PageSectionNav() {
-  const [active, setActive] = useState(webAppNavItems[0]?.id ?? '')
+export type PageSectionNavItem = {
+  id: string
+  label: string
+}
+
+export function PageSectionNav({
+  items = webAppNavItems,
+  selectId = 'page-section-nav',
+}: {
+  items?: readonly PageSectionNavItem[]
+  selectId?: string
+}) {
+  const [active, setActive] = useState(items[0]?.id ?? '')
 
   useEffect(() => {
-    const ids = webAppNavItems.map((item) => item.id)
+    setActive(items[0]?.id ?? '')
+    const ids = items.map((item) => item.id)
     const elements = ids
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => Boolean(el))
@@ -28,7 +40,7 @@ export function PageSectionNav() {
 
     elements.forEach((el) => observer.observe(el))
     return () => observer.disconnect()
-  }, [])
+  }, [items])
 
   return (
     <nav
@@ -36,13 +48,12 @@ export function PageSectionNav() {
       className="sticky top-16 z-30 border-b border-gray-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90"
     >
       <div className="mx-auto max-w-5xl px-6">
-        {/* Mobile: compact select-style control */}
         <div className="py-3 md:hidden">
-          <label htmlFor="web-app-section-nav" className="sr-only">
+          <label htmlFor={selectId} className="sr-only">
             Jump to section
           </label>
           <select
-            id="web-app-section-nav"
+            id={selectId}
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1a6b3c]"
             value={active}
             onChange={(event) => {
@@ -51,7 +62,7 @@ export function PageSectionNav() {
               document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
             }}
           >
-            {webAppNavItems.map((item) => (
+            {items.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.label}
               </option>
@@ -59,9 +70,8 @@ export function PageSectionNav() {
           </select>
         </div>
 
-        {/* Desktop: horizontal anchors */}
         <ul className="hidden gap-1 overflow-x-auto py-2 md:flex md:items-center">
-          {webAppNavItems.map((item) => {
+          {items.map((item) => {
             const isActive = active === item.id
             return (
               <li key={item.id} className="shrink-0">

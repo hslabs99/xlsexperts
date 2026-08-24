@@ -124,6 +124,7 @@ XLS Experts is a business systems consultancy serving clients in the United King
 - **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
 - **SQL Database Connectivity**: Connecting Excel directly to SQL Server, MySQL, PostgreSQL, Oracle, and cloud databases to eliminate manual exports.
 - **ERP Integration**: Building the analytical layer on top of SAP, Oracle, Microsoft Dynamics, MYOB Acumatica, Epicor, and other ERP platforms.
+- **Power Apps & Dataverse**: Purpose-built Microsoft Power Apps around Dynamics 365, Dataverse and Microsoft 365 — see ${origin}/power-apps-dataverse-development
 
 ## Who we work with
 
@@ -136,6 +137,7 @@ We work with businesses and organisations across industries in the United Kingdo
 - Excel in Enterprise Operational Applications: ${origin}/enterprise
 - A.I. Use Cases for Excel, VBA and Power Query: ${origin}/use-cases
 - Web Applications: ${origin}/web-applications
+- Microsoft Power Apps & Dataverse: ${origin}/power-apps-dataverse-development
 - Blog: ${origin}/blog
 
 ## Contact
@@ -160,6 +162,7 @@ XLS Experts is a business systems consultancy serving clients internationally. W
 - **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
 - **SQL Database Connectivity**: Connecting Excel directly to SQL Server, MySQL, PostgreSQL, Oracle, and cloud databases to eliminate manual exports.
 - **ERP Integration**: Building the analytical layer on top of SAP, Oracle, Microsoft Dynamics, MYOB Acumatica, Epicor, and other ERP platforms.
+- **Power Apps & Dataverse**: Purpose-built Microsoft Power Apps around Dynamics 365, Dataverse and Microsoft 365 — see ${origin}/power-apps-dataverse-development
 
 ## Who we work with
 
@@ -172,6 +175,7 @@ We work with businesses and organisations across industries internationally, inc
 - Excel in Enterprise Operational Applications: ${origin}/enterprise
 - A.I. Use Cases for Excel, VBA and Power Query: ${origin}/use-cases
 - Web Applications: ${origin}/web-applications
+- Microsoft Power Apps & Dataverse: ${origin}/power-apps-dataverse-development
 - Blog: ${origin}/blog
 
 ## Contact
@@ -194,6 +198,7 @@ XLS Experts is a New Zealand business systems consultancy. We design and build p
 - **Power Query Solutions**: Data import, transformation, and connection management from any source — ERP exports, SQL databases, APIs, CSV files.
 - **SQL Database Connectivity**: Connecting Excel directly to SQL Server, MySQL, PostgreSQL, Oracle, and cloud databases to eliminate manual exports.
 - **ERP Integration**: Building the analytical layer on top of SAP, Oracle, Microsoft Dynamics, MYOB Acumatica, Epicor, and other NZ ERP platforms.
+- **Power Apps & Dataverse**: Purpose-built Microsoft Power Apps around Dynamics 365, Dataverse and Microsoft 365 — see ${origin}/power-apps-dataverse-development
 
 ## Who we work with
 
@@ -241,6 +246,7 @@ VBA (Visual Basic for Applications) is Excel's built-in programming language. VB
 - Excel in Enterprise Operational Applications: ${origin}/enterprise
 - A.I. Use Cases for Excel, VBA and Power Query: ${origin}/use-cases
 - Web Applications: ${origin}/web-applications
+- Microsoft Power Apps & Dataverse: ${origin}/power-apps-dataverse-development
 - Blog: ${origin}/blog
 
 ## Contact

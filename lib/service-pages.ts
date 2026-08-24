@@ -14,6 +14,7 @@ export type ServiceIconKey =
   | 'ai'
   | 'sheets'
   | 'powerQuery'
+  | 'powerApps'
   | 'audit'
   | 'migration'
 
@@ -31,6 +32,7 @@ export const SERVICE_ICON_KEYS: readonly ServiceIconKey[] = [
   'ai',
   'sheets',
   'powerQuery',
+  'powerApps',
   'audit',
   'migration',
 ] as const
@@ -128,6 +130,15 @@ export const servicePages: readonly ServicePage[] = [
       'Automated data pipelines in Excel and Power BI that eliminate manual preparation, standardise messy exports, and keep dashboards always current.',
     tags: ['Power Query', 'ETL', 'Power BI'],
     icon: 'powerQuery',
+  },
+  {
+    label: 'Microsoft Power Apps & Dataverse',
+    href: '/power-apps-dataverse-development',
+    title: 'Microsoft Power Apps & Dataverse Development',
+    description:
+      'Purpose-built Power Apps and Dataverse applications that extend Dynamics 365, Microsoft 365 and your existing Microsoft ecosystem — designed around the way the work is actually done.',
+    tags: ['Power Apps', 'Dataverse', 'Dynamics 365'],
+    icon: 'powerApps',
   },
   {
     label: 'Spreadsheet Auditing',

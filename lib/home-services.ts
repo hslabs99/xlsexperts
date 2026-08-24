@@ -31,6 +31,7 @@ export const SERVICE_ICON_LABELS: Record<ServiceIconKey, string> = {
   ai: 'AI',
   sheets: 'Google Sheets',
   powerQuery: 'Power Query',
+  powerApps: 'Power Apps',
   audit: 'Audit',
   migration: 'Migration',
 }

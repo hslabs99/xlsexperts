@@ -3,6 +3,7 @@ import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
 import { Contact } from '@/components/contact'
+import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { CheckCircle, AlertTriangle, ArrowRight, XCircle } from 'lucide-react'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -426,6 +427,20 @@ export default async function VBAToOfficeScriptsMigrationPage() {
             </p>
           </div>
         </section>
+
+        <SolutionCrossLinks
+          heading="Related Microsoft 365 services"
+          links={[
+            {
+              href: '/power-apps-dataverse-development',
+              label: 'Microsoft Power Apps & Dataverse',
+            },
+            {
+              href: '/ai-workflow-and-business-process-automation',
+              label: 'AI Workflow and Business Process Automation',
+            },
+          ]}
+        />
 
         {/* CTA banner */}
         <section className="py-16 text-center" style={{ backgroundColor: '#1a6b3c' }}>

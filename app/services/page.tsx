@@ -34,8 +34,8 @@ export default function AllServicesPage() {
             </h1>
             <p className="mt-4 text-base leading-relaxed text-gray-500">
               {servicePages.length} specialised services covering Excel, Google
-              Sheets, data integration, web applications and AI-powered
-              workflow automation. Click a tile to learn more.
+              Sheets, data integration, web applications, Power Apps and
+              AI-powered workflow automation. Click a tile to learn more.
             </p>
           </div>
 

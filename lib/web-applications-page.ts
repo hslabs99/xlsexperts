@@ -799,6 +799,7 @@ export const webAppRelatedLinks = [
   { label: 'Excel in Enterprise Operational Applications', href: '/enterprise' },
   { label: 'Excel VBA/Macro Development', href: '/excel-vba-macro-development' },
   { label: 'AI Workflow and Business Process Automation', href: '/ai-workflow-and-business-process-automation' },
+  { label: 'Microsoft Power Apps & Dataverse', href: '/power-apps-dataverse-development' },
   { label: 'Excel Integrations (SQL, API, etc.)', href: '/excel-integrations' },
   { label: 'Dashboards & Business Intelligence', href: '/solutions/dashboards-business-intelligence' },
   { label: 'Property Development Applications', href: '/solutions/property-development-applications' },
