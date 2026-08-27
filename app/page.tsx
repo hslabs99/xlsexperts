@@ -7,6 +7,7 @@ import { CaseStudiesSection } from '@/components/case-studies-section'
 import { About } from '@/components/about'
 import { Contact } from '@/components/contact'
 import { getMarketCopy } from '@/lib/market-server'
+import { getHeroTrustContent } from '@/lib/hero-trust-server'
 import { SITE_ICONS } from '@/lib/site-icons'
 
 /** Market is chosen from host / localhost cookie — never share one cached `/` across NZ, UK, and International. */
@@ -34,6 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   const copy = await getMarketCopy()
+  const heroTrust = await getHeroTrustContent()
 
   const localBusinessSchema = {
     '@context': 'https://schema.org',
@@ -123,7 +125,7 @@ export default async function Page() {
       />
       <main>
         <Navbar />
-        <Hero />
+        <Hero trust={heroTrust} />
         <Services />
         <HowWeWork />
         <CaseStudiesSection />

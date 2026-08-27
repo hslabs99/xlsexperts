@@ -6,6 +6,8 @@ type FilePublishId =
   | 'market-copy'
   | 'page-seo'
   | 'home-services'
+  | 'hero-clients'
+  | 'hero-projects'
   | 'case-studies-home'
   | 'domains'
 
@@ -49,6 +51,24 @@ const FILE_PUBLISHES: FilePublishDef[] = [
     description: 'Featured “What we do” tiles on the homepage.',
     file: 'data/home-services.generated.ts',
     statusUrl: '/api/admin/home-services',
+  },
+  {
+    id: 'hero-clients',
+    title: 'Client Logos',
+    editIn: 'CMS → Client Logos',
+    description:
+      'Homepage heading, client names and logos. Publish shuffles the order; the site then fades through 12 unique logos at a time.',
+    file: 'data/hero-clients.generated.ts',
+    statusUrl: '/api/admin/hero-clients',
+  },
+  {
+    id: 'hero-projects',
+    title: 'Common Projects',
+    editIn: 'CMS → Common Projects',
+    description:
+      'Homepage hero common-project pills, lucide fallbacks, and generated icons.',
+    file: 'data/hero-projects.generated.ts',
+    statusUrl: '/api/admin/hero-projects',
   },
   {
     id: 'case-studies-home',
@@ -110,6 +130,8 @@ async function publishFile(id: FilePublishId): Promise<string> {
     'market-copy': '/api/admin/market-copy',
     'page-seo': '/api/admin/page-seo',
     'home-services': '/api/admin/home-services',
+    'hero-clients': '/api/admin/hero-clients',
+    'hero-projects': '/api/admin/hero-projects',
     'case-studies-home': '/api/admin/case-studies-home',
     domains: '/api/admin/domain-regions',
   }

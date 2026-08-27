@@ -1,43 +1,27 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import { useMarketCopy } from '@/components/market-provider'
-
-const clientNames = [
-  'AMP',
-  'Contact Energy',
-  'NZI',
-  'Fisher & Paykel Healthcare',
-  'Auckland Transport',
-  '1M',
-  'Max Fashion',
-  'Fulton Hogan',
-  'Downer',
-  'EQC',
-  'ASB Bank',
-  'Pullman Hotels',
-]
-
-const commonProjects = [
-  'Financial Modelling/Dashboards',
-  'Project Costing Calculators',
-  'Resource Planning Tools',
-  'Feasibility Studies',
-  'Survey Tools',
-  'Sales Team Automations',
-  'Data Analysis',
-  'Membership Systems',
-  'GPS Tools',
-  'E-commerce Extensions',
-]
+import { HeroBackground } from '@/components/hero-background'
+import { heroProjectIcons } from '@/components/hero-project-icons'
+import { HeroClientCarousel } from '@/components/hero-client-carousel'
+import {
+  defaultHeroProjects,
+  type HeroTrustContent,
+} from '@/lib/hero-trust'
 
 const badgeClassName =
   'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest transition hover:brightness-95'
 const badgeStyle = { backgroundColor: '#e8f5ee', color: '#1a6b3c' }
 
-export function Hero() {
+export function Hero({ trust }: { trust?: HeroTrustContent }) {
   const copy = useMarketCopy()
+  const commonProjects = trust?.projects?.length
+    ? trust.projects
+    : defaultHeroProjects()
+  const clientNames = trust?.clients ?? []
   const trustPoints = [
     'Fixed-price projects available',
     copy.hero.trustBased,
@@ -63,6 +47,9 @@ export function Hero() {
       aria-label="Hero"
       className="relative overflow-hidden bg-white pt-16"
     >
+      {/* Rotating industry background — manufacturing, finance, engineering, logistics */}
+      <HeroBackground />
+
       {/* Subtle dot-grid texture */}
       <div
         aria-hidden="true"
@@ -74,7 +61,7 @@ export function Hero() {
         }}
       />
 
-      <div className="relative mx-auto max-w-4xl px-6 pb-20 pt-10 text-center lg:pt-14">
+      <div className="relative mx-auto max-w-4xl px-6 pt-10 text-center lg:pt-14">
 
         <p
           className="mb-8 text-balance text-[1.72265625rem] font-bold uppercase leading-tight tracking-[0.12em] sm:text-[1.96875rem] lg:text-[2.625rem]"
@@ -127,7 +114,7 @@ export function Hero() {
         </h1>
 
         {/* Body copy */}
-        <p className="mx-auto mt-4 max-w-2xl text-balance text-base leading-relaxed text-gray-500">
+        <p className="mx-auto mt-4 max-w-2xl text-balance text-base font-medium leading-relaxed text-gray-800">
           Whether you&apos;re managing a complex financial model, replacing manual reporting,
           building a costing solution or looking to build a custom business application, we create
           practical solutions that save time, improve accuracy and scale with your business.
@@ -139,7 +126,7 @@ export function Hero() {
           aria-label="Key benefits"
         >
           {trustPoints.map((point) => (
-            <li key={point} className="flex items-center gap-2.5 text-sm text-gray-600">
+            <li key={point} className="flex items-center gap-2.5 text-sm font-medium text-gray-800">
               <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: '#1a6b3c' }} aria-hidden="true" />
               {point}
             </li>
@@ -176,43 +163,48 @@ export function Hero() {
           </Link>
         </div>
 
-        {/* Client name strip */}
-        <div className="mt-12 flex flex-col items-center gap-4">
-          <span className="text-sm font-bold uppercase tracking-widest text-gray-700">
-          Trusted by organisations including
-        </span>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {clientNames.map((name) => (
-              <span
-                key={name}
-                className="border border-gray-200 bg-gray-50 px-3.5 py-2 text-xs font-semibold text-gray-600"
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-
         {/* Common projects */}
-        <div className="mt-10 flex flex-col items-center gap-4">
+        <div className="mt-12 flex flex-col items-center gap-4">
           <span className="text-sm font-bold uppercase tracking-widest text-gray-700">
             Common projects
           </span>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {commonProjects.map((project) => (
-              <span
-                key={project}
-                className="rounded-full border border-gray-200 bg-gray-50 px-3.5 py-1.5 text-xs font-medium text-gray-600"
-              >
-                {project}
-              </span>
-            ))}
+            {commonProjects.map((project) => {
+              const Icon = heroProjectIcons[project.icon] ?? heroProjectIcons.zap
+              return (
+                <span
+                  key={project.id || project.label}
+                  className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/90 py-1.5 pl-2.5 pr-3.5 text-xs font-medium text-gray-800 shadow-sm"
+                >
+                  {project.iconSrc ? (
+                    <Image
+                      src={project.iconSrc}
+                      alt=""
+                      width={14}
+                      height={14}
+                      className="h-3.5 w-3.5 object-contain"
+                    />
+                  ) : (
+                    <Icon className="h-3.5 w-3.5 text-[#1a6b3c]" aria-hidden="true" />
+                  )}
+                  {project.label}
+                </span>
+              )
+            })}
           </div>
-          <p className="mx-auto mt-2 max-w-2xl text-balance text-sm leading-relaxed text-gray-500">
+          <p className="mx-auto mt-2 max-w-2xl text-balance text-sm font-medium leading-relaxed text-gray-800">
             Hundreds of custom business solutions delivered across engineering, finance,
             manufacturing, logistics and professional services.
           </p>
         </div>
+      </div>
+
+      <div className="relative pb-20">
+        <HeroClientCarousel
+          clients={clientNames}
+          fade={trust?.fade}
+          heading={trust?.heading}
+        />
       </div>
 
       {/* Stats bar */}

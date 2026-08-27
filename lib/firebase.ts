@@ -157,6 +157,18 @@ export const PAGE_SEO_DOC_ID = 'page-seo'
 export const HOME_SERVICES_DOC_ID = 'home-services'
 
 /**
+ * Site Content doc: homepage hero client tiles (fabricated/harvested logos).
+ * Public site reads `data/hero-clients.generated.ts` after Publish — not this doc.
+ */
+export const HERO_CLIENTS_DOC_ID = 'hero-clients'
+
+/**
+ * Site Content doc: homepage hero common-project tiles (lucide + generated icons).
+ * Public site reads `data/hero-projects.generated.ts` after Publish — not this doc.
+ */
+export const HERO_PROJECTS_DOC_ID = 'hero-projects'
+
+/**
  * Site Content doc: floating “Find out about” quick-nav labels + page links.
  */
 export const FIND_OUT_ABOUT_DOC_ID = 'find-out-about'
@@ -183,3 +195,6 @@ export const MAILING_CAMPAIGNS_COLLECTION = 'mailingCampaigns'
 
 /** Per-recipient campaign send / engagement log */
 export const MAILING_SENDS_COLLECTION = 'mailingSends'
+
+/** Master list of client website URLs and harvested logos */
+export const CLIENT_LOGOS_COLLECTION = 'clientLogos'

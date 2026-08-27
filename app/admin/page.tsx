@@ -26,6 +26,7 @@ import { AdminCaseStudiesPanel } from '@/components/admin-case-studies-panel'
 import { AdminServicePageTilesPanel } from '@/components/admin-service-page-tiles-panel'
 import { AdminFindOutAboutPanel } from '@/components/admin-find-out-about-panel'
 import { AdminSeedingPanel } from '@/components/admin-seeding-panel'
+import { AdminLogoHarvestPanel } from '@/components/admin-logo-harvest-panel'
 import { AdminBookingCalendar } from '@/components/admin-booking-calendar'
 import { AdminBookingSeedPanel } from '@/components/admin-booking-seed-panel'
 import { AdminBookingTimezonePanel } from '@/components/admin-booking-timezone-panel'
@@ -34,6 +35,8 @@ import { AdminCrawlDocsPanel } from '@/components/admin-crawl-docs-panel'
 import { AdminMarketCopyPanel } from '@/components/admin-market-copy-panel'
 import { AdminPageSeoPanel } from '@/components/admin-page-seo-panel'
 import { AdminHomeServicesPanel } from '@/components/admin-home-services-panel'
+import { AdminHeroClientsPanel } from '@/components/admin-hero-clients-panel'
+import { AdminHeroProjectsPanel } from '@/components/admin-hero-projects-panel'
 import { AdminCmsPublishPanel } from '@/components/admin-cms-publish-panel'
 import { AdminMailingsPanel } from '@/components/admin-mailings-panel'
 import {
@@ -54,7 +57,14 @@ type AdminTab = AdminTabId
 
 type BookingSubTab = 'bookings' | 'settings'
 type SettingsSubTab = 'users' | 'thank-you'
-type CmsSubTab = 'site' | 'pages' | 'home-services' | 'publish'
+type CmsSubTab =
+  | 'site'
+  | 'pages'
+  | 'home-services'
+  | 'client-logos'
+  | 'common-projects'
+  | 'logos'
+  | 'publish'
 type MarketingSubTab = 'tags' | 'crawl' | 'domains'
 
 const TABS = ADMIN_TABS
@@ -1071,6 +1081,9 @@ export default function AdminPage() {
                   { id: 'site' as const, label: 'Site CMS' },
                   { id: 'pages' as const, label: 'Pages CMS' },
                   { id: 'home-services' as const, label: 'Home services' },
+                  { id: 'client-logos' as const, label: 'Client Logos' },
+                  { id: 'common-projects' as const, label: 'Common Projects' },
+                  { id: 'logos' as const, label: 'Logo Harvest' },
                   { id: 'publish' as const, label: 'Publish' },
                 ] as const
               ).map((item) => {
@@ -1097,6 +1110,9 @@ export default function AdminPage() {
             {cmsSubTab === 'site' && <AdminMarketCopyPanel />}
             {cmsSubTab === 'pages' && <AdminPageSeoPanel />}
             {cmsSubTab === 'home-services' && <AdminHomeServicesPanel />}
+            {cmsSubTab === 'client-logos' && <AdminHeroClientsPanel />}
+            {cmsSubTab === 'common-projects' && <AdminHeroProjectsPanel />}
+            {cmsSubTab === 'logos' && <AdminLogoHarvestPanel />}
             {cmsSubTab === 'publish' && <AdminCmsPublishPanel />}
           </div>
         )}

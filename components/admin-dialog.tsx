@@ -15,6 +15,7 @@ export type AdminDialogProps = {
   cancelLabel?: string
   dismissLabel?: string
   busy?: boolean
+  size?: 'md' | 'lg'
   onConfirm?: () => void | Promise<void>
   onClose: () => void
 }
@@ -33,6 +34,7 @@ export function AdminDialog({
   cancelLabel = 'Cancel',
   dismissLabel = 'OK',
   busy = false,
+  size = 'md',
   onConfirm,
   onClose,
 }: AdminDialogProps) {
@@ -71,7 +73,9 @@ export function AdminDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-lg border border-border bg-surface p-5 shadow-lg"
+        className={`w-full rounded-lg border border-border bg-surface p-5 shadow-lg ${
+          size === 'lg' ? 'max-w-xl' : 'max-w-md'
+        }`}
       >
         <h2 id={titleId} className="text-lg font-semibold text-ink">
           {title}

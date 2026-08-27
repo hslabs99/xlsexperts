@@ -523,7 +523,7 @@ export function AdminServicePageTilesPanel() {
             <p className="mt-1 max-w-2xl text-sm text-ink-muted">
               Case-study style cards on individual service landings. Assign each
               tile to one or more service pages. Does not appear on the homepage.
-              Seed from Seeding tab to load the original static examples.
+              Seed from the Seeding tab to load the original static examples.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

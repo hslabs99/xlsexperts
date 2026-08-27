@@ -15,7 +15,13 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/webp',
 ])
 
-export type SiteImageFolder = 'blog' | 'case-studies' | 'email/case-studies'
+export type SiteImageFolder =
+  | 'blog'
+  | 'case-studies'
+  | 'email/case-studies'
+  | 'client-logos'
+  | 'hero-clients'
+  | 'hero-projects'
 
 export type UploadImageInput = File | Blob | Uint8Array | Buffer
 

@@ -2,7 +2,7 @@
  * PUBLISHED market copy — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → International, then click Publish to regenerate this file.
  *
- * Generated at 2026-08-19T02:12:55.160Z
+ * Generated at 2026-08-27T03:14:29.299Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedMarketCopyFile } from '@/lib/market-copy'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-19T02:12:55.160Z",
+  "publishedAt": "2026-08-27T03:14:29.299Z",
   "markets": {
     "nz": {
       "site": {
@@ -54,10 +54,10 @@ const published = {
         "line1": "NEW ZEALAND",
         "line2": "BUSINESS AUTOMATION SPECIALISTS",
         "badgeSpecialists": "New Zealand Microsoft Excel Specialists",
-        "badgeEnterprise": "Enterprise Applications",
+        "badgeEnterprise": "VBA Programming",
         "badgeAi": "A.I. Solutions",
         "badgeSpecialistsHref": "/excel-spreadsheet-development",
-        "badgeEnterpriseHref": "/enterprise",
+        "badgeEnterpriseHref": "/excel-vba-macro-development",
         "badgeAiHref": "/ai-workflow-and-business-process-automation",
         "trustBased": "New Zealand based",
         "statValue": "100% NZ",
@@ -116,10 +116,10 @@ const published = {
         "line1": "GLOBAL",
         "line2": "BUSINESS AUTOMATION SPECIALISTS",
         "badgeSpecialists": "The Global Microsoft Excel Specialists",
-        "badgeEnterprise": "Enterprise Applications",
+        "badgeEnterprise": "VBA Programming",
         "badgeAi": "A.I. Solutions",
         "badgeSpecialistsHref": "/excel-spreadsheet-development",
-        "badgeEnterpriseHref": "/enterprise",
+        "badgeEnterpriseHref": "/excel-vba-macro-development",
         "badgeAiHref": "/ai-workflow-and-business-process-automation",
         "trustBased": "Serving Global Clients",
         "statValue": "100% Global Availability",
@@ -178,10 +178,10 @@ const published = {
         "line1": "UK",
         "line2": "BUSINESS AUTOMATION SPECIALISTS",
         "badgeSpecialists": "UK Microsoft Excel Specialists",
-        "badgeEnterprise": "Enterprise Applications",
+        "badgeEnterprise": "VBA Programming",
         "badgeAi": "A.I. Solutions",
         "badgeSpecialistsHref": "/excel-spreadsheet-development",
-        "badgeEnterpriseHref": "/enterprise",
+        "badgeEnterpriseHref": "/excel-vba-macro-development",
         "badgeAiHref": "/ai-workflow-and-business-process-automation",
         "trustBased": "Serving Global Clients",
         "statValue": "100% Global Availability",

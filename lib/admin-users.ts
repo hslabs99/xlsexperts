@@ -31,7 +31,8 @@ export const ADMIN_TAB_IDS: readonly AdminTabId[] = ADMIN_TABS.map((t) => t.id)
 /**
  * Default tabs for new non-admin (marketing) users and for legacy accounts
  * that never had `allowedTabs` stored.
- * CMS includes Site CMS, Pages CMS, Home services, and Publish as sub-tabs.
+ * CMS includes Site CMS, Pages CMS, Home services, Client Logos,
+ * Common Projects, Logo Harvest, and Publish.
  */
 export const DEFAULT_NON_ADMIN_TABS: readonly AdminTabId[] = [
   'enquiries',
@@ -107,7 +108,9 @@ export function normalizeAllowedTabs(
     const id =
       item === 'page-seo' || item === 'international' || item === 'h1'
         ? 'cms'
-        : item
+        : item === 'data'
+          ? 'seeding'
+          : item
     if (isAdminTabId(id)) {
       set.add(id)
     }
