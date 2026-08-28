@@ -1,9 +1,13 @@
+import { renderBlogInline } from '@/lib/blog-inline-markup'
+
 type UseCaseGridProps = {
   heading: string
   useCases: { title: string; description: string }[]
 }
 
 export function UseCaseGrid({ heading, useCases }: UseCaseGridProps) {
+  if (useCases.length === 0) return null
+
   return (
     <section className="bg-gray-50 py-16 sm:py-20">
       <div className="mx-auto max-w-5xl px-6">
@@ -20,7 +24,7 @@ export function UseCaseGrid({ heading, useCases }: UseCaseGridProps) {
                 {useCase.title}
               </h3>
               <p className="text-sm leading-relaxed text-gray-600">
-                {useCase.description}
+                {renderBlogInline(useCase.description)}
               </p>
             </article>
           ))}

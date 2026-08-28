@@ -11,6 +11,7 @@ type SolutionHeroProps = {
   breadcrumbLabel: string
   heading: string
   introduction: string
+  subheading?: string
   primaryCta: { label: string; href: string }
   secondaryCta?: { label: string; href: string }
   breadcrumbs?: BreadcrumbItem[]
@@ -21,6 +22,7 @@ export function SolutionHero({
   breadcrumbLabel,
   heading,
   introduction,
+  subheading,
   primaryCta,
   secondaryCta,
   breadcrumbs,
@@ -53,9 +55,14 @@ export function SolutionHero({
         <p className="mb-5 max-w-2xl text-sm leading-relaxed text-white/75">
           {framing}
         </p>
-        <h1 className="font-display mb-6 max-w-3xl text-4xl font-bold leading-tight text-white text-balance md:text-5xl">
+        <h1 className="font-display mb-4 max-w-4xl text-3xl font-bold leading-tight text-white text-balance sm:text-4xl md:text-5xl">
           {heading}
         </h1>
+        {subheading && (
+          <p className="mb-5 max-w-3xl text-xl font-medium leading-snug text-white/90 text-balance">
+            {subheading}
+          </p>
+        )}
         <p className="mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
           {introduction}
         </p>

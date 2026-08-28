@@ -3,10 +3,11 @@
 import { useRef, useState } from 'react'
 import { AdminBlogLinkToolbar } from '@/components/admin-blog-link-toolbar'
 import { renderBlogInline } from '@/lib/blog-inline-markup'
+import { findCatalogLinkTarget } from '@/lib/blog-link-catalog'
 import {
-  findBlogLinkTarget,
   insertMarkdownLink,
   isSafeBlogHref,
+  type BlogLinkTarget,
 } from '@/lib/blog-link-targets'
 
 type SelectionRange = { start: number; end: number }
@@ -18,6 +19,7 @@ type Props = {
   rows?: number
   className?: string
   showToolbar?: boolean
+  blogTargets?: readonly BlogLinkTarget[]
 }
 
 export function AdminBlogTextField({
@@ -27,6 +29,7 @@ export function AdminBlogTextField({
   rows = 4,
   className = 'mt-2 w-full rounded-md border border-border px-3 py-2 text-sm',
   showToolbar = true,
+  blogTargets = [],
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   // Last non-empty highlight — survives focus moving to the dropdown
@@ -46,7 +49,9 @@ export function AdminBlogTextField({
 
   function linkSelection(href: string): boolean {
     const path = href.trim()
-    if (!isSafeBlogHref(path) || !findBlogLinkTarget(path)) return false
+    if (!isSafeBlogHref(path) || !findCatalogLinkTarget(path, blogTargets)) {
+      return false
+    }
 
     const el = ref.current
     // Prefer live textarea contents over React props (avoids stale closures)
@@ -95,6 +100,7 @@ export function AdminBlogTextField({
           previewOpen={previewOpen}
           onTogglePreview={() => setPreviewOpen((v) => !v)}
           linkOk={linkOk}
+          blogTargets={blogTargets}
         />
       ) : null}
 

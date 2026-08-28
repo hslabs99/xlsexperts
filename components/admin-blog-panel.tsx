@@ -12,6 +12,7 @@ import {
 import { AdminBlogAiAssist } from '@/components/admin-blog-ai-assist'
 import { BlogImageSizeAdvice } from '@/components/blog-image-size-advice'
 import { AdminBlogTextField } from '@/components/admin-blog-text-field'
+import { otherBlogLinkTargets } from '@/lib/blog-link-catalog'
 import {
   assessBlogImage,
   formatBytes,
@@ -261,6 +262,11 @@ export function AdminBlogPanel() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const blogLinkTargets = useMemo(
+    () => otherBlogLinkTargets(rows, form.slug),
+    [rows, form.slug],
+  )
 
   const filtered = useMemo(() => {
     let list = rows
@@ -1255,6 +1261,7 @@ export function AdminBlogPanel() {
                     onChange={(text) => updateSection(index, { text })}
                     placeholder="Text"
                     rows={4}
+                    blogTargets={blogLinkTargets}
                   />
                 )}
 
@@ -1274,6 +1281,7 @@ export function AdminBlogPanel() {
                     placeholder="One list item per line"
                     rows={5}
                     className="mt-0 w-full rounded-md border border-border px-3 py-2 font-mono text-xs"
+                    blogTargets={blogLinkTargets}
                   />
                 )}
 
@@ -1304,6 +1312,7 @@ export function AdminBlogPanel() {
                           placeholder="Answer"
                           rows={3}
                           className="mt-0 w-full rounded border border-border px-2 py-1.5 text-sm"
+                          blogTargets={blogLinkTargets}
                         />
                         <button
                           type="button"

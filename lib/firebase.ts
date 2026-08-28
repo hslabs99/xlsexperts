@@ -98,6 +98,12 @@ export const USERS_COLLECTION = 'users'
 export const BLOG_POSTS_COLLECTION = 'blogPosts'
 
 /**
+ * Admin scratch queue of unstructured blog subjects / AI prompts.
+ * Not published to the public site — copy/paste into the Blog editor later.
+ */
+export const BLOG_QUEUE_COLLECTION = 'blogQueue'
+
+/**
  * Firestore collection for admin-managed AI system prompts
  * (blog draft / blog image tone libraries).
  */

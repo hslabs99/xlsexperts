@@ -180,7 +180,7 @@ export default async function BlogPost({
                     <h2 className="mt-10 text-xl font-bold text-gray-900 sm:text-2xl">{section.heading}</h2>
                     {section.text && (
                       <p className="mt-3 text-base leading-relaxed text-gray-700">
-                        {renderBlogInline(section.text)}
+                        {renderBlogInline(section.text, { openInNewTab: true })}
                       </p>
                     )}
                   </div>
@@ -192,7 +192,7 @@ export default async function BlogPost({
                     <h3 className="mt-7 text-lg font-bold text-gray-900">{section.heading}</h3>
                     {section.text && (
                       <p className="mt-2 text-base leading-relaxed text-gray-700">
-                        {renderBlogInline(section.text)}
+                        {renderBlogInline(section.text, { openInNewTab: true })}
                       </p>
                     )}
                   </div>
@@ -201,7 +201,7 @@ export default async function BlogPost({
               if (section.type === 'intro' || section.type === 'p') {
                 return (
                   <p key={i} className="mt-5 text-base leading-relaxed text-gray-700">
-                    {renderBlogInline(section.text ?? '')}
+                    {renderBlogInline(section.text ?? '', { openInNewTab: true })}
                   </p>
                 )
               }
@@ -211,7 +211,7 @@ export default async function BlogPost({
                     {section.items?.map((item, j) => (
                       <li key={j} className="flex items-start gap-2 text-base text-gray-700">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: '#1a6b3c' }} aria-hidden="true" />
-                        {renderBlogInline(item)}
+                        {renderBlogInline(item, { openInNewTab: true })}
                       </li>
                     ))}
                   </ul>
@@ -226,7 +226,7 @@ export default async function BlogPost({
                         <div key={j} className="border-l-2 pl-5" style={{ borderColor: '#1a6b3c' }}>
                           <dt className="font-bold text-gray-900">{faq.q}</dt>
                           <dd className="mt-1.5 text-base leading-relaxed text-gray-700">
-                            {renderBlogInline(faq.a)}
+                            {renderBlogInline(faq.a, { openInNewTab: true })}
                           </dd>
                         </div>
                       ))}

@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarRange,
   ClipboardCheck,
+  Factory,
   FileSpreadsheet,
   GitBranch,
   LayoutDashboard,
@@ -15,6 +16,7 @@ import {
   Users,
   Wrench,
 } from 'lucide-react'
+import { manufacturingCostingSolution } from './solutions-manufacturing'
 
 /** @deprecated Use getSiteOrigin() / market copy site.origin — NZ only. */
 export const SITE_ORIGIN = 'https://www.xlsexperts.co.nz'
@@ -26,6 +28,7 @@ export type SolutionSlug =
   | 'project-costing-financial-modelling'
   | 'property-development-applications'
   | 'quoting-estimating-systems'
+  | 'manufacturing-costing-estimating-quoting'
   | 'survey-inspection-field-apps'
   | 'client-staff-portals'
   | 'asset-maintenance-operations-solutions'
@@ -38,6 +41,7 @@ export type SolutionIconKey =
   | 'financial'
   | 'property'
   | 'quoting'
+  | 'manufacturing'
   | 'field'
   | 'portal'
   | 'maintenance'
@@ -66,6 +70,18 @@ export type SolutionDeepLayer = {
   description: string
 }
 
+export type SolutionRelatedExtra = {
+  href: string
+  title: string
+  label: string
+}
+
+export type SolutionRelatedReading = {
+  href: string
+  title: string
+  description: string
+}
+
 /** Long-form content blocks for in-depth solution pages. */
 export type SolutionDeepSection = {
   id: string
@@ -75,6 +91,10 @@ export type SolutionDeepSection = {
   items?: string[]
   cards?: SolutionDeepCard[]
   layers?: SolutionDeepLayer[]
+  /** Highlighted statement rendered after body copy. */
+  callout?: string
+  /** Card grid columns. Defaults to 2. */
+  cardColumns?: 2 | 3
 }
 
 export type SolutionFeatureGrid = {
@@ -101,8 +121,11 @@ export type SolutionPage = {
   metaDescription: string
   heroHeading: string
   heroIntroduction: string
+  /** Optional line under the H1, used on long-form pillar pages. */
+  heroSubheading?: string
   introHeading: string
   introBody: string[]
+  introItems?: string[]
   problemsHeading: string
   problems: string[]
   capabilitiesHeading: string
@@ -123,11 +146,20 @@ export type SolutionPage = {
   ctaHeading: string
   ctaBody: string
   contactOptionLabel: string
+  primaryCtaLabel?: string
+  secondaryCtaLabel?: string
+  ctaButtonLabel?: string
   /** Prefer deepSections over the standard problem/capability/use-case blocks. */
   preferDeepLayout?: boolean
+  /** When true, example applications are rendered as deep sections instead. */
+  skipUseCaseGrid?: boolean
+  /** When true, the 5-step process lives in deepSections instead. */
+  skipProcessSteps?: boolean
   deepSections?: SolutionDeepSection[]
   featureGrid?: SolutionFeatureGrid
   whyUs?: SolutionWhyUs
+  relatedExtras?: SolutionRelatedExtra[]
+  relatedReading?: SolutionRelatedReading[]
 }
 
 export const solutionIcons: Record<SolutionIconKey, LucideIcon> = {
@@ -137,6 +169,7 @@ export const solutionIcons: Record<SolutionIconKey, LucideIcon> = {
   financial: BarChart3,
   property: Building2,
   quoting: Calculator,
+  manufacturing: Factory,
   field: ClipboardCheck,
   portal: Users,
   maintenance: Wrench,
@@ -591,10 +624,13 @@ export const solutionPages: readonly SolutionPage[] = [
       },
     ],
     relatedSlugs: [
+      'manufacturing-costing-estimating-quoting',
       'property-development-applications',
       'dashboards-business-intelligence',
     ],
     relatedLinkLabels: {
+      'manufacturing-costing-estimating-quoting':
+        'Manufacturing costing, estimating and quoting systems',
       'property-development-applications':
         'See our property development platform for full lifecycle projects',
       'dashboards-business-intelligence':
@@ -1126,10 +1162,13 @@ export const solutionPages: readonly SolutionPage[] = [
       },
     ],
     relatedSlugs: [
+      'manufacturing-costing-estimating-quoting',
       'workflow-automation-systems-integration',
       'client-staff-portals',
     ],
     relatedLinkLabels: {
+      'manufacturing-costing-estimating-quoting':
+        'Manufacturing costing, estimating and quoting systems',
       'workflow-automation-systems-integration':
         'Automate quote approvals and CRM updates',
       'client-staff-portals':
@@ -1151,6 +1190,7 @@ export const solutionPages: readonly SolutionPage[] = [
       'Describe the quote types you produce, who prepares them, and where errors or delays occur. We will recommend the right level of estimating system.',
     contactOptionLabel: 'Quoting & Estimating Systems',
   },
+  manufacturingCostingSolution,
   {
     slug: 'survey-inspection-field-apps',
     href: '/solutions/survey-inspection-field-apps',

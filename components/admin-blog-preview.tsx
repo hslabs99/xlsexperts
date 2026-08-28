@@ -84,7 +84,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
               </h2>
               {section.text ? (
                 <p className="mt-3 text-base leading-relaxed text-gray-700">
-                  {renderBlogInline(section.text)}
+                  {renderBlogInline(section.text, { openInNewTab: true })}
                 </p>
               ) : null}
             </div>
@@ -98,7 +98,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
               </h3>
               {section.text ? (
                 <p className="mt-2 text-base leading-relaxed text-gray-700">
-                  {renderBlogInline(section.text)}
+                  {renderBlogInline(section.text, { openInNewTab: true })}
                 </p>
               ) : null}
             </div>
@@ -107,7 +107,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
         if (section.type === 'intro' || section.type === 'p') {
           return (
             <p key={i} className="mt-5 text-base leading-relaxed text-gray-700">
-              {section.text ? renderBlogInline(section.text) : '…'}
+              {section.text ? renderBlogInline(section.text, { openInNewTab: true }) : '…'}
             </p>
           )
         }
@@ -124,7 +124,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
                     style={{ backgroundColor: '#1a6b3c' }}
                     aria-hidden="true"
                   />
-                  {item ? renderBlogInline(item) : '…'}
+                  {item ? renderBlogInline(item, { openInNewTab: true }) : '…'}
                 </li>
               ))}
             </ul>
@@ -148,7 +148,7 @@ function SectionBlocks({ sections }: { sections: BlogSection[] }) {
                         {faq.q || 'Question'}
                       </dt>
                       <dd className="mt-1.5 text-base leading-relaxed text-gray-700">
-                        {faq.a ? renderBlogInline(faq.a) : 'Answer'}
+                        {faq.a ? renderBlogInline(faq.a, { openInNewTab: true }) : 'Answer'}
                       </dd>
                     </div>
                   )

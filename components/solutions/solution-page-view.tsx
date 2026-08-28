@@ -36,12 +36,14 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
   const contactHref = contactHrefForSolution(solution.slug)
   const deepLayout = Boolean(solution.preferDeepLayout)
   const firstDeepSectionId = solution.deepSections?.[0]?.id
-  const secondaryHref = deepLayout && firstDeepSectionId
-    ? `#${firstDeepSectionId}`
-    : '#related-solutions'
-  const secondaryLabel = deepLayout
-    ? 'Explore the platform'
-    : 'Explore related solutions'
+  const secondaryGoesToRelated =
+    Boolean(solution.secondaryCtaLabel) &&
+    /related/i.test(solution.secondaryCtaLabel ?? '')
+  const secondaryHref = secondaryGoesToRelated
+    ? '#related-solutions'
+    : deepLayout && firstDeepSectionId
+      ? `#${firstDeepSectionId}`
+      : '#related-solutions'
 
   const serviceSchema = {
     '@context': 'https://schema.org',
@@ -88,10 +90,16 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
         <SolutionHero
           breadcrumbLabel={solution.title}
           heading={solution.heroHeading}
+          subheading={solution.heroSubheading}
           introduction={solution.heroIntroduction}
-          primaryCta={{ label: 'Discuss your project', href: contactHref }}
+          primaryCta={{
+            label: solution.primaryCtaLabel ?? 'Discuss your project',
+            href: contactHref,
+          }}
           secondaryCta={{
-            label: secondaryLabel,
+            label:
+              solution.secondaryCtaLabel ??
+              (deepLayout ? 'Explore the platform' : 'Explore related solutions'),
             href: secondaryHref,
           }}
           breadcrumbs={[
@@ -103,6 +111,7 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
         <SolutionIntro
           heading={solution.introHeading}
           body={solution.introBody}
+          items={solution.introItems}
         />
         {deepLayout && solution.deepSections ? (
           <SolutionDeepContent
@@ -150,7 +159,7 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
             )}
           </>
         )}
-        {!deepLayout && (
+        {!deepLayout && solution.processSteps.length > 0 && (
           <ProcessSteps
             heading={solution.processHeading}
             steps={solution.processSteps}
@@ -158,14 +167,18 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
         )}
         {deepLayout && (
           <>
-            <UseCaseGrid
-              heading={solution.useCasesHeading}
-              useCases={solution.useCases}
-            />
-            <ProcessSteps
-              heading={solution.processHeading}
-              steps={solution.processSteps}
-            />
+            {!solution.skipUseCaseGrid && (
+              <UseCaseGrid
+                heading={solution.useCasesHeading}
+                useCases={solution.useCases}
+              />
+            )}
+            {!solution.skipProcessSteps && solution.processSteps.length > 0 && (
+              <ProcessSteps
+                heading={solution.processHeading}
+                steps={solution.processSteps}
+              />
+            )}
           </>
         )}
         <RelatedCaseStudies studies={caseStudies} />
@@ -173,6 +186,8 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
           <RelatedSolutions
             solutions={related}
             linkLabels={solution.relatedLinkLabels}
+            extras={solution.relatedExtras}
+            reading={solution.relatedReading}
           />
         </div>
         <SolutionFAQ faqs={solution.faqs} />
@@ -180,6 +195,7 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
           heading={solution.ctaHeading}
           body={solution.ctaBody}
           href={contactHref}
+          label={solution.ctaButtonLabel}
         />
         <Contact />
       </main>

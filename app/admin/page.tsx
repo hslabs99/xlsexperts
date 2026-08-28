@@ -22,6 +22,7 @@ import { AdminDomainRegionsPanel } from '@/components/admin-domain-regions-panel
 import { AdminLogin } from '@/components/admin-login'
 import { AdminUsersPanel } from '@/components/admin-users-panel'
 import { AdminBlogPanel } from '@/components/admin-blog-panel'
+import { AdminBlogQueuePanel } from '@/components/admin-blog-queue-panel'
 import { AdminCaseStudiesPanel } from '@/components/admin-case-studies-panel'
 import { AdminServicePageTilesPanel } from '@/components/admin-service-page-tiles-panel'
 import { AdminFindOutAboutPanel } from '@/components/admin-find-out-about-panel'
@@ -56,6 +57,7 @@ import {
 type AdminTab = AdminTabId
 
 type BookingSubTab = 'bookings' | 'settings'
+type BlogSubTab = 'blogs' | 'queue'
 type SettingsSubTab = 'users' | 'thank-you'
 type CmsSubTab =
   | 'site'
@@ -152,6 +154,7 @@ export default function AdminPage() {
   const [viewMode, setViewMode] = useState<AdminViewMode>('admin')
   const [tab, setTab] = useState<AdminTab>('enquiries')
   const [bookingSubTab, setBookingSubTab] = useState<BookingSubTab>('bookings')
+  const [blogSubTab, setBlogSubTab] = useState<BlogSubTab>('blogs')
   const [settingsSubTab, setSettingsSubTab] =
     useState<SettingsSubTab>('users')
   const [cmsSubTab, setCmsSubTab] = useState<CmsSubTab>('site')
@@ -1038,8 +1041,40 @@ export default function AdminPage() {
         {tab === 'blog' &&
           session &&
           canAccessTab(session, 'blog', viewMode) && (
-          <div className="mt-8" role="tabpanel">
-            <AdminBlogPanel />
+          <div className="mt-8 space-y-6" role="tabpanel">
+            <div
+              className="flex flex-wrap gap-1 border-b border-border"
+              role="tablist"
+              aria-label="Blog sections"
+            >
+              {(
+                [
+                  { id: 'blogs' as const, label: 'Blogs' },
+                  { id: 'queue' as const, label: 'Blog queue' },
+                ] as const
+              ).map((item) => {
+                const active = blogSubTab === item.id
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setBlogSubTab(item.id)}
+                    className={
+                      active
+                        ? 'border-b-2 border-brand px-4 py-2.5 text-sm font-semibold text-brand'
+                        : 'border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-ink-muted transition hover:text-ink'
+                    }
+                  >
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {blogSubTab === 'blogs' && <AdminBlogPanel />}
+            {blogSubTab === 'queue' && <AdminBlogQueuePanel />}
           </div>
         )}
 

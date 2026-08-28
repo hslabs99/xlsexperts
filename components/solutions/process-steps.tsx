@@ -4,13 +4,22 @@ type ProcessStepsProps = {
 }
 
 export function ProcessSteps({ heading, steps }: ProcessStepsProps) {
+  if (steps.length === 0) return null
+
+  const gridClass =
+    steps.length === 5
+      ? 'md:grid-cols-2 lg:grid-cols-3'
+      : steps.length === 3
+        ? 'md:grid-cols-3'
+        : 'md:grid-cols-2 lg:grid-cols-4'
+
   return (
     <section className="bg-gray-50 py-16 sm:py-20">
       <div className="mx-auto max-w-5xl px-6">
         <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">
           {heading}
         </h2>
-        <ol className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <ol className={`grid gap-6 ${gridClass}`}>
           {steps.map((step, index) => (
             <li
               key={step.title}

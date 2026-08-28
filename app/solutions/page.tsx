@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
     path: ALL_SOLUTIONS_HREF,
     title: 'Business Systems Solutions NZ',
     description:
-      'Business systems built around the way you work — dashboards, resource planning, financial modelling, property development, asset maintenance operations, quoting, field apps, portals and workflow automation for New Zealand organisations.',
+      'Business systems built around the way you work — dashboards, resource planning, financial modelling, manufacturing costing, property development, asset maintenance operations, quoting, field apps, portals and workflow automation for New Zealand organisations.',
     ogTitle: 'Business Systems Solutions | XLS Experts',
     ogDescription:
       'Practical business systems that may combine Excel, Microsoft 365, cloud applications, databases and integrations.',

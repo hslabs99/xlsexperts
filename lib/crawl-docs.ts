@@ -116,7 +116,7 @@ XLS Experts is a business systems consultancy serving clients in the United King
 
 ## What we do
 
-- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
+- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, manufacturing costing and quoting, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
 - **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
 - **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and A.I.-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
 - **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
@@ -154,7 +154,7 @@ XLS Experts is a business systems consultancy serving clients internationally. W
 
 ## What we do
 
-- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
+- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, manufacturing costing and quoting, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
 - **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
 - **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and A.I.-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
 - **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.
@@ -190,7 +190,7 @@ XLS Experts is a New Zealand business systems consultancy. We design and build p
 
 ## What we do
 
-- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
+- **Business systems solutions**: Dashboards & BI, resource planning, financial modelling, manufacturing costing and quoting, property development applications, asset maintenance operations, quoting systems, field apps, client/staff portals, and workflow automation — see ${origin}/solutions
 - **Excel VBA Automation**: Custom macros and applications that automate repetitive manual processes, eliminating copy-paste workflows and reducing errors.
 - **Business process automation**: Spreadsheet process modernisation, Power Automate workflows and A.I.-assisted process automation — see ${origin}/ai-workflow-and-business-process-automation
 - **Dashboard Development**: Interactive Excel dashboards connected to live data sources including ERP systems, SQL databases, accounting platforms, and cloud APIs.

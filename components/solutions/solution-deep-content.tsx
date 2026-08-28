@@ -1,4 +1,5 @@
 import { CheckCircle } from 'lucide-react'
+import { renderBlogInline } from '@/lib/blog-inline-markup'
 import type { SolutionDeepSection, SolutionFeatureGrid, SolutionWhyUs } from '@/lib/solutions'
 
 type SolutionDeepContentProps = {
@@ -29,7 +30,7 @@ export function SolutionDeepContent({
                 </h2>
                 {section.intro && (
                   <p className="mb-6 text-base leading-relaxed text-gray-600">
-                    {section.intro}
+                    {renderBlogInline(section.intro)}
                   </p>
                 )}
                 {section.body?.map((paragraph) => (
@@ -37,9 +38,16 @@ export function SolutionDeepContent({
                     key={paragraph.slice(0, 48)}
                     className="mb-4 text-base leading-relaxed text-gray-600"
                   >
-                    {paragraph}
+                    {renderBlogInline(paragraph)}
                   </p>
                 ))}
+                {section.callout && (
+                  <blockquote className="mt-6 border-l-4 border-[#1a6b3c] bg-[#e8f5ee]/60 px-5 py-4">
+                    <p className="text-base font-medium leading-relaxed text-gray-800">
+                      {renderBlogInline(section.callout)}
+                    </p>
+                  </blockquote>
+                )}
               </div>
 
               {section.items && section.items.length > 0 && (
@@ -66,7 +74,13 @@ export function SolutionDeepContent({
               )}
 
               {section.cards && section.cards.length > 0 && (
-                <div className="mt-10 grid gap-6 md:grid-cols-2">
+                <div
+                  className={`mt-10 grid gap-6 ${
+                    section.cardColumns === 3
+                      ? 'md:grid-cols-3'
+                      : 'md:grid-cols-2'
+                  }`}
+                >
                   {section.cards.map((card) => (
                     <div
                       key={card.title}
@@ -77,7 +91,7 @@ export function SolutionDeepContent({
                       </h3>
                       {card.description && (
                         <p className="mb-4 text-sm leading-relaxed text-gray-600">
-                          {card.description}
+                          {renderBlogInline(card.description)}
                         </p>
                       )}
                       {card.items && card.items.length > 0 && (
@@ -169,7 +183,7 @@ export function SolutionDeepContent({
                   key={paragraph.slice(0, 48)}
                   className="text-base leading-relaxed text-gray-600"
                 >
-                  {paragraph}
+                  {renderBlogInline(paragraph)}
                 </p>
               ))}
             </div>

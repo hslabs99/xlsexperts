@@ -1,3 +1,4 @@
+import { renderBlogInline } from '@/lib/blog-inline-markup'
 import type { SolutionFaq } from '@/lib/solutions'
 
 type SolutionFAQProps = {
@@ -22,7 +23,9 @@ export function SolutionFAQ({ faqs }: SolutionFAQProps) {
               <h3 className="font-display mb-2 font-bold text-gray-900">
                 {faq.question}
               </h3>
-              <p className="text-sm leading-relaxed text-gray-600">{faq.answer}</p>
+              <p className="text-sm leading-relaxed text-gray-600">
+                {renderBlogInline(faq.answer)}
+              </p>
             </div>
           ))}
         </div>
@@ -32,13 +35,15 @@ export function SolutionFAQ({ faqs }: SolutionFAQProps) {
 }
 
 export function solutionFaqJsonLd(faqs: SolutionFaq[]) {
+  const plain = (text: string) =>
+    text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: faqs.map((faq) => ({
       '@type': 'Question',
       name: faq.question,
-      acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+      acceptedAnswer: { '@type': 'Answer', text: plain(faq.answer) },
     })),
   }
 }

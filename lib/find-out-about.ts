@@ -72,7 +72,7 @@ export const DEFAULT_FIND_OUT_ABOUT: FindOutAboutContent = {
     enabled: true,
     label: 'See all solutions',
     description:
-      'Complete systems we have delivered for specific industries: quoting and estimating, project costing, resource planning, asset maintenance, field apps and client portals.',
+      'Complete systems we have delivered for specific industries: manufacturing costing, quoting and estimating, project costing, resource planning, asset maintenance, field apps and client portals.',
   },
 }
 

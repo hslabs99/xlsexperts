@@ -3,10 +3,15 @@
 import { useId, useRef, useState } from 'react'
 import { Link2 } from 'lucide-react'
 import {
+  BLOG_LINK_SERVICE_PAGES,
+  BLOG_LINK_SOLUTION_PAGES,
+  findCatalogLinkTarget,
+} from '@/lib/blog-link-catalog'
+import {
   BLOG_HOME_SECTIONS,
   BLOG_SITE_PAGES,
-  findBlogLinkTarget,
   isSafeBlogHref,
+  type BlogLinkTarget,
 } from '@/lib/blog-link-targets'
 
 type Props = {
@@ -15,6 +20,8 @@ type Props = {
   previewOpen: boolean
   onTogglePreview: () => void
   linkOk?: boolean
+  /** Other blog posts, typically excluding the one being edited. */
+  blogTargets?: readonly BlogLinkTarget[]
 }
 
 export function AdminBlogLinkToolbar({
@@ -22,6 +29,7 @@ export function AdminBlogLinkToolbar({
   previewOpen,
   onTogglePreview,
   linkOk = false,
+  blogTargets = [],
 }: Props) {
   const selectId = useId()
   const selectRef = useRef<HTMLSelectElement>(null)
@@ -37,7 +45,7 @@ export function AdminBlogLinkToolbar({
       setHint('1) Choose a destination from the list first.')
       return
     }
-    if (!isSafeBlogHref(live) || !findBlogLinkTarget(live)) {
+    if (!isSafeBlogHref(live) || !findCatalogLinkTarget(live, blogTargets)) {
       setHint('That destination is not in the list. Pick again.')
       return
     }
@@ -47,7 +55,7 @@ export function AdminBlogLinkToolbar({
     }
   }
 
-  const chosen = href ? findBlogLinkTarget(href) : undefined
+  const chosen = href ? findCatalogLinkTarget(href, blogTargets) : undefined
 
   return (
     <div className="mt-2 space-y-2">
@@ -70,10 +78,10 @@ export function AdminBlogLinkToolbar({
           }}
           className="block w-full max-w-[55ch] rounded border border-border bg-white px-3 py-2 text-sm text-ink"
         >
-          <option value="">Choose a page or home section…</option>
-          <optgroup label="Pages">
+          <option value="">Choose a page or blog post…</option>
+          <optgroup label="Site pages">
             {BLOG_SITE_PAGES.map((p) => (
-              <option key={`page:${p.href}`} value={p.href}>
+              <option key={`site:${p.href}`} value={p.href}>
                 {p.label}
               </option>
             ))}
@@ -85,6 +93,29 @@ export function AdminBlogLinkToolbar({
               </option>
             ))}
           </optgroup>
+          <optgroup label="Solution pages">
+            {BLOG_LINK_SOLUTION_PAGES.map((p) => (
+              <option key={`solution:${p.href}`} value={p.href}>
+                {p.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Service pages">
+            {BLOG_LINK_SERVICE_PAGES.map((p) => (
+              <option key={`service:${p.href}`} value={p.href}>
+                {p.label}
+              </option>
+            ))}
+          </optgroup>
+          {blogTargets.length > 0 ? (
+            <optgroup label="Other blogs">
+              {blogTargets.map((p) => (
+                <option key={`blog:${p.href}`} value={p.href}>
+                  {p.label}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
         </select>
 
         {chosen ? (

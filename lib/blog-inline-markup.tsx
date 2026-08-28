@@ -8,7 +8,7 @@ const linkClassName =
   'font-medium text-[#1a6b3c] underline underline-offset-2 transition-colors hover:text-[#145530]'
 
 type RenderBlogInlineOptions = {
-  /** Admin preview: open every link in a new tab so the editor isn’t left. */
+  /** Open markdown links in a new tab (public blog posts and admin preview). */
   openInNewTab?: boolean
 }
 
