@@ -16,7 +16,13 @@ const badgeClassName =
   'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest transition hover:brightness-95'
 const badgeStyle = { backgroundColor: '#e8f5ee', color: '#1a6b3c' }
 
-export function Hero({ trust }: { trust?: HeroTrustContent }) {
+export function Hero({
+  trust,
+  backgroundHoldSeconds,
+}: {
+  trust?: HeroTrustContent
+  backgroundHoldSeconds?: number
+}) {
   const copy = useMarketCopy()
   const commonProjects = trust?.projects?.length
     ? trust.projects
@@ -48,7 +54,7 @@ export function Hero({ trust }: { trust?: HeroTrustContent }) {
       className="relative overflow-hidden bg-white pt-16"
     >
       {/* Rotating industry background — manufacturing, finance, engineering, logistics */}
-      <HeroBackground />
+      <HeroBackground holdSeconds={backgroundHoldSeconds} />
 
       {/* Subtle dot-grid texture */}
       <div

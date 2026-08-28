@@ -7,11 +7,12 @@ import { getHomeCaseStudies } from '@/lib/case-studies'
  * when the visitor asks for it.
  */
 export async function CaseStudiesSection() {
-  const { items, hasMore } = await getHomeCaseStudies()
+  const { items, hasMore, morePageSize } = await getHomeCaseStudies()
   return (
     <CaseStudies
       initialItems={items}
       initialHasMore={hasMore}
+      morePageSize={morePageSize}
     />
   )
 }

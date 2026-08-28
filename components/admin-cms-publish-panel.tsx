@@ -31,7 +31,7 @@ const FILE_PUBLISHES: FilePublishDef[] = [
     title: 'Site CMS',
     editIn: 'CMS → Site CMS',
     description:
-      'Site-wide copy: contact details, brand labels, hero, about, homepage SEO and FAQs.',
+      'Site-wide copy, contact details, brand labels, hero, about, homepage SEO, FAQs, and hero background timing.',
     file: 'data/market-copy.generated.ts',
     statusUrl: '/api/admin/market-copy',
   },

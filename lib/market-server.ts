@@ -13,13 +13,14 @@ import {
   parseMarketId,
   type MarketId,
 } from '@/lib/market'
+import { PUBLISHED_MARKET_COPY } from '@/data/market-copy.generated'
+import { withTimeout } from '@/lib/with-timeout'
 import {
+  pickHeroBackgroundHoldSeconds,
   pickMarketCopy,
   type MarketCopy,
   type MarketCopyBundle,
 } from '@/lib/market-copy'
-import { PUBLISHED_MARKET_COPY } from '@/data/market-copy.generated'
-import { withTimeout } from '@/lib/with-timeout'
 
 /**
  * Market for this request.
@@ -87,6 +88,27 @@ async function liveMarketCopyBundle(): Promise<MarketCopyBundle> {
     }
   }
   return getPublishedMarketCopyBundle()
+}
+
+/** Seconds each homepage hero background image is shown before rotating. */
+export async function getHeroBackgroundHoldSeconds(): Promise<number> {
+  if (await getIsLocalDev()) {
+    try {
+      const { fetchMarketCopyDraft } = await import('@/lib/market-copy-db')
+      const draft = await withTimeout(
+        fetchMarketCopyDraft(),
+        6_000,
+        'fetchMarketCopyDraft'
+      )
+      return draft.heroBackgroundHoldSeconds
+    } catch (error) {
+      console.error(
+        '[market] localhost hero background hold unavailable, using published value',
+        error instanceof Error ? error.message : error
+      )
+    }
+  }
+  return pickHeroBackgroundHoldSeconds(PUBLISHED_MARKET_COPY)
 }
 
 /** Published copy for the current request market. */

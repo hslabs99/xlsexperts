@@ -42,7 +42,12 @@ export async function getHomeCaseStudies(): Promise<HomeCaseStudiesContent> {
         'fetchHomeCaseStudiesDraft'
       )
       if (draft.items.length > 0) {
-        return { items: draft.items, hasMore: draft.hasMore }
+        return {
+          items: draft.items,
+          hasMore: draft.hasMore,
+          initialCount: draft.initialCount,
+          morePageSize: draft.morePageSize,
+        }
       }
     } catch (error) {
       console.error(

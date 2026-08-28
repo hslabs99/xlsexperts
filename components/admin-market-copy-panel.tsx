@@ -3,10 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CONTACT_DETAIL_FIELDS,
+  DEFAULT_HERO_BACKGROUND_HOLD_SECONDS,
   HERO_BADGE_DEFS,
+  HERO_BACKGROUND_HOLD_SECONDS_MAX,
+  HERO_BACKGROUND_HOLD_SECONDS_MIN,
   MARKET_COPY_FIELDS,
   defaultMarketCopyBundle,
   getByPath,
+  normalizeHeroBackgroundHoldSeconds,
   setByPath,
   type MarketCopyBundle,
 } from '@/lib/market-copy'
@@ -25,6 +29,9 @@ export function AdminMarketCopyPanel() {
   const [message, setMessage] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState<string>('all')
+  const [heroHoldSeconds, setHeroHoldSeconds] = useState(
+    DEFAULT_HERO_BACKGROUND_HOLD_SECONDS,
+  )
 
   const groups = useMemo(() => {
     const set = new Set(MARKET_COPY_FIELDS.map((f) => f.group))
@@ -39,6 +46,7 @@ export function AdminMarketCopyPanel() {
       const data = (await res.json()) as {
         ok?: boolean
         markets?: MarketCopyBundle
+        heroBackgroundHoldSeconds?: unknown
         publishedAt?: string | null
         updatedAt?: string | null
         error?: string
@@ -47,6 +55,9 @@ export function AdminMarketCopyPanel() {
         throw new Error(data.error || 'Failed to load market copy')
       }
       setMarkets(data.markets)
+      setHeroHoldSeconds(
+        normalizeHeroBackgroundHoldSeconds(data.heroBackgroundHoldSeconds),
+      )
       setPublishedAt(data.publishedAt ?? null)
       setUpdatedAt(data.updatedAt ?? null)
     } catch (err) {
@@ -108,11 +119,16 @@ export function AdminMarketCopyPanel() {
       const res = await fetch('/api/admin/market-copy', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'save', markets }),
+        body: JSON.stringify({
+          action: 'save',
+          markets,
+          heroBackgroundHoldSeconds: heroHoldSeconds,
+        }),
       })
       const data = (await res.json()) as {
         ok?: boolean
         markets?: MarketCopyBundle
+        heroBackgroundHoldSeconds?: unknown
         message?: string
         error?: string
       }
@@ -120,6 +136,11 @@ export function AdminMarketCopyPanel() {
         throw new Error(data.error || 'Save failed')
       }
       setMarkets(data.markets)
+      if (data.heroBackgroundHoldSeconds !== undefined) {
+        setHeroHoldSeconds(
+          normalizeHeroBackgroundHoldSeconds(data.heroBackgroundHoldSeconds),
+        )
+      }
       setMessage(
         data.message ||
           'Draft saved. Click Publish to update the static file used by the public site.'
@@ -140,11 +161,16 @@ export function AdminMarketCopyPanel() {
       const res = await fetch('/api/admin/market-copy', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'publish', markets }),
+        body: JSON.stringify({
+          action: 'publish',
+          markets,
+          heroBackgroundHoldSeconds: heroHoldSeconds,
+        }),
       })
       const data = (await res.json()) as {
         ok?: boolean
         markets?: MarketCopyBundle
+        heroBackgroundHoldSeconds?: unknown
         publishedAt?: string
         filePath?: string
         message?: string
@@ -154,6 +180,11 @@ export function AdminMarketCopyPanel() {
         throw new Error(data.error || 'Publish failed')
       }
       setMarkets(data.markets)
+      if (data.heroBackgroundHoldSeconds !== undefined) {
+        setHeroHoldSeconds(
+          normalizeHeroBackgroundHoldSeconds(data.heroBackgroundHoldSeconds),
+        )
+      }
       setPublishedAt(data.publishedAt ?? null)
       setMessage(
         data.message ||
@@ -235,6 +266,38 @@ export function AdminMarketCopyPanel() {
           {error || message}
         </div>
       )}
+
+      <div className="rounded-md border border-border bg-white p-4">
+        <h3 className="text-sm font-semibold text-ink">
+          Homepage hero background
+        </h3>
+        <p className="mt-1 text-xs text-ink-muted">
+          How long each rotating industry image stays on screen before the next
+          one. Same setting for NZ, International, and UK. Save draft, then
+          Publish.
+        </p>
+        <label className="mt-3 flex max-w-xs flex-col gap-1.5 text-sm">
+          <span className="font-medium text-ink">Seconds per image</span>
+          <input
+            type="number"
+            min={HERO_BACKGROUND_HOLD_SECONDS_MIN}
+            max={HERO_BACKGROUND_HOLD_SECONDS_MAX}
+            step={1}
+            value={heroHoldSeconds}
+            disabled={busy}
+            onChange={(event) =>
+              setHeroHoldSeconds(
+                normalizeHeroBackgroundHoldSeconds(event.target.value),
+              )
+            }
+            className="rounded-md border border-border bg-white px-3 py-2 text-sm text-ink"
+          />
+          <span className="text-[11px] text-ink-muted">
+            {HERO_BACKGROUND_HOLD_SECONDS_MIN}–{HERO_BACKGROUND_HOLD_SECONDS_MAX}{' '}
+            seconds (current default {DEFAULT_HERO_BACKGROUND_HOLD_SECONDS}).
+          </span>
+        </label>
+      </div>
 
       <div className="rounded-md border border-border bg-white p-4">
         <h3 className="text-base font-semibold text-ink">

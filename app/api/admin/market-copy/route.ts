@@ -45,10 +45,15 @@ export async function PUT(request: Request) {
   try {
     const body = (await request.json()) as {
       markets?: MarketCopyBundle
+      heroBackgroundHoldSeconds?: unknown
       action?: 'save' | 'publish'
     }
 
     const action = body.action === 'publish' ? 'publish' : 'save'
+    const extras =
+      body.heroBackgroundHoldSeconds !== undefined
+        ? { heroBackgroundHoldSeconds: body.heroBackgroundHoldSeconds }
+        : undefined
 
     if (action === 'publish') {
       const markets =
@@ -56,13 +61,14 @@ export async function PUT(request: Request) {
           ? marketsWithLockedOrigins(normalizeMarketCopyBundle(body.markets))
           : undefined
       const result = await withTimeout(
-        publishMarketCopy(markets),
+        publishMarketCopy(markets, extras),
         15_000,
         'publishMarketCopy'
       )
       return NextResponse.json({
         ok: true,
         markets: result.markets,
+        heroBackgroundHoldSeconds: result.heroBackgroundHoldSeconds,
         publishedAt: result.publishedAt,
         filePath: result.filePath,
         message:
@@ -77,16 +83,18 @@ export async function PUT(request: Request) {
       )
     }
 
-    const markets = await withTimeout(
+    const saved = await withTimeout(
       saveMarketCopyDraft(
-        marketsWithLockedOrigins(normalizeMarketCopyBundle(body.markets))
+        marketsWithLockedOrigins(normalizeMarketCopyBundle(body.markets)),
+        extras
       ),
       8_000,
       'saveMarketCopyDraft'
     )
     return NextResponse.json({
       ok: true,
-      markets,
+      markets: saved.markets,
+      heroBackgroundHoldSeconds: saved.heroBackgroundHoldSeconds,
       message:
         'Draft saved to Firebase (Site Content / market-copy). Click Publish to update the static file used by the public site.',
     })

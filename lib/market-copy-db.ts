@@ -11,7 +11,10 @@ import {
 import {
   applySiteOrigins,
   defaultMarketCopyBundle,
+  DEFAULT_HERO_BACKGROUND_HOLD_SECONDS,
+  normalizeHeroBackgroundHoldSeconds,
   normalizeMarketCopyBundle,
+  pickHeroBackgroundHoldSeconds,
   type MarketCopyBundle,
   type PublishedMarketCopyFile,
 } from '@/lib/market-copy'
@@ -28,6 +31,7 @@ const GENERATED_RELATIVE = path.join('data', 'market-copy.generated.ts')
  */
 export async function fetchMarketCopyDraft(): Promise<{
   markets: MarketCopyBundle
+  heroBackgroundHoldSeconds: number
   publishedAt: string | null
   updatedAt: string | null
 }> {
@@ -39,6 +43,7 @@ export async function fetchMarketCopyDraft(): Promise<{
   if (!snap.exists) {
     return {
       markets: defaultMarketCopyBundle(),
+      heroBackgroundHoldSeconds: DEFAULT_HERO_BACKGROUND_HOLD_SECONDS,
       publishedAt: null,
       updatedAt: null,
     }
@@ -60,25 +65,40 @@ export async function fetchMarketCopyDraft(): Promise<{
     updatedAt = rawUpdated
   }
 
-  return { markets, publishedAt, updatedAt }
+  return {
+    markets,
+    heroBackgroundHoldSeconds: pickHeroBackgroundHoldSeconds(data),
+    publishedAt,
+    updatedAt,
+  }
 }
 
 /** Save draft market copy to Firestore (does not publish the static file). */
 export async function saveMarketCopyDraft(
+  markets: MarketCopyBundle,
+  extras?: { heroBackgroundHoldSeconds?: unknown }
+): Promise<{
   markets: MarketCopyBundle
-): Promise<MarketCopyBundle> {
+  heroBackgroundHoldSeconds: number
+}> {
   const normalized = normalizeMarketCopyBundle(markets)
+  const existing = await fetchMarketCopyDraft()
+  const heroBackgroundHoldSeconds =
+    extras && 'heroBackgroundHoldSeconds' in extras
+      ? normalizeHeroBackgroundHoldSeconds(extras.heroBackgroundHoldSeconds)
+      : existing.heroBackgroundHoldSeconds
   await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
     .doc(MARKET_COPY_DOC_ID)
     .set(
       {
         markets: normalized,
+        heroBackgroundHoldSeconds,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     )
-  return normalized
+  return { markets: normalized, heroBackgroundHoldSeconds }
 }
 
 function serializeGeneratedFile(payload: PublishedMarketCopyFile): string {
@@ -106,18 +126,28 @@ export default published
  * Public pages import this file — never query Firestore for market strings.
  */
 export async function publishMarketCopy(
-  markets?: MarketCopyBundle
-): Promise<{ markets: MarketCopyBundle; publishedAt: string; filePath: string }> {
+  markets?: MarketCopyBundle,
+  extras?: { heroBackgroundHoldSeconds?: unknown }
+): Promise<{
+  markets: MarketCopyBundle
+  heroBackgroundHoldSeconds: number
+  publishedAt: string
+  filePath: string
+}> {
+  const draft = await fetchMarketCopyDraft()
   const bundle =
-    markets != null
-      ? normalizeMarketCopyBundle(markets)
-      : (await fetchMarketCopyDraft()).markets
+    markets != null ? normalizeMarketCopyBundle(markets) : draft.markets
+  const heroBackgroundHoldSeconds =
+    extras && 'heroBackgroundHoldSeconds' in extras
+      ? normalizeHeroBackgroundHoldSeconds(extras.heroBackgroundHoldSeconds)
+      : draft.heroBackgroundHoldSeconds
 
   const publishedAt = new Date().toISOString()
   const payload: PublishedMarketCopyFile = {
     version: 1,
     publishedAt,
     markets: bundle,
+    heroBackgroundHoldSeconds,
   }
 
   await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
@@ -128,13 +158,19 @@ export async function publishMarketCopy(
     .set(
       {
         markets: bundle,
+        heroBackgroundHoldSeconds,
         publishedAt,
         updatedAt: publishedAt,
       },
       { merge: true }
     )
 
-  return { markets: bundle, publishedAt, filePath: GENERATED_RELATIVE }
+  return {
+    markets: bundle,
+    heroBackgroundHoldSeconds,
+    publishedAt,
+    filePath: GENERATED_RELATIVE,
+  }
 }
 
 /**
@@ -154,11 +190,15 @@ export async function patchPublishedSiteOrigins(origins: {
     published?.markets ?? draft.markets,
     origins
   )
+  const heroBackgroundHoldSeconds = pickHeroBackgroundHoldSeconds(
+    published ?? { heroBackgroundHoldSeconds: draft.heroBackgroundHoldSeconds }
+  )
   const payload: PublishedMarketCopyFile = {
     version: 1,
     publishedAt:
       published?.publishedAt ?? draft.publishedAt ?? new Date().toISOString(),
     markets,
+    heroBackgroundHoldSeconds,
   }
   await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
 }

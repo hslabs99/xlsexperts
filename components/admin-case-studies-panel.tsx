@@ -12,11 +12,20 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Loader2,
 } from 'lucide-react'
 import {
+  HOME_CASE_STUDIES_INITIAL_COUNTS,
   HOME_CASE_STUDIES_LIMIT,
+  HOME_CASE_STUDIES_MAX,
+  HOME_CASE_STUDIES_MORE_PAGE_SIZES,
+  MORE_CASE_STUDIES_PAGE_SIZE,
+  normalizeHomeInitialCount,
+  normalizeMorePageSize,
   selectHomeCaseStudies,
   type CaseStudyRecord,
+  type HomeCaseStudiesInitialCount,
+  type HomeCaseStudiesMorePageSize,
 } from '@/lib/case-studies-shared'
 import { prepareCaseStudyImageUpload } from '@/lib/case-studies-storage'
 import { AdminDialog } from '@/components/admin-dialog'
@@ -48,6 +57,42 @@ function SortIcon({
     <ArrowUp className="h-3.5 w-3.5 text-brand" />
   ) : (
     <ArrowDown className="h-3.5 w-3.5 text-brand" />
+  )
+}
+
+function SavingCheck({
+  checked,
+  disabled,
+  saving,
+  label,
+  title,
+  onChange,
+}: {
+  checked: boolean
+  disabled?: boolean
+  saving: boolean
+  label: string
+  title: string
+  onChange: () => void
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled || saving}
+        onChange={onChange}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={label}
+        title={title}
+      />
+      {saving ? (
+        <Loader2
+          className="h-3.5 w-3.5 animate-spin text-brand"
+          aria-label="Saving"
+        />
+      ) : null}
+    </span>
   )
 }
 
@@ -115,6 +160,11 @@ export function AdminCaseStudiesPanel() {
     showOnHome: boolean
     homeOrder: number
   } | null>(null)
+  const [initialCount, setInitialCount] =
+    useState<HomeCaseStudiesInitialCount>(HOME_CASE_STUDIES_LIMIT)
+  const [morePageSize, setMorePageSize] =
+    useState<HomeCaseStudiesMorePageSize>(MORE_CASE_STUDIES_PAGE_SIZE)
+  const [savingHome, setSavingHome] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -130,6 +180,17 @@ export function AdminCaseStudiesPanel() {
         throw new Error(data.error || 'Failed to load case studies')
       }
       setRows(data.items)
+
+      const homeRes = await fetch('/api/admin/case-studies-home')
+      const homeData = (await homeRes.json()) as {
+        ok?: boolean
+        initialCount?: unknown
+        morePageSize?: unknown
+      }
+      if (homeRes.ok && homeData.ok) {
+        setInitialCount(normalizeHomeInitialCount(homeData.initialCount))
+        setMorePageSize(normalizeMorePageSize(homeData.morePageSize))
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load case studies'
@@ -217,7 +278,17 @@ export function AdminCaseStudiesPanel() {
     filteredSorted.length > 0 &&
     filteredSorted.every((r) => selected.has(r.slug))
 
-  const homePreview = useMemo(() => selectHomeCaseStudies(rows), [rows])
+  const homePreview = useMemo(
+    () => selectHomeCaseStudies(rows, initialCount),
+    [rows, initialCount],
+  )
+  const homeMarked = useMemo(
+    () =>
+      [...rows]
+        .filter((r) => r.published && r.showOnHome)
+        .sort((a, b) => a.homeOrder - b.homeOrder || a.sortOrder - b.sortOrder),
+    [rows],
+  )
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -248,6 +319,81 @@ export function AdminCaseStudiesPanel() {
   function toggleSelectAllFiltered() {
     if (allFilteredSelected) clearSelection()
     else selectAllFiltered()
+  }
+
+  async function toggleShowOnHome(row: CaseStudyRecord) {
+    const nextOn = !row.showOnHome
+    const othersOn = rows.filter(
+      (r) => r.showOnHome && r.slug !== row.slug,
+    ).length
+    if (nextOn && othersOn >= HOME_CASE_STUDIES_MAX) {
+      setError(
+        `Homepage already has ${HOME_CASE_STUDIES_MAX} studies. Turn one off before adding another.`,
+      )
+      return
+    }
+
+    const previous = { showOnHome: row.showOnHome, homeOrder: row.homeOrder }
+    const homeOrder = nextOn
+      ? typeof row.homeOrder === 'number' && row.homeOrder < 9000
+        ? row.homeOrder
+        : othersOn
+      : 9999
+
+    setError(null)
+    setMessage(null)
+    setSavingHome((prev) => {
+      const next = new Set(prev)
+      next.add(row.slug)
+      return next
+    })
+    setRows((prev) =>
+      prev.map((r) =>
+        r.slug === row.slug ? { ...r, showOnHome: nextOn, homeOrder } : r,
+      ),
+    )
+
+    try {
+      const res = await fetch('/api/admin/case-studies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: row.slug,
+          showOnHome: nextOn,
+          homeOrder,
+        }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Could not update homepage flag')
+      }
+      setMessage(
+        nextOn
+          ? `“${row.client || row.title}” added to the homepage set.`
+          : `“${row.client || row.title}” removed from the homepage set.`,
+      )
+    } catch (err) {
+      setRows((prev) =>
+        prev.map((r) =>
+          r.slug === row.slug
+            ? {
+                ...r,
+                showOnHome: previous.showOnHome,
+                homeOrder: previous.homeOrder,
+              }
+            : r,
+        ),
+      )
+      setError(
+        err instanceof Error ? err.message : 'Could not update homepage flag',
+      )
+    } finally {
+      setSavingHome((prev) => {
+        const next = new Set(prev)
+        next.delete(row.slug)
+        return next
+      })
+    }
   }
 
   async function setPublishedForSlugs(slugs: string[], published: boolean) {
@@ -517,9 +663,9 @@ export function AdminCaseStudiesPanel() {
       const homeAlready = rows.filter(
         (r) => r.showOnHome && r.slug !== slug
       ).length
-      if (homeOn && homeAlready >= HOME_CASE_STUDIES_LIMIT) {
+      if (homeOn && homeAlready >= HOME_CASE_STUDIES_MAX) {
         throw new Error(
-          `Homepage already has ${HOME_CASE_STUDIES_LIMIT} studies. Turn one off before adding another, or raise homeOrder after publishing.`
+          `Homepage already has ${HOME_CASE_STUDIES_MAX} studies. Turn one off before adding another.`,
         )
       }
 
@@ -621,6 +767,48 @@ export function AdminCaseStudiesPanel() {
     }
   }
 
+  async function saveHomeDisplay(next: {
+    initialCount?: HomeCaseStudiesInitialCount
+    morePageSize?: HomeCaseStudiesMorePageSize
+  }) {
+    const payload = {
+      initialCount: next.initialCount ?? initialCount,
+      morePageSize: next.morePageSize ?? morePageSize,
+    }
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/case-studies-home', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        initialCount?: unknown
+        morePageSize?: unknown
+        message?: string
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to save homepage display')
+      }
+      setInitialCount(normalizeHomeInitialCount(data.initialCount))
+      setMorePageSize(normalizeMorePageSize(data.morePageSize))
+      setMessage(
+        data.message ||
+          'Homepage display saved. Publish homepage so production uses the new counts.',
+      )
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to save homepage display',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handlePublishHome() {
     setBusy(true)
     setError(null)
@@ -644,8 +832,9 @@ export function AdminCaseStudiesPanel() {
       const count = data.items?.length ?? 0
       setMessage(
         data.message ||
-          `Published ${count} homepage card${count === 1 ? '' : 's'} to ${data.filePath ?? 'data/case-studies-home.generated.ts'}. Commit and deploy for production.`
+          `Published ${count} homepage card${count === 1 ? '' : 's'} to ${data.filePath ?? 'data/case-studies-home.generated.ts'}. Commit and deploy for production.`,
       )
+      await load()
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to publish homepage snapshot'
@@ -789,16 +978,82 @@ export function AdminCaseStudiesPanel() {
 
         <div className="mt-5 rounded-md border border-border bg-surface-raised p-4">
           <h3 className="text-sm font-semibold text-ink">
-            Homepage set ({homePreview.length}/{HOME_CASE_STUDIES_LIMIT})
+            Homepage set ({homePreview.length}/{initialCount} first paint)
           </h3>
           <p className="mt-1 text-xs text-ink-muted">
-            Tick <strong>Show on home</strong> on up to four published studies,
-            set home order, then click <strong>Publish homepage</strong>.
+            Tick <strong>Show on home</strong> on up to {HOME_CASE_STUDIES_MAX}{' '}
+            published studies and set home order. First paint shows the count
+            below; remaining published studies load when visitors click{' '}
+            <strong>Show more</strong>. Then click{' '}
+            <strong>Publish homepage</strong>.
           </p>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <fieldset>
+              <legend className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Default preload
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {HOME_CASE_STUDIES_INITIAL_COUNTS.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setInitialCount(count)
+                      void saveHomeDisplay({ initialCount: count })
+                    }}
+                    className={`rounded-md border px-3 py-1.5 text-xs font-semibold ${
+                      initialCount === count
+                        ? 'border-brand bg-brand-light text-brand-dark'
+                        : 'border-border bg-white text-ink hover:bg-white/80'
+                    }`}
+                  >
+                    {count} studies
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Show more batch
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {HOME_CASE_STUDIES_MORE_PAGE_SIZES.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setMorePageSize(count)
+                      void saveHomeDisplay({ morePageSize: count })
+                    }}
+                    className={`rounded-md border px-3 py-1.5 text-xs font-semibold ${
+                      morePageSize === count
+                        ? 'border-brand bg-brand-light text-brand-dark'
+                        : 'border-border bg-white text-ink hover:bg-white/80'
+                    }`}
+                  >
+                    {count} more
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+
+          {homeMarked.length < initialCount ? (
+            <p className="mt-3 text-xs text-amber-800">
+              Only {homeMarked.length} published{' '}
+              {homeMarked.length === 1 ? 'study is' : 'studies are'} marked for
+              home, so first paint will show {homeMarked.length} of {initialCount}.
+              Mark more as Show on home if you want a fuller preload.
+            </p>
+          ) : null}
+
           {homePreview.length === 0 ? (
             <p className="mt-2 text-sm text-ink-muted">None selected yet.</p>
           ) : (
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink">
+            <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-ink">
               {homePreview.map((cs) => (
                 <li key={cs.slug}>
                   <span className="font-medium">{cs.client}</span> — {cs.title}
@@ -806,6 +1061,12 @@ export function AdminCaseStudiesPanel() {
               ))}
             </ol>
           )}
+          {homeMarked.length > homePreview.length ? (
+            <p className="mt-2 text-xs text-ink-muted">
+              {homeMarked.length - homePreview.length} more marked for home will
+              appear after Show more.
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -1013,17 +1274,31 @@ export function AdminCaseStudiesPanel() {
                           >
                             {row.sector}
                           </td>
-                          <td
-                            className="cursor-pointer py-2.5 pr-3"
-                            onClick={() => startEdit(row)}
-                          >
-                            {row.showOnHome ? (
-                              <span className="font-semibold text-brand-dark">
-                                Yes ({row.homeOrder})
-                              </span>
-                            ) : (
-                              '—'
-                            )}
+                          <td className="py-2.5 pr-3">
+                            <label
+                              className="inline-flex cursor-pointer items-center gap-1.5"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <SavingCheck
+                                checked={row.showOnHome}
+                                disabled={busy}
+                                saving={savingHome.has(row.slug)}
+                                label={`Show ${row.title || row.client} on homepage`}
+                                title={
+                                  row.showOnHome
+                                    ? 'Remove from homepage set'
+                                    : 'Add to homepage set'
+                                }
+                                onChange={() => void toggleShowOnHome(row)}
+                              />
+                              {row.showOnHome ? (
+                                <span className="text-xs font-semibold text-brand-dark">
+                                  #{row.homeOrder}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-ink-muted">Off</span>
+                              )}
+                            </label>
                           </td>
                           <td
                             className="cursor-pointer py-2.5 pr-3 text-ink-muted"
@@ -1433,15 +1708,17 @@ export function AdminCaseStudiesPanel() {
                   }))
                 }
               />
-              Show on home (max {HOME_CASE_STUDIES_LIMIT})
+              Show on home (max {HOME_CASE_STUDIES_MAX})
             </label>
             {form.showOnHome && (
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-ink">Home order (0–3)</span>
+                <span className="font-medium text-ink">
+                  Home order (0–{HOME_CASE_STUDIES_MAX - 1})
+                </span>
                 <input
                   type="number"
                   min={0}
-                  max={HOME_CASE_STUDIES_LIMIT - 1}
+                  max={HOME_CASE_STUDIES_MAX - 1}
                   value={form.homeOrder >= 9000 ? 0 : form.homeOrder}
                   onChange={(e) =>
                     setForm((p) => ({

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { DEFAULT_HERO_BACKGROUND_HOLD_SECONDS } from '@/lib/market-copy'
 
 const scenes = [
   { src: '/images/hero/construction.png', alt: '' },
@@ -13,15 +14,20 @@ const scenes = [
   { src: '/images/hero/logistics.png', alt: '' },
 ]
 
-export function HeroBackground() {
+export function HeroBackground({
+  holdSeconds = DEFAULT_HERO_BACKGROUND_HOLD_SECONDS,
+}: {
+  holdSeconds?: number
+}) {
   const [active, setActive] = useState(0)
+  const holdMs = Math.max(1, holdSeconds) * 1000
 
   useEffect(() => {
     const id = setInterval(() => {
       setActive((prev) => (prev + 1) % scenes.length)
-    }, 6000)
+    }, holdMs)
     return () => clearInterval(id)
-  }, [])
+  }, [holdMs])
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">

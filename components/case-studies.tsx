@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import type { CaseStudy } from '@/lib/types'
+import { MORE_CASE_STUDIES_PAGE_SIZE } from '@/lib/case-studies-shared'
 import { useMarketCopy } from '@/components/market-provider'
 
 const overlays = [
@@ -115,15 +116,18 @@ function CaseStudyCard({
 }
 
 type CaseStudiesProps = {
-  /** First four (or fewer) from the published homepage snapshot — SSR, no client wait */
+  /** First paint from the published homepage snapshot — SSR, no client wait */
   initialItems: CaseStudy[]
   /** False when we already know there is nothing beyond the snapshot */
   initialHasMore?: boolean
+  /** How many extra cards each Show more click loads */
+  morePageSize?: number
 }
 
 export function CaseStudies({
   initialItems,
   initialHasMore = true,
+  morePageSize = MORE_CASE_STUDIES_PAGE_SIZE,
 }: CaseStudiesProps) {
   const copy = useMarketCopy()
   const [items, setItems] = useState(initialItems)
@@ -142,7 +146,7 @@ export function CaseStudies({
       try {
         const params = new URLSearchParams({
           exclude: visibleSlugs.join(','),
-          limit: '4',
+          limit: String(morePageSize),
         })
         const res = await fetch(`/api/case-studies/more?${params.toString()}`)
         const data = (await res.json()) as {

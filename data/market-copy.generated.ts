@@ -2,7 +2,7 @@
  * PUBLISHED market copy — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → International, then click Publish to regenerate this file.
  *
- * Generated at 2026-08-27T03:14:29.299Z
+ * Generated at 2026-08-28T04:59:27.755Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedMarketCopyFile } from '@/lib/market-copy'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-27T03:14:29.299Z",
+  "publishedAt": "2026-08-28T04:59:27.755Z",
   "markets": {
     "nz": {
       "site": {
@@ -198,7 +198,8 @@ const published = {
         "homeIntro": "Real problems, real solutions. A sample of what we have built for businesses just like yours"
       }
     }
-  }
+  },
+  "heroBackgroundHoldSeconds": 3
 } as PublishedMarketCopyFile
 
 export const PUBLISHED_MARKET_COPY = published

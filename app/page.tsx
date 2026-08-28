@@ -6,7 +6,7 @@ import { HowWeWork } from '@/components/how-we-work'
 import { CaseStudiesSection } from '@/components/case-studies-section'
 import { About } from '@/components/about'
 import { Contact } from '@/components/contact'
-import { getMarketCopy } from '@/lib/market-server'
+import { getMarketCopy, getHeroBackgroundHoldSeconds } from '@/lib/market-server'
 import { getHeroTrustContent } from '@/lib/hero-trust-server'
 import { SITE_ICONS } from '@/lib/site-icons'
 
@@ -35,7 +35,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   const copy = await getMarketCopy()
-  const heroTrust = await getHeroTrustContent()
+  const [heroTrust, backgroundHoldSeconds] = await Promise.all([
+    getHeroTrustContent(),
+    getHeroBackgroundHoldSeconds(),
+  ])
 
   const localBusinessSchema = {
     '@context': 'https://schema.org',
@@ -125,7 +128,7 @@ export default async function Page() {
       />
       <main>
         <Navbar />
-        <Hero trust={heroTrust} />
+        <Hero trust={heroTrust} backgroundHoldSeconds={backgroundHoldSeconds} />
         <Services />
         <HowWeWork />
         <CaseStudiesSection />

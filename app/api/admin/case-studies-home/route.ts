@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import {
   fetchHomeCaseStudiesDraft,
   publishHomeCaseStudiesSnapshot,
+  saveHomeCaseStudiesDisplay,
 } from '@/lib/case-studies-home-db'
 import { withTimeout } from '@/lib/with-timeout'
 
@@ -20,6 +21,37 @@ export async function GET() {
         error: error instanceof Error ? error.message : 'Failed to load',
       },
       { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = (await request.json().catch(() => ({}))) as {
+      initialCount?: unknown
+      morePageSize?: unknown
+    }
+    const draft = await withTimeout(
+      saveHomeCaseStudiesDisplay(body),
+      12_000,
+      'saveHomeCaseStudiesDisplay',
+    )
+    return NextResponse.json({
+      ok: true,
+      ...draft,
+      message:
+        'Homepage display saved. Publish homepage (or CMS → Publish) so production picks up the new counts.',
+    })
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to save homepage display',
+      },
+      { status: 500 },
     )
   }
 }

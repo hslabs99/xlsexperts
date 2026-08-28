@@ -227,6 +227,21 @@ export function AdminCaseStudiesPreviewShell({
           ? items.find((r) => r.slug === slug) ?? null
           : null
 
+        let homeLimit = 4
+        try {
+          const homeRes = await fetch('/api/admin/case-studies-home')
+          const homeData = (await homeRes.json()) as {
+            ok?: boolean
+            initialCount?: unknown
+          }
+          if (homeRes.ok && homeData.ok) {
+            const n = Number(homeData.initialCount)
+            if (n === 4 || n === 6 || n === 8) homeLimit = n
+          }
+        } catch {
+          // Keep the default first-paint count.
+        }
+
         const home = items
           .filter((r) => r.published && r.showOnHome)
           .sort(
@@ -234,7 +249,7 @@ export function AdminCaseStudiesPreviewShell({
               (a.homeOrder ?? 9999) - (b.homeOrder ?? 9999) ||
               (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999)
           )
-          .slice(0, 4)
+          .slice(0, homeLimit)
           .map((r) => ({
             slug: r.slug,
             client: r.client,

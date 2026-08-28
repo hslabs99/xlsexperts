@@ -415,10 +415,36 @@ export type MarketCopyBundle = {
   uk: MarketCopy
 }
 
+/** Seconds each homepage hero background image stays before the next. */
+export const DEFAULT_HERO_BACKGROUND_HOLD_SECONDS = 6
+export const HERO_BACKGROUND_HOLD_SECONDS_MIN = 2
+export const HERO_BACKGROUND_HOLD_SECONDS_MAX = 20
+
+export function normalizeHeroBackgroundHoldSeconds(raw: unknown): number {
+  const n = typeof raw === 'number' ? raw : Number(raw)
+  if (!Number.isFinite(n)) return DEFAULT_HERO_BACKGROUND_HOLD_SECONDS
+  return Math.min(
+    HERO_BACKGROUND_HOLD_SECONDS_MAX,
+    Math.max(HERO_BACKGROUND_HOLD_SECONDS_MIN, Math.round(n)),
+  )
+}
+
+export function pickHeroBackgroundHoldSeconds(raw: unknown): number {
+  const source =
+    raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const nested =
+    source.content && typeof source.content === 'object'
+      ? (source.content as Record<string, unknown>)
+      : source
+  return normalizeHeroBackgroundHoldSeconds(nested.heroBackgroundHoldSeconds)
+}
+
 export type PublishedMarketCopyFile = {
   version: 1
   publishedAt: string
   markets: MarketCopyBundle
+  /** Global homepage setting — not per market. */
+  heroBackgroundHoldSeconds?: number
 }
 
 export function defaultMarketCopyBundle(): MarketCopyBundle {
