@@ -2,8 +2,10 @@ import 'server-only'
 
 import {
   DEFAULT_STANDARD_TEMPLATE,
+  DEFAULT_WHITEPAPER_TEMPLATE,
   defaultRecipientsForKind,
   escapeHtml,
+  hasEmailAttachment,
   renderEmailTemplate,
   type EmailTemplate,
   type EmailTemplateKind,
@@ -12,8 +14,13 @@ import {
   type RecipientParty,
 } from '@/lib/email-templates'
 import { getDiscoveryClientPresentationTemplate } from '@/lib/email-presentation-templates'
-import { fetchActiveEmailTemplate } from '@/lib/email-templates-db'
+import {
+  fetchActiveEmailTemplate,
+  fetchEmailTemplateById,
+} from '@/lib/email-templates-db'
 import { sendEmail } from '@/lib/email/sendgrid'
+import type { SendEmailAttachment } from '@/lib/email/types'
+import { downloadStorageObject } from '@/lib/storage-admin'
 import { withTimeout } from '@/lib/with-timeout'
 import type { BookingPayload, ContactPayload } from '@/lib/types'
 import { BOOKING_TIMEZONE, formatDayLabel } from '@/lib/booking-slots'
@@ -96,6 +103,8 @@ export function buildStandardMergeContext(
     day: '',
     date: '',
     time: '',
+    downloadUrl: '',
+    downloadLabel: '',
   }
 }
 
@@ -149,6 +158,45 @@ export function buildDiscoveryMergeContext(
   }
 }
 
+export function buildWhitepaperMergeContext(input: {
+  name: string
+  email: string
+  company: string
+  downloadUrl: string
+  downloadLabel?: string
+  about?: string
+  solution?: string
+}): EnquiryMergeContext {
+  const from =
+    process.env.SENDGRID_FROM_NAME?.trim() ||
+    process.env.SENDGRID_FROM_EMAIL?.trim() ||
+    'XLS Experts'
+
+  return {
+    from,
+    name: input.name.trim(),
+    email: input.email.trim(),
+    phone: 'Not provided',
+    company: input.company.trim(),
+    about:
+      input.about?.trim() ||
+      'Requested The Ten Pillars of Effective Costing & Quoting.',
+    hear: 'Not provided',
+    concernsPlain: 'None selected',
+    concernsHtml: concernsHtml([]),
+    service: 'Not selected',
+    solution: input.solution?.trim() || 'Quoting & Estimating Systems',
+    enquiryType: 'White paper',
+    when: '',
+    method: '',
+    day: '',
+    date: '',
+    time: '',
+    downloadUrl: input.downloadUrl.trim(),
+    downloadLabel: input.downloadLabel?.trim() || '',
+  }
+}
+
 async function fallbackTemplate(kind: EmailTemplateKind): Promise<
   Pick<
     EmailTemplate,
@@ -160,12 +208,24 @@ async function fallbackTemplate(kind: EmailTemplateKind): Promise<
     | 'recipients'
     | 'bodyFontFamily'
     | 'bodyFontSize'
+    | 'attachmentFilename'
+    | 'attachmentStoragePath'
+    | 'attachmentUrl'
+    | 'attachmentContentType'
   >
 > {
   if (kind === 'discovery') {
-    return getDiscoveryClientPresentationTemplate()
+    const discovery = await getDiscoveryClientPresentationTemplate()
+    return {
+      ...discovery,
+      attachmentFilename: '',
+      attachmentStoragePath: '',
+      attachmentUrl: '',
+      attachmentContentType: '',
+    }
   }
-  const base = DEFAULT_STANDARD_TEMPLATE
+  const base =
+    kind === 'whitepaper' ? DEFAULT_WHITEPAPER_TEMPLATE : DEFAULT_STANDARD_TEMPLATE
   return {
     kind: base.kind,
     name: base.name,
@@ -175,6 +235,10 @@ async function fallbackTemplate(kind: EmailTemplateKind): Promise<
     recipients: base.recipients ?? defaultRecipientsForKind(kind),
     bodyFontFamily: base.bodyFontFamily ?? 'Verdana, Geneva, sans-serif',
     bodyFontSize: base.bodyFontSize ?? '10pt',
+    attachmentFilename: '',
+    attachmentStoragePath: '',
+    attachmentUrl: '',
+    attachmentContentType: '',
   }
 }
 
@@ -257,11 +321,22 @@ export async function loadEnquiryTemplate(
     | 'recipients'
     | 'bodyFontFamily'
     | 'bodyFontSize'
+    | 'attachmentFilename'
+    | 'attachmentStoragePath'
+    | 'attachmentUrl'
+    | 'attachmentContentType'
   >
 > {
   // Discovery confirmations are always the branded presentation email.
   if (kind === 'discovery') {
-    return getDiscoveryClientPresentationTemplate()
+    const discovery = await getDiscoveryClientPresentationTemplate()
+    return {
+      ...discovery,
+      attachmentFilename: '',
+      attachmentStoragePath: '',
+      attachmentUrl: '',
+      attachmentContentType: '',
+    }
   }
   const stored = await withTimeout(
     fetchActiveEmailTemplate(kind),
@@ -305,6 +380,8 @@ export async function sendEnquiryNotificationEmail(options: {
   ctx: EnquiryMergeContext
   category: string
   referenceId?: string
+  /** When set, use this template (and its current Storage PDF) instead of kind lookup. */
+  templateId?: string
 }): Promise<{ accepted: boolean; statusCode?: number; messageId?: string }> {
   const businessEmail = getBusinessEmail()
   const clientEmail = options.ctx.email?.trim()
@@ -315,13 +392,35 @@ export async function sendEnquiryNotificationEmail(options: {
     throw new Error('Client email is required to send enquiry mail')
   }
 
-  const template = await loadEnquiryTemplate(options.kind)
+  const byId = options.templateId
+    ? await fetchEmailTemplateById(options.templateId)
+    : null
+  const template = byId ?? (await loadEnquiryTemplate(options.kind))
   const rendered = renderEmailTemplate(template, options.ctx)
   const resolved = resolveTemplateRecipients(
     template.recipients,
     clientEmail,
     businessEmail
   )
+
+  let attachments: SendEmailAttachment[] | undefined
+  if (hasEmailAttachment(template)) {
+    const file = await withTimeout(
+      downloadStorageObject(template.attachmentStoragePath),
+      20_000,
+      'downloadStorageObject'
+    )
+    if (file) {
+      attachments = [
+        {
+          content: file.buffer.toString('base64'),
+          filename: template.attachmentFilename || 'white-paper.pdf',
+          type: template.attachmentContentType || file.contentType,
+          disposition: 'attachment',
+        },
+      ]
+    }
+  }
 
   return sendEmail({
     to: resolved.to,
@@ -333,5 +432,6 @@ export async function sendEnquiryNotificationEmail(options: {
     replyTo: resolved.replyTo,
     category: options.category,
     referenceId: options.referenceId,
+    attachments,
   })
 }

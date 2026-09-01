@@ -5,9 +5,11 @@ import { getAdminDb } from '@/lib/firebase-admin'
 import { EMAIL_TEMPLATES_COLLECTION } from '@/lib/firebase'
 import {
   DEFAULT_STANDARD_TEMPLATE,
+  DEFAULT_WHITEPAPER_TEMPLATE,
   DEFAULT_EMAIL_BODY_FONT_FAMILY,
   DEFAULT_EMAIL_BODY_FONT_SIZE,
   EMAIL_TEMPLATE_KINDS,
+  hasEmailAttachment,
   normalizeEmailFontSize,
   normalizeRecipients,
   type EmailTemplate,
@@ -36,6 +38,10 @@ function mapTemplate(id: string, data: Record<string, unknown>): EmailTemplate {
       String(data.bodyFontSize ?? DEFAULT_EMAIL_BODY_FONT_SIZE)
     ),
     active: data.active !== false,
+    attachmentFilename: String(data.attachmentFilename ?? ''),
+    attachmentStoragePath: String(data.attachmentStoragePath ?? ''),
+    attachmentUrl: String(data.attachmentUrl ?? ''),
+    attachmentContentType: String(data.attachmentContentType ?? ''),
     updatedAt: data.updatedAt ?? null,
     createdAt: data.createdAt ?? null,
   }
@@ -50,10 +56,9 @@ export async function fetchEmailTemplates(): Promise<EmailTemplate[]> {
     mapTemplate(d.id, d.data() as Record<string, unknown>)
   )
   templates.sort((a, b) => {
-    // Prefer standard first — that is what Admin edits; discovery rows are unused for bookings.
-    if (a.kind !== b.kind) {
-      return a.kind === 'standard' ? -1 : 1
-    }
+    const order = (kind: string) =>
+      kind === 'standard' ? 0 : kind === 'whitepaper' ? 1 : 2
+    if (a.kind !== b.kind) return order(a.kind) - order(b.kind)
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
   })
   return templates
@@ -71,7 +76,9 @@ export async function fetchEmailTemplateById(
 }
 
 /**
- * Active template for a kind. Prefers active docs; falls back to any of that kind.
+ * Active template for a kind. Prefers active docs; among those, prefers a
+ * template that currently has a file attachment (so white-paper sends the
+ * uploaded PDF, not an empty sibling template).
  */
 export async function fetchActiveEmailTemplate(
   kind: EmailTemplateKind
@@ -87,7 +94,17 @@ export async function fetchActiveEmailTemplate(
 
   const active = templates.filter((t) => t.active)
   const pool = active.length > 0 ? active : templates
-  return pool[0] ?? null
+  const withFile = pool.filter(hasEmailAttachment)
+  withFile.sort((a, b) => timestampMs(b.updatedAt) - timestampMs(a.updatedAt))
+  return withFile[0] ?? pool[0] ?? null
+}
+
+function timestampMs(value: unknown): number {
+  if (!value || typeof value !== 'object') return 0
+  const v = value as { toMillis?: () => number; seconds?: number }
+  if (typeof v.toMillis === 'function') return v.toMillis()
+  if (typeof v.seconds === 'number') return v.seconds * 1000
+  return 0
 }
 
 export async function createEmailTemplate(
@@ -109,6 +126,10 @@ export async function createEmailTemplate(
       input.bodyFontSize ?? DEFAULT_EMAIL_BODY_FONT_SIZE
     ),
     active: input.active !== false,
+    attachmentFilename: input.attachmentFilename?.trim() || '',
+    attachmentStoragePath: input.attachmentStoragePath?.trim() || '',
+    attachmentUrl: input.attachmentUrl?.trim() || '',
+    attachmentContentType: input.attachmentContentType?.trim() || '',
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   })
@@ -133,6 +154,14 @@ export async function updateEmailTemplate(
   if (input.bodyFontSize !== undefined)
     payload.bodyFontSize = normalizeEmailFontSize(input.bodyFontSize)
   if (input.active !== undefined) payload.active = input.active
+  if (input.attachmentFilename !== undefined)
+    payload.attachmentFilename = input.attachmentFilename.trim()
+  if (input.attachmentStoragePath !== undefined)
+    payload.attachmentStoragePath = input.attachmentStoragePath.trim()
+  if (input.attachmentUrl !== undefined)
+    payload.attachmentUrl = input.attachmentUrl.trim()
+  if (input.attachmentContentType !== undefined)
+    payload.attachmentContentType = input.attachmentContentType.trim()
 
   await getAdminDb().collection(EMAIL_TEMPLATES_COLLECTION).doc(id).update(payload)
 }
@@ -154,6 +183,7 @@ export async function seedDefaultEmailTemplates(): Promise<{
 
   const defaults = [
     DEFAULT_STANDARD_TEMPLATE,
+    DEFAULT_WHITEPAPER_TEMPLATE,
     await discoveryPresentationAsTemplateInput(),
   ]
   for (const def of defaults) {

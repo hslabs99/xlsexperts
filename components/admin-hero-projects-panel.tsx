@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ArrowDown, ArrowUp, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { heroProjectIcons } from '@/components/hero-project-icons'
 import {
+  DEFAULT_HERO_PROJECTS_INTRO,
   HERO_PROJECTS_MAX,
   HERO_PROJECT_ICON_KEYS,
   HERO_PROJECT_ICON_LABELS,
@@ -17,6 +18,7 @@ export function AdminHeroProjectsPanel() {
   const [projects, setProjects] = useState<HeroProjectTile[]>(
     defaultHeroProjects()
   )
+  const [intro, setIntro] = useState(DEFAULT_HERO_PROJECTS_INTRO)
   const [publishedAt, setPublishedAt] = useState<string | null>(null)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -33,6 +35,7 @@ export function AdminHeroProjectsPanel() {
       const data = (await res.json()) as {
         ok?: boolean
         projects?: HeroProjectTile[]
+        intro?: string
         publishedAt?: string | null
         updatedAt?: string | null
         error?: string
@@ -41,6 +44,9 @@ export function AdminHeroProjectsPanel() {
         throw new Error(data.error || 'Failed to load common projects')
       }
       setProjects(data.projects)
+      if (typeof data.intro === 'string') {
+        setIntro(data.intro)
+      }
       setPublishedAt(data.publishedAt ?? null)
       setUpdatedAt(data.updatedAt ?? null)
     } catch (err) {
@@ -96,11 +102,12 @@ export function AdminHeroProjectsPanel() {
       const res = await fetch('/api/admin/hero-projects', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, projects }),
+        body: JSON.stringify({ action, projects, intro }),
       })
       const data = (await res.json()) as {
         ok?: boolean
         projects?: HeroProjectTile[]
+        intro?: string
         publishedAt?: string
         filePath?: string
         message?: string
@@ -110,6 +117,9 @@ export function AdminHeroProjectsPanel() {
         throw new Error(data.error || `${action} failed`)
       }
       setProjects(data.projects)
+      if (typeof data.intro === 'string') {
+        setIntro(data.intro)
+      }
       if (action === 'publish') {
         setPublishedAt(data.publishedAt ?? null)
       } else {
@@ -232,9 +242,9 @@ export function AdminHeroProjectsPanel() {
         <div>
           <h2 className="text-lg font-semibold text-ink">Common Projects</h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-            Project pills on the homepage hero. Lucide icons show until you
-            generate a custom icon. Generate stores images in Firebase Storage.{' '}
-            <strong>Save draft</strong> writes Firebase{' '}
+            Intro line and project pills on the homepage hero. Lucide icons
+            show until you generate a custom icon. Generate stores images in
+            Firebase Storage. <strong>Save draft</strong> writes Firebase{' '}
             <code className="text-xs">Site Content / hero-projects</code>.{' '}
             <strong>Publish</strong> writes{' '}
             <code className="text-xs">data/hero-projects.generated.ts</code> so
@@ -257,7 +267,10 @@ export function AdminHeroProjectsPanel() {
           <button
             type="button"
             disabled={busy || generating}
-            onClick={() => setProjects(defaultHeroProjects())}
+            onClick={() => {
+              setProjects(defaultHeroProjects())
+              setIntro(DEFAULT_HERO_PROJECTS_INTRO)
+            }}
             className="rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50 disabled:opacity-60"
           >
             Reset to original
@@ -302,6 +315,27 @@ export function AdminHeroProjectsPanel() {
           {error || message}
         </div>
       )}
+
+      <div className="rounded-md border border-border bg-white p-4">
+        <h3 className="text-sm font-semibold text-ink">Homepage intro</h3>
+        <p className="mt-0.5 max-w-3xl text-xs text-ink-muted">
+          Line above the project tiles on the homepage hero. Save draft to
+          preview on localhost, then Publish for the public site.
+        </p>
+        <label className="mt-4 flex flex-col gap-1.5 text-sm">
+          <span className="font-medium text-ink">Intro text</span>
+          <textarea
+            value={intro}
+            maxLength={400}
+            rows={3}
+            disabled={busy || generating}
+            onChange={(event) => setIntro(event.target.value)}
+            placeholder={DEFAULT_HERO_PROJECTS_INTRO}
+            className="rounded-md border border-border bg-white px-3 py-2 text-sm text-ink"
+          />
+          <span className="text-xs text-ink-muted">{intro.length} / 400</span>
+        </label>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-base font-semibold text-ink">Projects</h3>

@@ -1,48 +1,46 @@
+'use client'
+
 import { ArrowRight } from 'lucide-react'
+import { useMarketCopy } from '@/components/market-provider'
 
-const steps = [
-  {
-    number: '01',
-    title: 'Discovery call',
-    description:
-      'We start with a free 30-minute call to understand your problem, your data, and what a good outcome looks like. No jargon, no sales pitch — just a straightforward conversation about what you need.',
-    bg: '#1a6b3c',
-    tint: '#e8f5ee',
-  },
-  {
-    number: '02',
-    title: 'Scoping & quote',
-    description:
-      'We send you a clear written scope of work and a fixed price or hourly estimate before anything starts. You know exactly what you are getting and what it will cost — no surprises.',
-    bg: '#2d8653',
-    tint: '#eef7f2',
-  },
-  {
-    number: '03',
-    title: 'Build & review',
-    description:
-      'We build in stages and share progress as we go. You get to review, give feedback, and request adjustments before the final delivery. Your input shapes the outcome.',
-    bg: '#3fa068',
-    tint: '#f2faf6',
-  },
-  {
-    number: '04',
-    title: 'Handover & support',
-    description:
-      'We deliver clean, well-documented work with a handover session so your team can actually use it. Ongoing support and enhancements are available whenever you need us.',
-    bg: '#55b580',
-    tint: '#f5fbf8',
-  },
-]
-
-const principles = [
-  'Plain English communication — no IT jargon',
-  'You own everything we build, no lock-in',
-  'We work with your existing tools and systems',
-  'Available for both one-off projects and ongoing retainers',
-]
+const STEP_STYLES = [
+  { number: '01', bg: '#1a6b3c', tint: '#e8f5ee' },
+  { number: '02', bg: '#2d8653', tint: '#eef7f2' },
+  { number: '03', bg: '#3fa068', tint: '#f2faf6' },
+  { number: '04', bg: '#55b580', tint: '#f5fbf8' },
+] as const
 
 export function HowWeWork() {
+  const copy = useMarketCopy().howWeWork
+  const steps = [
+    {
+      ...STEP_STYLES[0],
+      title: copy.step1Title,
+      description: copy.step1Description,
+    },
+    {
+      ...STEP_STYLES[1],
+      title: copy.step2Title,
+      description: copy.step2Description,
+    },
+    {
+      ...STEP_STYLES[2],
+      title: copy.step3Title,
+      description: copy.step3Description,
+    },
+    {
+      ...STEP_STYLES[3],
+      title: copy.step4Title,
+      description: copy.step4Description,
+    },
+  ]
+  const principles = [
+    copy.principle1,
+    copy.principle2,
+    copy.principle3,
+    copy.principle4,
+  ]
+
   return (
     <section id="how-we-work" className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
@@ -50,13 +48,13 @@ export function HowWeWork() {
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-xs font-bold uppercase tracking-widest text-gray-700">
-            Our process
+            {copy.eyebrow}
           </span>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-            How we work
+            {copy.heading}
           </h2>
           <p className="mt-4 text-base leading-relaxed text-gray-500">
-            Simple, transparent, and designed around you — whether this is your first time outsourcing a spreadsheet or you are running a complex enterprise rollout.
+            {copy.intro}
           </p>
         </div>
 
@@ -115,13 +113,13 @@ export function HowWeWork() {
         {/* CTA */}
         <div className="mt-12 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center">
           <p className="text-sm text-gray-500">
-            Ready to get started?
+            {copy.ctaPrompt}
           </p>
           <a
             href="#contact"
             className="btn-primary inline-flex h-9 items-center rounded-sm px-5 text-sm font-medium"
           >
-            Book a free discovery call
+            {copy.ctaLabel}
           </a>
         </div>
 

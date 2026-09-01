@@ -176,12 +176,16 @@ export function blogSectionsToMarkdown(sections: BlogSection[]): string {
       }
       case 'h2': {
         const heading = s.heading?.trim()
+        const text = s.text?.trim()
         if (heading) parts.push(`## ${heading}`)
+        if (text) parts.push(text)
         break
       }
       case 'h3': {
         const heading = s.heading?.trim()
+        const text = s.text?.trim()
         if (heading) parts.push(`### ${heading}`)
+        if (text) parts.push(text)
         break
       }
       case 'ul': {

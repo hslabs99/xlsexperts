@@ -16,7 +16,12 @@ export function SolutionDeepContent({
   return (
     <>
       {sections.map((section, index) => {
-        const alt = index % 2 === 1
+            const alt =
+              section.tone === 'muted'
+                ? true
+                : section.tone === 'white'
+                  ? false
+                  : index % 2 === 1
         return (
           <section
             key={section.id}

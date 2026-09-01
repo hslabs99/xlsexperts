@@ -4,8 +4,18 @@
 
 import type { MarketId } from '@/lib/market'
 
-export const ENQUIRY_TYPES = ['standard', 'discovery'] as const
+export const ENQUIRY_TYPES = ['standard', 'discovery', 'whitepaper'] as const
 export type EnquiryType = (typeof ENQUIRY_TYPES)[number]
+
+export const ENQUIRY_TYPE_LABELS: Record<EnquiryType, string> = {
+  standard: 'Standard enquiry',
+  discovery: 'Discovery request',
+  whitepaper: 'White paper',
+}
+
+export function enquiryTypeLabel(type: EnquiryType): string {
+  return ENQUIRY_TYPE_LABELS[type]
+}
 
 export const ENQUIRY_STATUSES = ['new', 'reviewed', 'quoted', 'closed'] as const
 export type EnquiryStatus = (typeof ENQUIRY_STATUSES)[number]

@@ -175,6 +175,12 @@ export const HERO_CLIENTS_DOC_ID = 'hero-clients'
 export const HERO_PROJECTS_DOC_ID = 'hero-projects'
 
 /**
+ * Site Content doc: homepage hero checklist (“top bullets”).
+ * Public site reads `data/hero-top-bullets.generated.ts` after Publish — not this doc.
+ */
+export const HERO_TOP_BULLETS_DOC_ID = 'hero-top-bullets'
+
+/**
  * Site Content doc: floating “Find out about” quick-nav labels + page links.
  */
 export const FIND_OUT_ABOUT_DOC_ID = 'find-out-about'

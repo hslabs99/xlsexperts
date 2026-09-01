@@ -367,6 +367,15 @@ export function AdminCaseStudiesPanel() {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Could not update homepage flag')
       }
+      try {
+        await fetch('/api/admin/case-studies-home', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+      } catch {
+        // Homepage first-paint still recomputes from live records on localhost.
+      }
       setMessage(
         nextOn
           ? `“${row.client || row.title}” added to the homepage set.`

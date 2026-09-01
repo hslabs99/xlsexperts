@@ -6,11 +6,16 @@ import { EmailHtmlEditor } from '@/components/email-html-editor'
 import {
   DEFAULT_EMAIL_BODY_FONT_FAMILY,
   DEFAULT_EMAIL_BODY_FONT_SIZE,
+  DEFAULT_WHITEPAPER_TEMPLATE,
   EMAIL_FONT_FAMILIES,
   EMAIL_FONT_SIZES,
   MERGE_TAGS,
   applyMergeTags,
+  simpleDownloadLabel,
+  withLabeledDownloadLink,
   defaultRecipientsForKind,
+  emailTemplateKindLabel,
+  hasEmailAttachment,
   normalizeEmailFontSize,
   normalizeEmailHtml,
   type EmailTemplate,
@@ -44,6 +49,8 @@ const SAMPLE_CTX: EnquiryMergeContext = {
   day: '',
   date: '',
   time: '',
+  downloadUrl: '',
+  downloadLabel: '',
 }
 
 const SAMPLE_DISCOVERY_CTX: EnquiryMergeContext = {
@@ -56,6 +63,15 @@ const SAMPLE_DISCOVERY_CTX: EnquiryMergeContext = {
   day: 'Tuesday',
   date: '21 July 2026',
   time: '10:00 AM',
+  downloadUrl: '',
+}
+
+const SAMPLE_WHITEPAPER_CTX: EnquiryMergeContext = {
+  ...SAMPLE_CTX,
+  about: 'Requested The Ten Pillars of Effective Costing & Quoting.',
+  enquiryType: 'White paper',
+  solution: 'Quoting & Estimating Systems',
+  downloadUrl: '',
 }
 
 type TemplateForm = EmailTemplateInput & {
@@ -64,19 +80,31 @@ type TemplateForm = EmailTemplateInput & {
   bodyFontFamily: string
   bodyFontSize: string
   active: boolean
+  attachmentFilename: string
+  attachmentStoragePath: string
+  attachmentUrl: string
+  attachmentContentType: string
 }
 
 function emptyForm(kind: EmailTemplateKind = 'standard'): TemplateForm {
   const recipients = defaultRecipientsForKind(kind)
+  const whitepaper = kind === 'whitepaper'
+  const discovery = kind === 'discovery'
   return {
     kind,
-    name: kind === 'discovery' ? 'Discovery call request' : 'Standard enquiry',
-    subject:
-      kind === 'discovery'
+    name: whitepaper
+      ? DEFAULT_WHITEPAPER_TEMPLATE.name
+      : discovery
+        ? 'Discovery call request'
+        : 'Standard enquiry',
+    subject: whitepaper
+      ? DEFAULT_WHITEPAPER_TEMPLATE.subject
+      : discovery
         ? 'Discovery call — {{name}} on {{when}}'
         : 'Thanks for contacting {{from}}, {{name}}',
-    htmlBody:
-      kind === 'discovery'
+    htmlBody: whitepaper
+      ? DEFAULT_WHITEPAPER_TEMPLATE.htmlBody
+      : discovery
         ? '<p><strong>New discovery call</strong> from {{name}} ({{email}}).</p><p>{{when}} · {{method}}</p><p>{{about}}</p>{{concerns}}'
         : '<p>Hi {{name}},</p><p>Thanks for contacting <strong>{{from}}</strong>. We received your enquiry and will be in touch shortly.</p><p>{{about}}</p><p>Concerns:</p>{{concerns}}<p>Kind regards,<br />{{from}}</p>',
     textBody: '',
@@ -84,6 +112,10 @@ function emptyForm(kind: EmailTemplateKind = 'standard'): TemplateForm {
     bodyFontFamily: DEFAULT_EMAIL_BODY_FONT_FAMILY,
     bodyFontSize: DEFAULT_EMAIL_BODY_FONT_SIZE,
     active: true,
+    attachmentFilename: '',
+    attachmentStoragePath: '',
+    attachmentUrl: '',
+    attachmentContentType: '',
   }
 }
 
@@ -112,6 +144,7 @@ export function AdminEmailTemplatesPanel() {
   const [form, setForm] = useState<TemplateForm>(emptyForm())
   const [showHtmlSource, setShowHtmlSource] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [pdfUploading, setPdfUploading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -172,6 +205,10 @@ export function AdminEmailTemplatesPanel() {
       bodyFontFamily: t.bodyFontFamily,
       bodyFontSize: normalizeEmailFontSize(t.bodyFontSize),
       active: t.active,
+      attachmentFilename: t.attachmentFilename || '',
+      attachmentStoragePath: t.attachmentStoragePath || '',
+      attachmentUrl: t.attachmentUrl || '',
+      attachmentContentType: t.attachmentContentType || '',
     })
     setMessage(null)
     setError(null)
@@ -259,6 +296,78 @@ export function AdminEmailTemplatesPanel() {
     }
   }
 
+  async function handlePdfUpload(file: File) {
+    if (!selectedId || selectedId === 'new') {
+      setError('Save the white paper template first, then upload the PDF.')
+      return
+    }
+    setPdfUploading(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const data = new FormData()
+      data.append('id', selectedId)
+      data.append('file', file)
+      const res = await fetch('/api/admin/email-templates/attachment', {
+        method: 'POST',
+        body: data,
+      })
+      const json = (await res.json()) as {
+        ok?: boolean
+        error?: string
+        attachmentFilename?: string
+        attachmentStoragePath?: string
+        attachmentUrl?: string
+        attachmentContentType?: string
+      }
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || 'PDF upload failed')
+      }
+      setForm((p) => ({
+        ...p,
+        attachmentFilename: json.attachmentFilename || file.name,
+        attachmentStoragePath: json.attachmentStoragePath || '',
+        attachmentUrl: json.attachmentUrl || '',
+        attachmentContentType: json.attachmentContentType || 'application/pdf',
+      }))
+      setMessage('PDF attached. Requests for this white paper will send it.')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF upload failed')
+    } finally {
+      setPdfUploading(false)
+    }
+  }
+
+  async function handlePdfRemove() {
+    if (!selectedId || selectedId === 'new') return
+    setPdfUploading(true)
+    setError(null)
+    try {
+      const res = await fetch(
+        `/api/admin/email-templates/attachment?id=${encodeURIComponent(selectedId)}`,
+        { method: 'DELETE' }
+      )
+      const json = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || 'Could not remove PDF')
+      }
+      setForm((p) => ({
+        ...p,
+        attachmentFilename: '',
+        attachmentStoragePath: '',
+        attachmentUrl: '',
+        attachmentContentType: '',
+      }))
+      setMessage('PDF attachment removed.')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not remove PDF')
+    } finally {
+      setPdfUploading(false)
+    }
+  }
+
   function insertTag(tag: string) {
     const inner = tag.replace(/^<|>$/g, '')
     const token = `{{${inner}}}`
@@ -282,10 +391,22 @@ export function AdminEmailTemplatesPanel() {
   }
 
   const previewCtx =
-    form.kind === 'discovery' ? SAMPLE_DISCOVERY_CTX : SAMPLE_CTX
+    form.kind === 'discovery'
+      ? SAMPLE_DISCOVERY_CTX
+      : form.kind === 'whitepaper'
+        ? {
+            ...SAMPLE_WHITEPAPER_CTX,
+            downloadUrl: form.attachmentUrl.trim() || '',
+            downloadLabel: simpleDownloadLabel(form.attachmentFilename),
+          }
+        : SAMPLE_CTX
   const previewSubject = applyMergeTags(form.subject, previewCtx, { html: false })
   const previewHtml = normalizeEmailHtml(
-    applyMergeTags(form.htmlBody, previewCtx, { html: true })
+    withLabeledDownloadLink(
+      applyMergeTags(form.htmlBody, previewCtx, { html: true }),
+      previewCtx.downloadUrl,
+      previewCtx.downloadLabel
+    )
   )
   const previewWrapped = `<div style="font-family:${form.bodyFontFamily};font-size:${normalizeEmailFontSize(form.bodyFontSize)};line-height:1.45;color:#222;">${previewHtml}</div>`
 
@@ -347,7 +468,8 @@ export function AdminEmailTemplatesPanel() {
               (To = client, Cc = us). Edit that design in code —{' '}
               <code className="text-xs">lib/email-insert-blocks.ts</code> and{' '}
               <code className="text-xs">lib/email-presentation-templates.ts</code>.
-              Standard enquiry templates remain editable here.
+              Standard enquiry templates remain editable here. White paper
+              templates send a PDF you upload on this screen.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -359,6 +481,15 @@ export function AdminEmailTemplatesPanel() {
             >
               <Plus className="h-4 w-4" />
               New standard template
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => startNew('whitepaper')}
+              className="inline-flex items-center gap-1.5 rounded-md border border-brand bg-white px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand-light disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" />
+              New white paper template
             </button>
           </div>
         </div>
@@ -413,8 +544,8 @@ export function AdminEmailTemplatesPanel() {
               Editable templates
             </h3>
             <p className="mt-1 text-xs text-ink-muted">
-              Standard enquiry replies are edited here. The discovery preview
-              above is separate (code-driven).
+              Standard enquiry and white paper replies are edited here. The
+              discovery preview above is separate (code-driven).
             </p>
             {loading ? (
               <p className="mt-3 text-sm text-ink-muted">Loading…</p>
@@ -437,17 +568,20 @@ export function AdminEmailTemplatesPanel() {
                     >
                       <span className="block truncate">
                         {t.name.trim() ||
-                          (t.kind === 'standard'
-                            ? 'Unnamed standard template'
-                            : 'Unnamed discovery template')}
+                          `Unnamed ${emailTemplateKindLabel(t.kind).toLowerCase()} template`}
                       </span>
                       <span className="mt-0.5 block text-xs text-ink-muted">
-                        {t.kind}
+                        {emailTemplateKindLabel(t.kind)}
                         {t.active ? '' : ' · inactive'} · To:{' '}
                         {t.recipients.to}
                         {t.kind === 'discovery'
                           ? ' · not used for bookings'
                           : ''}
+                        {t.kind === 'whitepaper' && hasEmailAttachment(t)
+                          ? ' · PDF attached'
+                          : t.kind === 'whitepaper'
+                            ? ' · no PDF yet'
+                            : ''}
                       </span>
                     </button>
                   </li>
@@ -490,6 +624,7 @@ export function AdminEmailTemplatesPanel() {
                       className="rounded-md border border-border px-3 py-2"
                     >
                       <option value="standard">Standard enquiry</option>
+                      <option value="whitepaper">White paper</option>
                       <option value="discovery">Discovery request</option>
                     </select>
                   </label>
@@ -764,6 +899,68 @@ export function AdminEmailTemplatesPanel() {
                   />
                   Active (used when sending this enquiry kind)
                 </label>
+
+                {form.kind === 'whitepaper' && (
+                  <div className="rounded-md border border-border bg-surface-raised p-4">
+                    <h3 className="text-sm font-semibold text-ink">
+                      White paper PDF
+                    </h3>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Upload the 20-page guide here. It is stored privately and
+                      only sent after someone submits name, company and email.
+                      Maximum 12 MB.
+                    </p>
+                    {form.attachmentFilename ? (
+                      <div className="mt-3 space-y-1 text-sm text-ink">
+                        <p>
+                          Attached: <strong>{form.attachmentFilename}</strong>
+                        </p>
+                        {form.attachmentStoragePath ? (
+                          <p className="break-all font-mono text-xs text-ink-muted">
+                            Storage: {form.attachmentStoragePath}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-ink-muted">
+                        No PDF attached yet. Requests will be saved as
+                        enquiries, but the file will not go out until you upload
+                        it.
+                      </p>
+                    )}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <label className="inline-flex cursor-pointer items-center rounded-md border border-border bg-white px-3 py-2 text-sm font-medium text-ink hover:bg-surface-raised">
+                        {pdfUploading ? 'Uploading…' : 'Upload PDF'}
+                        <input
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          className="hidden"
+                          disabled={pdfUploading || busy || selectedId === 'new'}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            e.target.value = ''
+                            if (file) void handlePdfUpload(file)
+                          }}
+                        />
+                      </label>
+                      {form.attachmentFilename && (
+                        <button
+                          type="button"
+                          disabled={pdfUploading || busy}
+                          onClick={() => void handlePdfRemove()}
+                          className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
+                        >
+                          Remove PDF
+                        </button>
+                      )}
+                    </div>
+                    {selectedId === 'new' && (
+                      <p className="mt-2 text-xs text-ink-muted">
+                        Save this template first, then upload the PDF.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                   <button

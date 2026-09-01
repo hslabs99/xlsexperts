@@ -22,7 +22,7 @@ const LIMITS = {
   html: 100_000,
   recipients: 50,
   filename: 255,
-  attachmentContent: 10_000_000, // ~7.5MB base64
+  attachmentContent: 20_000_000, // ~15MB base64 — 20-page PDFs
 } as const
 
 type SendGridEnv = {
@@ -294,22 +294,20 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       }
       return Object.keys(customArgs).length > 0 ? { customArgs } : {}
     })(),
-    ...(input.tracking
-      ? {
-          trackingSettings: {
-            clickTracking: {
-              enable: input.tracking.click !== false,
-              enableText: false,
-            },
-            openTracking: {
-              enable: input.tracking.open !== false,
-            },
-            subscriptionTracking: {
-              enable: false,
-            },
-          },
-        }
-      : {}),
+    // Always set this. If omitted, SendGrid uses account click-tracking and
+    // rewrites links to urlNNNN.xlsexperts.co.nz/ls/click?upn=...
+    trackingSettings: {
+      clickTracking: {
+        enable: input.tracking?.click === true,
+        enableText: false,
+      },
+      openTracking: {
+        enable: input.tracking?.open === true,
+      },
+      subscriptionTracking: {
+        enable: false,
+      },
+    },
   }
 
   try {

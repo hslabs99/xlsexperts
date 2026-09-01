@@ -3,8 +3,29 @@
  * Safe for client + server (no secrets).
  */
 
-export const EMAIL_TEMPLATE_KINDS = ['standard', 'discovery'] as const
+export const EMAIL_TEMPLATE_KINDS = [
+  'standard',
+  'discovery',
+  'whitepaper',
+] as const
 export type EmailTemplateKind = (typeof EMAIL_TEMPLATE_KINDS)[number]
+
+export const EMAIL_TEMPLATE_KIND_LABELS: Record<EmailTemplateKind, string> = {
+  standard: 'Standard enquiry',
+  discovery: 'Discovery request',
+  whitepaper: 'White paper',
+}
+
+export function isEmailTemplateKind(value: unknown): value is EmailTemplateKind {
+  return (
+    typeof value === 'string' &&
+    (EMAIL_TEMPLATE_KINDS as readonly string[]).includes(value)
+  )
+}
+
+export function emailTemplateKindLabel(kind: EmailTemplateKind): string {
+  return EMAIL_TEMPLATE_KIND_LABELS[kind]
+}
 
 /** Who a recipient field resolves to at send time */
 export const RECIPIENT_PARTIES = ['client', 'business'] as const
@@ -101,6 +122,11 @@ export type EmailTemplate = {
   bodyFontFamily: string
   bodyFontSize: string
   active: boolean
+  /** Optional PDF (or other file) attached when this template is sent. */
+  attachmentFilename: string
+  attachmentStoragePath: string
+  attachmentUrl: string
+  attachmentContentType: string
   updatedAt: unknown
   createdAt: unknown
 }
@@ -115,22 +141,54 @@ export type EmailTemplateInput = {
   bodyFontFamily?: string
   bodyFontSize?: string
   active?: boolean
+  attachmentFilename?: string
+  attachmentStoragePath?: string
+  attachmentUrl?: string
+  attachmentContentType?: string
+}
+
+export function hasEmailAttachment(
+  template: Pick<EmailTemplate, 'attachmentStoragePath'>
+): boolean {
+  return Boolean(template.attachmentStoragePath?.trim())
+}
+
+/** Firebase Storage folder for email template PDFs. */
+export const EMAIL_ATTACHMENTS_DIR = '/email/attachments'
+
+export function emailAttachmentPublicPath(
+  templateId: string,
+  filename: string
+): string {
+  const id = templateId.trim()
+  const name =
+    filename.replace(/\\/g, '/').split('/').pop()?.trim() || ''
+  if (!id || !name || name.includes('..')) return ''
+  return `${EMAIL_ATTACHMENTS_DIR}/${id}/${name}`
+}
+
+export function emailAttachmentFilename(
+  template: Pick<EmailTemplate, 'attachmentFilename' | 'attachmentStoragePath'>
+): string {
+  const named = template.attachmentFilename?.trim() || ''
+  if (named) return named
+  const stored = template.attachmentStoragePath.replace(/\\/g, '/').split('/').pop() || ''
+  return stored.replace(/^\d+-/, '') || 'white-paper.pdf'
+}
+
+export function emailAttachmentPublicUrl(
+  templateId: string,
+  filename: string,
+  origin = 'https://www.xlsexperts.co.nz'
+): string {
+  const path = emailAttachmentPublicPath(templateId, filename)
+  if (!path) return ''
+  return `${origin.replace(/\/$/, '')}${path}`
 }
 
 export function defaultRecipientsForKind(
-  kind: EmailTemplateKind
+  _kind: EmailTemplateKind
 ): EmailTemplateRecipients {
-  if (kind === 'standard') {
-    // Client confirmation + CC ourselves
-    return {
-      to: 'client',
-      cc: ['business'],
-      bcc: [],
-      ccExtra: '',
-      bccExtra: '',
-    }
-  }
-  // Discovery: polished client confirmation + CC ourselves
   return {
     to: 'client',
     cc: ['business'],
@@ -184,6 +242,10 @@ export type EnquiryMergeContext = {
   day: string
   date: string
   time: string
+  /** Public download URL for a white-paper PDF (empty on other kinds). */
+  downloadUrl: string
+  /** Short visible link text; href stays downloadUrl. */
+  downloadLabel: string
 }
 
 export type MergeTagDefinition = {
@@ -257,8 +319,21 @@ export const MERGE_TAGS: MergeTagDefinition[] = [
   {
     tag: '<Enquiry Type>',
     aliases: ['enquiry type', 'enquiry_type', 'type', 'enquirytype'],
-    description: 'Standard enquiry or Discovery request (+ booking details summary)',
+    description:
+      'Standard enquiry, discovery request, or white paper request',
     field: 'enquiryType',
+  },
+  {
+    tag: '<download>',
+    aliases: ['download', 'download_url', 'guide_url'],
+    description: 'Download href (Firebase Storage URL for the attached PDF)',
+    field: 'downloadUrl',
+  },
+  {
+    tag: '<download_label>',
+    aliases: ['download_label', 'downloadlabel', 'guide_name'],
+    description: 'Short visible path: www.xlsexperts.co.nz/filename.pdf',
+    field: 'downloadLabel',
   },
   {
     tag: '<when>',
@@ -305,6 +380,35 @@ export function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+export function simpleDownloadLabel(filename: string): string {
+  const name =
+    filename.replace(/\\/g, '/').split('/').pop()?.trim() || 'white-paper.pdf'
+  return `www.xlsexperts.co.nz/${name}`
+}
+
+/** Keep href as the real Storage URL; show a short path as the link text. */
+export function withLabeledDownloadLink(
+  html: string,
+  downloadUrl: string,
+  label?: string
+): string {
+  const url = downloadUrl.trim()
+  if (!url) return html
+  const text = escapeHtml(label?.trim() || 'Download the PDF').replace(
+    /\$/g,
+    '$$'
+  )
+  // Merge tags HTML-escape the URL (`&` → `&amp;`), so match that form.
+  const href = escapeHtml(url).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return html.replace(
+    new RegExp(
+      `(<a\\b(?=[^>]*\\bhref="${href}")[^>]*>)[\\s\\S]*?(</a>)`,
+      'gi'
+    ),
+    `$1${text}$2`
+  )
 }
 
 export function htmlToPlainText(html: string): string {
@@ -454,6 +558,7 @@ export function renderEmailTemplate(
 ): { subject: string; html: string; text: string } {
   const subject = applyMergeTags(template.subject, ctx, { html: false })
   let html = applyMergeTags(template.htmlBody, ctx, { html: true })
+  html = withLabeledDownloadLink(html, ctx.downloadUrl, ctx.downloadLabel)
   html = normalizeEmailHtml(html)
   const fontFamily =
     template.bodyFontFamily?.trim() || DEFAULT_EMAIL_BODY_FONT_FAMILY
@@ -505,5 +610,25 @@ export const DEFAULT_DISCOVERY_TEMPLATE: Omit<EmailTemplateInput, 'active'> = {
   bodyFontSize: DEFAULT_EMAIL_BODY_FONT_SIZE,
   htmlBody:
     '<p>Hi {{name}},</p><p>Your discovery call is confirmed for <strong>{{when}}</strong> via {{method}}.</p><p>{{about}}</p>{{concerns}}<p>Kind regards,<br />{{from}}</p>',
+  textBody: '',
+}
+
+export const DEFAULT_WHITEPAPER_TEMPLATE: Omit<EmailTemplateInput, 'active'> = {
+  kind: 'whitepaper',
+  name: 'White paper',
+  subject:
+    'Your copy of The Ten Pillars of Effective Costing & Quoting — {{from}}',
+  recipients: defaultRecipientsForKind('whitepaper'),
+  bodyFontFamily: DEFAULT_EMAIL_BODY_FONT_FAMILY,
+  bodyFontSize: DEFAULT_EMAIL_BODY_FONT_SIZE,
+  htmlBody: `
+<p>Hi {{name}},</p>
+<p>Thank you for requesting <strong>The Ten Pillars of Effective Costing &amp; Quoting</strong>.</p>
+<p>The PDF is attached. It is a practical companion to our quoting and estimating work: how a costing system should capture line items, apply commercial rules, handle variations, connect to systems such as Xero and MYOB, and where AI is worth using — with questions to ask of your own quoting process.</p>
+<p>If the attachment does not come through, you can download it here:<br />
+<a href="{{download}}">{{download_label}}</a></p>
+<p>If you would like to talk through how this applies to {{company}}, reply to this email or book a discovery call on our website.</p>
+<p>Kind regards,<br />{{from}}</p>
+`.trim(),
   textBody: '',
 }

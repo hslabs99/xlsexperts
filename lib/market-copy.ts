@@ -5,6 +5,27 @@
 
 import type { MarketId } from '@/lib/market'
 
+/** Homepage “How we work” process section — one set of strings per market. */
+export type HowWeWorkCopy = {
+  eyebrow: string
+  heading: string
+  intro: string
+  step1Title: string
+  step1Description: string
+  step2Title: string
+  step2Description: string
+  step3Title: string
+  step3Description: string
+  step4Title: string
+  step4Description: string
+  principle1: string
+  principle2: string
+  principle3: string
+  principle4: string
+  ctaPrompt: string
+  ctaLabel: string
+}
+
 export type MarketCopy = {
   site: {
     origin: string
@@ -70,6 +91,36 @@ export type MarketCopy = {
   caseStudies: {
     homeIntro: string
   }
+  howWeWork: HowWeWorkCopy
+}
+
+export const DEFAULT_HOW_WE_WORK: HowWeWorkCopy = {
+  eyebrow: 'Our process',
+  heading: 'How we work',
+  intro:
+    'Simple, transparent, and designed around you — whether this is your first time outsourcing a spreadsheet or you are running a complex enterprise rollout.',
+  step1Title: 'Discovery call',
+  step1Description:
+    'We start with a free 30-minute call to understand your problem, your data, and what a good outcome looks like. No jargon, no sales pitch — just a straightforward conversation about what you need.',
+  step2Title: 'Scoping & quote',
+  step2Description:
+    'We send you a clear written scope of work and a fixed price or hourly estimate before anything starts. You know exactly what you are getting and what it will cost — no surprises.',
+  step3Title: 'Build & review',
+  step3Description:
+    'We build in stages and share progress as we go. You get to review, give feedback, and request adjustments before the final delivery. Your input shapes the outcome.',
+  step4Title: 'Handover & support',
+  step4Description:
+    'We deliver clean, well-documented work with a handover session so your team can actually use it. Ongoing support and enhancements are available whenever you need us.',
+  principle1: 'Plain English communication — no IT jargon',
+  principle2: 'You own everything we build, no lock-in',
+  principle3: 'We work with your existing tools and systems',
+  principle4: 'Available for both one-off projects and ongoing retainers',
+  ctaPrompt: 'Ready to get started?',
+  ctaLabel: 'Book a free discovery call',
+}
+
+export function cloneHowWeWorkCopy(source: HowWeWorkCopy): HowWeWorkCopy {
+  return { ...source }
 }
 
 /** Admin field metadata — flat list for the International CRUD table. */
@@ -281,6 +332,7 @@ export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
     homeIntro:
       'Real problems, real solutions. A sample of what we have built for NZ businesses across industries.',
   },
+  howWeWork: cloneHowWeWorkCopy(DEFAULT_HOW_WE_WORK),
 }
 
 /** Deep clone helper for seeding intl = nz until regionalized in admin. */
@@ -557,6 +609,7 @@ export function normalizeMarketCopy(
     }),
     about,
     caseStudies: normalizeSection(data.caseStudies, fallback.caseStudies),
+    howWeWork: normalizeSection(data.howWeWork, fallback.howWeWork),
   }
 }
 
@@ -703,4 +756,50 @@ export const CONTACT_DETAIL_FIELDS: MarketCopyFieldMeta[] = [
     label: 'Phone field placeholder',
     group: 'Contact',
   },
+]
+
+/** Homepage How we work — edited in CMS → How we work (not the Site CMS table). */
+export const HOW_WE_WORK_FIELDS: MarketCopyFieldMeta[] = [
+  { path: 'howWeWork.eyebrow', label: 'Eyebrow', group: 'Header' },
+  { path: 'howWeWork.heading', label: 'Heading', group: 'Header' },
+  {
+    path: 'howWeWork.intro',
+    label: 'Intro paragraph',
+    group: 'Header',
+    multiline: true,
+  },
+  { path: 'howWeWork.step1Title', label: 'Step 1 title', group: 'Step 01' },
+  {
+    path: 'howWeWork.step1Description',
+    label: 'Step 1 description',
+    group: 'Step 01',
+    multiline: true,
+  },
+  { path: 'howWeWork.step2Title', label: 'Step 2 title', group: 'Step 02' },
+  {
+    path: 'howWeWork.step2Description',
+    label: 'Step 2 description',
+    group: 'Step 02',
+    multiline: true,
+  },
+  { path: 'howWeWork.step3Title', label: 'Step 3 title', group: 'Step 03' },
+  {
+    path: 'howWeWork.step3Description',
+    label: 'Step 3 description',
+    group: 'Step 03',
+    multiline: true,
+  },
+  { path: 'howWeWork.step4Title', label: 'Step 4 title', group: 'Step 04' },
+  {
+    path: 'howWeWork.step4Description',
+    label: 'Step 4 description',
+    group: 'Step 04',
+    multiline: true,
+  },
+  { path: 'howWeWork.principle1', label: 'Principle 1', group: 'Principles' },
+  { path: 'howWeWork.principle2', label: 'Principle 2', group: 'Principles' },
+  { path: 'howWeWork.principle3', label: 'Principle 3', group: 'Principles' },
+  { path: 'howWeWork.principle4', label: 'Principle 4', group: 'Principles' },
+  { path: 'howWeWork.ctaPrompt', label: 'CTA prompt', group: 'Call to action' },
+  { path: 'howWeWork.ctaLabel', label: 'CTA button', group: 'Call to action' },
 ]

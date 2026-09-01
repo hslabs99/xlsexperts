@@ -11,6 +11,7 @@ import { writeGeneratedFile } from '@/lib/write-generated-file'
 import {
   defaultHeroProjects,
   normalizeHeroProjects,
+  normalizeHeroProjectsIntro,
   type HeroProjectTile,
   type PublishedHeroProjectsFile,
 } from '@/lib/hero-trust'
@@ -30,6 +31,7 @@ function firestoreUpdatedAt(raw: unknown): string | null {
 
 export async function fetchHeroProjectsDraft(): Promise<{
   projects: HeroProjectTile[]
+  intro: string
   publishedAt: string | null
   updatedAt: string | null
 }> {
@@ -41,6 +43,7 @@ export async function fetchHeroProjectsDraft(): Promise<{
   if (!snap.exists) {
     return {
       projects: defaultHeroProjects(),
+      intro: normalizeHeroProjectsIntro(null),
       publishedAt: null,
       updatedAt: null,
     }
@@ -49,6 +52,7 @@ export async function fetchHeroProjectsDraft(): Promise<{
   const data = snap.data() as Record<string, unknown>
   return {
     projects: normalizeHeroProjects(data),
+    intro: normalizeHeroProjectsIntro(data),
     publishedAt:
       typeof data.publishedAt === 'string' ? data.publishedAt : null,
     updatedAt: firestoreUpdatedAt(data.updatedAt),
@@ -56,20 +60,25 @@ export async function fetchHeroProjectsDraft(): Promise<{
 }
 
 export async function saveHeroProjectsDraft(
-  projects: HeroProjectTile[]
-): Promise<HeroProjectTile[]> {
+  projects: HeroProjectTile[],
+  intro?: string
+): Promise<{ projects: HeroProjectTile[]; intro: string }> {
+  const draft = await fetchHeroProjectsDraft()
   const normalized = normalizeHeroProjects({ projects })
+  const nextIntro = normalizeHeroProjectsIntro(
+    intro != null ? { intro } : draft.intro
+  )
   await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
     .doc(HERO_PROJECTS_DOC_ID)
     .set(
       {
-        content: { projects: normalized },
+        content: { projects: normalized, intro: nextIntro },
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     )
-  return normalized
+  return { projects: normalized, intro: nextIntro }
 }
 
 function serializeGeneratedFile(payload: PublishedHeroProjectsFile): string {
@@ -93,22 +102,26 @@ export default published
 }
 
 export async function publishHeroProjects(
-  projects?: HeroProjectTile[]
+  projects?: HeroProjectTile[],
+  intro?: string
 ): Promise<{
   projects: HeroProjectTile[]
+  intro: string
   publishedAt: string
   filePath: string
 }> {
+  const draft = await fetchHeroProjectsDraft()
   const bundle =
-    projects != null
-      ? normalizeHeroProjects({ projects })
-      : (await fetchHeroProjectsDraft()).projects
+    projects != null ? normalizeHeroProjects({ projects }) : draft.projects
+  const nextIntro = normalizeHeroProjectsIntro(
+    intro != null ? { intro } : draft.intro
+  )
 
   const publishedAt = new Date().toISOString()
   const payload: PublishedHeroProjectsFile = {
     version: 1,
     publishedAt,
-    content: { projects: bundle },
+    content: { intro: nextIntro, projects: bundle },
   }
 
   await writeGeneratedFile(GENERATED_RELATIVE, serializeGeneratedFile(payload))
@@ -118,12 +131,17 @@ export async function publishHeroProjects(
     .doc(HERO_PROJECTS_DOC_ID)
     .set(
       {
-        content: { projects: bundle },
+        content: { projects: bundle, intro: nextIntro },
         publishedAt,
         updatedAt: publishedAt,
       },
       { merge: true }
     )
 
-  return { projects: bundle, publishedAt, filePath: GENERATED_RELATIVE }
+  return {
+    projects: bundle,
+    intro: nextIntro,
+    publishedAt,
+    filePath: GENERATED_RELATIVE,
+  }
 }

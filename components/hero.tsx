@@ -8,6 +8,7 @@ import { HeroBackground } from '@/components/hero-background'
 import { heroProjectIcons } from '@/components/hero-project-icons'
 import { HeroClientCarousel } from '@/components/hero-client-carousel'
 import {
+  DEFAULT_HERO_PROJECTS_INTRO,
   defaultHeroProjects,
   type HeroTrustContent,
 } from '@/lib/hero-trust'
@@ -19,20 +20,27 @@ const badgeStyle = { backgroundColor: '#e8f5ee', color: '#1a6b3c' }
 export function Hero({
   trust,
   backgroundHoldSeconds,
+  topBullets,
 }: {
   trust?: HeroTrustContent
   backgroundHoldSeconds?: number
+  topBullets?: string[]
 }) {
   const copy = useMarketCopy()
   const commonProjects = trust?.projects?.length
     ? trust.projects
     : defaultHeroProjects()
+  const projectsIntro =
+    trust?.projectsIntro?.trim() || DEFAULT_HERO_PROJECTS_INTRO
   const clientNames = trust?.clients ?? []
-  const trustPoints = [
-    'Fixed-price projects available',
-    copy.hero.trustBased,
-    'Trusted by SMEs & enterprise',
-  ]
+  const trustPoints =
+    topBullets && topBullets.length > 0
+      ? topBullets
+      : [
+          'Fixed-price projects available',
+          copy.hero.trustBased,
+          'Trusted by SMEs & enterprise',
+        ]
   const badges = [
     {
       label: copy.hero.badgeSpecialists,
@@ -131,8 +139,8 @@ export function Hero({
           className="mx-auto mt-7 flex flex-col items-start gap-2.5 sm:max-w-xs"
           aria-label="Key benefits"
         >
-          {trustPoints.map((point) => (
-            <li key={point} className="flex items-center gap-2.5 text-sm font-medium text-gray-800">
+          {trustPoints.map((point, index) => (
+            <li key={`${index}-${point}`} className="flex items-center gap-2.5 text-sm font-medium text-gray-800">
               <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: '#1a6b3c' }} aria-hidden="true" />
               {point}
             </li>
@@ -174,6 +182,9 @@ export function Hero({
           <span className="text-sm font-bold uppercase tracking-widest text-gray-700">
             Common projects
           </span>
+          <p className="mx-auto max-w-2xl text-balance text-sm font-medium leading-relaxed text-gray-800">
+            {projectsIntro}
+          </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {commonProjects.map((project) => {
               const Icon = heroProjectIcons[project.icon] ?? heroProjectIcons.zap
@@ -198,10 +209,6 @@ export function Hero({
               )
             })}
           </div>
-          <p className="mx-auto mt-2 max-w-2xl text-balance text-sm font-medium leading-relaxed text-gray-800">
-            Hundreds of custom business solutions delivered across engineering, finance,
-            manufacturing, logistics and professional services.
-          </p>
         </div>
       </div>
 

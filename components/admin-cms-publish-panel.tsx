@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 type FilePublishId =
   | 'market-copy'
   | 'page-seo'
+  | 'hero-top-bullets'
   | 'home-services'
   | 'hero-clients'
   | 'hero-projects'
@@ -29,9 +30,9 @@ const FILE_PUBLISHES: FilePublishDef[] = [
   {
     id: 'market-copy',
     title: 'Site CMS',
-    editIn: 'CMS → Site CMS',
+    editIn: 'CMS → Site CMS / How we work',
     description:
-      'Site-wide copy, contact details, brand labels, hero, about, homepage SEO, FAQs, and hero background timing.',
+      'Site-wide copy, contact details, brand labels, hero, about, How we work, homepage SEO, FAQs, and hero background timing.',
     file: 'data/market-copy.generated.ts',
     statusUrl: '/api/admin/market-copy',
   },
@@ -43,6 +44,15 @@ const FILE_PUBLISHES: FilePublishDef[] = [
       'H1, intro, and meta for every service and solution page (NZ, International, UK).',
     file: 'data/page-seo.generated.ts',
     statusUrl: '/api/admin/page-seo',
+  },
+  {
+    id: 'hero-top-bullets',
+    title: 'Top Bullets',
+    editIn: 'CMS → Top Bullets',
+    description:
+      'Homepage hero checklist (3–5 lines of text per market).',
+    file: 'data/hero-top-bullets.generated.ts',
+    statusUrl: '/api/admin/hero-top-bullets',
   },
   {
     id: 'home-services',
@@ -129,6 +139,7 @@ async function publishFile(id: FilePublishId): Promise<string> {
   const routes: Record<FilePublishId, string> = {
     'market-copy': '/api/admin/market-copy',
     'page-seo': '/api/admin/page-seo',
+    'hero-top-bullets': '/api/admin/hero-top-bullets',
     'home-services': '/api/admin/home-services',
     'hero-clients': '/api/admin/hero-clients',
     'hero-projects': '/api/admin/hero-projects',

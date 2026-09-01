@@ -76,33 +76,53 @@ export type CrawlDocsBundle = Record<MarketId, CrawlDocsContent>
 export function defaultRobotsTxt(origin: string): string {
   return `User-agent: *
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: GPTBot
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: Claude-Web
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: anthropic-ai
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: YouBot
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: Googlebot
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: Googlebot-Image
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /api/guides/
+Disallow: /email/attachments/
 
 Sitemap: ${origin}/sitemap.xml
 `

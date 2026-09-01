@@ -17,6 +17,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { manufacturingCostingSolution } from './solutions-manufacturing'
+import { quotingEstimatingSolution } from './solutions-quoting'
 
 /** @deprecated Use getSiteOrigin() / market copy site.origin — NZ only. */
 export const SITE_ORIGIN = 'https://www.xlsexperts.co.nz'
@@ -95,6 +96,8 @@ export type SolutionDeepSection = {
   callout?: string
   /** Card grid columns. Defaults to 2. */
   cardColumns?: 2 | 3
+  /** Override the default alternating background. */
+  tone?: 'white' | 'muted'
 }
 
 export type SolutionFeatureGrid = {
@@ -106,6 +109,14 @@ export type SolutionFeatureGrid = {
 export type SolutionWhyUs = {
   heading: string
   body: string[]
+}
+
+export type SolutionLeadMagnet = {
+  id: string
+  heading: string
+  body: string
+  ctaLabel: string
+  emailHint: string
 }
 
 export type SolutionPage = {
@@ -123,6 +134,8 @@ export type SolutionPage = {
   heroIntroduction: string
   /** Optional line under the H1, used on long-form pillar pages. */
   heroSubheading?: string
+  /** Extra hero paragraphs after the indexed intro, before the CTAs. */
+  heroAfterIntroduction?: string[]
   introHeading: string
   introBody: string[]
   introItems?: string[]
@@ -134,6 +147,8 @@ export type SolutionPage = {
   useCases: { title: string; description: string }[]
   technologyHeading: string
   technologyNotes: string[]
+  /** Left-align technology notes when they are longer prose. */
+  technologyAlign?: 'center' | 'left'
   technologies: string[]
   approachHeading?: string
   approachBody?: string[]
@@ -160,6 +175,11 @@ export type SolutionPage = {
   whyUs?: SolutionWhyUs
   relatedExtras?: SolutionRelatedExtra[]
   relatedReading?: SolutionRelatedReading[]
+  /** Extra sections on the standard (non-deep) layout. */
+  afterIntroSections?: SolutionDeepSection[]
+  afterCapabilitiesSections?: SolutionDeepSection[]
+  afterUseCasesSections?: SolutionDeepSection[]
+  leadMagnet?: SolutionLeadMagnet
 }
 
 export const solutionIcons: Record<SolutionIconKey, LucideIcon> = {
@@ -1048,148 +1068,7 @@ export const solutionPages: readonly SolutionPage[] = [
       'Tell us how you run feasibility, funding and programme control today — in Excel or elsewhere — and where the gaps appear under pressure. We will recommend whether to extend your models, add automation, or escalate to a cloud application for your next residential or mixed-use project.',
     contactOptionLabel: 'Property Development Applications',
   },
-  {
-    slug: 'quoting-estimating-systems',
-    href: '/solutions/quoting-estimating-systems',
-    title: 'Quoting & Estimating Systems',
-    shortTitle: 'Quoting systems',
-    navLabel: 'Quoting & Estimating Systems',
-    summary:
-      'Replace manual quoting processes with structured estimating systems that improve speed, consistency and control.',
-    exampleUses: [
-      'Construction estimates',
-      'Manufacturing quotations',
-      'Service pricing',
-      'Proposal and document generation',
-    ],
-    icon: 'quoting',
-    metaTitle: 'Quoting & Estimating Systems NZ',
-    metaDescription:
-      'Structured quoting and estimating systems for New Zealand businesses — construction estimates, manufacturing quotations, margins and proposal generation.',
-    heroHeading: 'Quotes that are fast, consistent and commercially controlled',
-    heroIntroduction:
-      'XLS Experts creates structured quoting and estimating systems that improve accuracy, speed and consistency — from advanced Excel estimators through to cloud quoting platforms with approvals and CRM links.',
-    introHeading: 'Common quoting problems we solve',
-    introBody: [
-      'When quotes take too long, pricing differs between staff, or margins are applied inconsistently, the business loses both time and commercial control.',
-      'Solutions may range from an advanced Excel estimator to a fully cloud-based quoting platform. We match the design to quote volume, complexity and how proposals are issued.',
-    ],
-    problemsHeading: 'Warning signs in the quoting process',
-    problems: [
-      'Quotes take too long to produce',
-      'Pricing differs between staff for similar jobs',
-      'Margins are not consistently applied',
-      'Quote templates are manually edited and drift over time',
-      'Calculations depend on one experienced estimator',
-      'Errors are found after the quote is sent',
-    ],
-    capabilitiesHeading: 'What a quoting system can include',
-    capabilities: [
-      'Construction and trade estimating',
-      'Manufacturing estimates and bill-of-material calculations',
-      'Labour and material pricing libraries',
-      'Margin and markup controls',
-      'Optional items and variations',
-      'Proposal and PDF quotation generation',
-      'Approval workflows',
-      'CRM integration',
-      'Historical estimate analysis',
-    ],
-    useCasesHeading: 'Example applications',
-    useCases: [
-      {
-        title: 'Construction and fabrication estimating',
-        description:
-          'Component lists, labour, materials and waste logic structured so estimators produce consistent quotations.',
-      },
-      {
-        title: 'Service and trade pricing',
-        description:
-          'Rate cards, packages and optional extras with controlled margins and clear customer-facing output.',
-      },
-      {
-        title: 'Manufacturing quotations',
-        description:
-          'Bill-of-material driven estimates with material and process costs that update when inputs change.',
-      },
-      {
-        title: 'Proposal generation with approvals',
-        description:
-          'Generate branded PDFs and route higher-value quotes through an approval step before they leave the business.',
-      },
-    ],
-    technologyHeading: 'Excel estimator or cloud quoting platform?',
-    technologyNotes: [
-      'Low-volume, specialist estimating often works well in Excel. Higher volume, multi-user quoting with CRM hand-off usually benefits from a cloud application.',
-      'We can start with a structured estimator and evolve as quote volume grows.',
-    ],
-    technologies: [
-      'Microsoft Excel',
-      'VBA',
-      'Microsoft 365',
-      'Custom web apps',
-      'APIs / CRM integration',
-      'PDF generation',
-      'SQL databases',
-    ],
-    processHeading: 'How we deliver quoting systems',
-    processSteps: [...processStepsDefault],
-    faqs: [
-      {
-        question: 'Can you start with Excel and move to a cloud platform later?',
-        answer:
-          'Yes. Many quoting projects begin as a structured Excel estimator. When concurrent users, CRM sync or customer portals become important, we migrate the logic into a cloud application.',
-      },
-      {
-        question: 'Can margins be locked down?',
-        answer:
-          'Yes. We can enforce minimum margins, role-based overrides and approval rules so commercial policy is applied consistently.',
-      },
-      {
-        question: 'Can quotes sync to our CRM?',
-        answer:
-          'Where your CRM supports it, we can create or update opportunities, attach quote documents and keep status aligned.',
-      },
-      {
-        question: 'Do you handle construction and manufacturing estimating?',
-        answer:
-          'Yes. We have delivered quoting tools for fabrication, construction-related work and manufacturing bill-of-material scenarios, as well as service pricing.',
-      },
-      {
-        question: 'Can historical quotes inform new estimates?',
-        answer:
-          'When past quotes are stored in a structured way, we can surface comparable jobs and pricing patterns to support estimators.',
-      },
-    ],
-    relatedSlugs: [
-      'manufacturing-costing-estimating-quoting',
-      'workflow-automation-systems-integration',
-      'client-staff-portals',
-    ],
-    relatedLinkLabels: {
-      'manufacturing-costing-estimating-quoting':
-        'Manufacturing costing, estimating and quoting systems',
-      'workflow-automation-systems-integration':
-        'Automate quote approvals and CRM updates',
-      'client-staff-portals':
-        'Let clients review proposals online',
-    },
-    caseStudies: [
-      {
-        slug: 'quoting-cutting-stock-kings',
-        title: 'Project Quoting & Cutting Stock Tool',
-        client: 'Kings Engineering',
-        sector: 'Engineering & Construction',
-        summary:
-          'Excel quoting tool with cutting-stock optimisation — faster quotes, less material waste and stronger protection against underquoting.',
-        published: true,
-      },
-    ],
-    ctaHeading: 'Tell us how you quote today',
-    ctaBody:
-      'Describe the quote types you produce, who prepares them, and where errors or delays occur. We will recommend the right level of estimating system.',
-    contactOptionLabel: 'Quoting & Estimating Systems',
-  },
+  quotingEstimatingSolution,
   manufacturingCostingSolution,
   {
     slug: 'survey-inspection-field-apps',

@@ -16,6 +16,7 @@ import {
 import { PUBLISHED_MARKET_COPY } from '@/data/market-copy.generated'
 import { withTimeout } from '@/lib/with-timeout'
 import {
+  normalizeMarketCopyBundle,
   pickHeroBackgroundHoldSeconds,
   pickMarketCopy,
   type MarketCopy,
@@ -57,7 +58,7 @@ export async function getMarket(): Promise<MarketId> {
 
 /** Full published bundle (both markets) — static import, zero DB. */
 export function getPublishedMarketCopyBundle(): MarketCopyBundle {
-  return PUBLISHED_MARKET_COPY.markets
+  return normalizeMarketCopyBundle(PUBLISHED_MARKET_COPY.markets)
 }
 
 /** Live bundle: CMS draft on localhost, published file in production. */

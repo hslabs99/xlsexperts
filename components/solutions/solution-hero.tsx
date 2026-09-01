@@ -12,6 +12,7 @@ type SolutionHeroProps = {
   heading: string
   introduction: string
   subheading?: string
+  afterIntroduction?: string[]
   primaryCta: { label: string; href: string }
   secondaryCta?: { label: string; href: string }
   breadcrumbs?: BreadcrumbItem[]
@@ -23,6 +24,7 @@ export function SolutionHero({
   heading,
   introduction,
   subheading,
+  afterIntroduction,
   primaryCta,
   secondaryCta,
   breadcrumbs,
@@ -63,9 +65,25 @@ export function SolutionHero({
             {subheading}
           </p>
         )}
-        <p className="mb-8 max-w-2xl text-lg leading-relaxed text-white/80">
+        <p
+          className={`max-w-2xl text-lg leading-relaxed text-white/80 ${
+            afterIntroduction && afterIntroduction.length > 0 ? 'mb-4' : 'mb-8'
+          }`}
+        >
           {introduction}
         </p>
+        {afterIntroduction && afterIntroduction.length > 0 && (
+          <div className="mb-8 max-w-3xl space-y-4">
+            {afterIntroduction.map((paragraph) => (
+              <p
+                key={paragraph.slice(0, 48)}
+                className="text-base leading-relaxed text-white/80"
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <a
             href={primaryCta.href}

@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server'
 import {
-  fetchHeroProjectsDraft,
-  publishHeroProjects,
-  saveHeroProjectsDraft,
-} from '@/lib/hero-projects-db'
+  fetchHeroTopBulletsDraft,
+  publishHeroTopBullets,
+  saveHeroTopBulletsDraft,
+} from '@/lib/hero-top-bullets-db'
 import {
-  normalizeHeroProjects,
-  type HeroProjectTile,
-} from '@/lib/hero-trust'
+  normalizeHeroTopBulletsBundle,
+  type HeroTopBulletsBundle,
+} from '@/lib/hero-top-bullets'
 import { withTimeout } from '@/lib/with-timeout'
 
 export async function GET() {
   try {
     const draft = await withTimeout(
-      fetchHeroProjectsDraft(),
+      fetchHeroTopBulletsDraft(),
       8_000,
-      'fetchHeroProjectsDraft'
+      'fetchHeroTopBulletsDraft'
     )
     return NextResponse.json({ ok: true, ...draft })
   } catch (error) {
@@ -32,27 +32,25 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = (await request.json()) as {
-      projects?: HeroProjectTile[]
-      intro?: string
+      content?: HeroTopBulletsBundle
       action?: 'save' | 'publish'
     }
 
     const action = body.action === 'publish' ? 'publish' : 'save'
 
     if (action === 'publish') {
-      const projects =
-        body.projects != null
-          ? normalizeHeroProjects({ projects: body.projects })
+      const content =
+        body.content != null
+          ? normalizeHeroTopBulletsBundle(body.content)
           : undefined
       const result = await withTimeout(
-        publishHeroProjects(projects, body.intro),
+        publishHeroTopBullets(content),
         15_000,
-        'publishHeroProjects'
+        'publishHeroTopBullets'
       )
       return NextResponse.json({
         ok: true,
-        projects: result.projects,
-        intro: result.intro,
+        content: result.content,
         publishedAt: result.publishedAt,
         filePath: result.filePath,
         message:
@@ -60,27 +58,23 @@ export async function PUT(request: Request) {
       })
     }
 
-    if (!body.projects) {
+    if (!body.content) {
       return NextResponse.json(
-        { ok: false, error: 'projects payload required' },
+        { ok: false, error: 'content payload required' },
         { status: 400 }
       )
     }
 
-    const saved = await withTimeout(
-      saveHeroProjectsDraft(
-        normalizeHeroProjects({ projects: body.projects }),
-        body.intro
-      ),
+    const content = await withTimeout(
+      saveHeroTopBulletsDraft(normalizeHeroTopBulletsBundle(body.content)),
       8_000,
-      'saveHeroProjectsDraft'
+      'saveHeroTopBulletsDraft'
     )
     return NextResponse.json({
       ok: true,
-      projects: saved.projects,
-      intro: saved.intro,
+      content,
       message:
-        'Draft saved to Firebase (Site Content / hero-projects). Click Publish to update the static file used by the public site.',
+        'Draft saved to Firebase (Site Content / hero-top-bullets). Click Publish to update the static file used by the public site.',
     })
   } catch (error) {
     return NextResponse.json(

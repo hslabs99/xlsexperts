@@ -214,8 +214,9 @@ export function AdminMarketCopyPanel() {
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-muted">
             Site-level content: defaults, homepage SEO, contact details, hero,
-            about and FAQs. Edit New Zealand, International, and United Kingdom
-            strings side by side. Save stores a draft in Firebase{' '}
+            about and FAQs. Homepage How we work lives under{' '}
+            <strong>CMS → How we work</strong>. Edit New Zealand, International,
+            and United Kingdom strings side by side. Save stores a draft in Firebase{' '}
             <code className="text-xs">Site Content / market-copy</code>.{' '}
             <strong>Publish</strong> writes{' '}
             <code className="text-xs">data/market-copy.generated.ts</code> so

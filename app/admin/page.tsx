@@ -34,10 +34,12 @@ import { AdminBookingTimezonePanel } from '@/components/admin-booking-timezone-p
 import { AdminSiteTagsPanel } from '@/components/admin-site-tags-panel'
 import { AdminCrawlDocsPanel } from '@/components/admin-crawl-docs-panel'
 import { AdminMarketCopyPanel } from '@/components/admin-market-copy-panel'
+import { AdminHowWeWorkPanel } from '@/components/admin-how-we-work-panel'
 import { AdminPageSeoPanel } from '@/components/admin-page-seo-panel'
 import { AdminHomeServicesPanel } from '@/components/admin-home-services-panel'
 import { AdminHeroClientsPanel } from '@/components/admin-hero-clients-panel'
 import { AdminHeroProjectsPanel } from '@/components/admin-hero-projects-panel'
+import { AdminHeroTopBulletsPanel } from '@/components/admin-hero-top-bullets-panel'
 import { AdminCmsPublishPanel } from '@/components/admin-cms-publish-panel'
 import { AdminMailingsPanel } from '@/components/admin-mailings-panel'
 import {
@@ -61,7 +63,9 @@ type BlogSubTab = 'blogs' | 'queue'
 type SettingsSubTab = 'users' | 'thank-you'
 type CmsSubTab =
   | 'site'
+  | 'how-we-work'
   | 'pages'
+  | 'top-bullets'
   | 'home-services'
   | 'client-logos'
   | 'common-projects'
@@ -1114,7 +1118,9 @@ export default function AdminPage() {
               {(
                 [
                   { id: 'site' as const, label: 'Site CMS' },
+                  { id: 'how-we-work' as const, label: 'How we work' },
                   { id: 'pages' as const, label: 'Pages CMS' },
+                  { id: 'top-bullets' as const, label: 'Top Bullets' },
                   { id: 'home-services' as const, label: 'Home services' },
                   { id: 'client-logos' as const, label: 'Client Logos' },
                   { id: 'common-projects' as const, label: 'Common Projects' },
@@ -1143,7 +1149,9 @@ export default function AdminPage() {
             </div>
 
             {cmsSubTab === 'site' && <AdminMarketCopyPanel />}
+            {cmsSubTab === 'how-we-work' && <AdminHowWeWorkPanel />}
             {cmsSubTab === 'pages' && <AdminPageSeoPanel />}
+            {cmsSubTab === 'top-bullets' && <AdminHeroTopBulletsPanel />}
             {cmsSubTab === 'home-services' && <AdminHomeServicesPanel />}
             {cmsSubTab === 'client-logos' && <AdminHeroClientsPanel />}
             {cmsSubTab === 'common-projects' && <AdminHeroProjectsPanel />}

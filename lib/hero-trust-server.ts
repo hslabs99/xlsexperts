@@ -10,10 +10,12 @@ import { withTimeout } from '@/lib/with-timeout'
 import {
   DEFAULT_HERO_CLIENT_FADE,
   DEFAULT_HERO_CLIENT_HEADING,
+  DEFAULT_HERO_PROJECTS_INTRO,
   normalizeHeroClientFade,
   normalizeHeroClientHeading,
   normalizeHeroClients,
   normalizeHeroProjects,
+  normalizeHeroProjectsIntro,
   type HeroTrustContent,
 } from '@/lib/hero-trust'
 
@@ -46,11 +48,13 @@ async function readPublishedHeroClients(): Promise<
 }
 
 export async function getPublishedHeroTrust(): Promise<HeroTrustContent> {
-  const [{ clients, fade, heading }, projects] = await Promise.all([
-    readPublishedHeroClients(),
-    Promise.resolve(normalizeHeroProjects(PUBLISHED_HERO_PROJECTS)),
-  ])
-  return { clients, projects, fade, heading }
+  const [{ clients, fade, heading }, projects, projectsIntro] =
+    await Promise.all([
+      readPublishedHeroClients(),
+      Promise.resolve(normalizeHeroProjects(PUBLISHED_HERO_PROJECTS)),
+      Promise.resolve(normalizeHeroProjectsIntro(PUBLISHED_HERO_PROJECTS)),
+    ])
+  return { clients, projects, fade, heading, projectsIntro }
 }
 
 /**
@@ -85,6 +89,10 @@ export async function getHeroTrustContent(): Promise<HeroTrustContent> {
           projectsDraft.projects.length > 0
             ? projectsDraft.projects
             : published.projects,
+        projectsIntro:
+          projectsDraft.intro ||
+          published.projectsIntro ||
+          DEFAULT_HERO_PROJECTS_INTRO,
       }
     } catch (error) {
       console.error(

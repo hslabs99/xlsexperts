@@ -22,6 +22,8 @@ const SAMPLE_DISCOVERY_CTX: EnquiryMergeContext = {
   day: 'Tuesday',
   date: '21 July 2026',
   time: '10:00 AM',
+  downloadUrl: '',
+  downloadLabel: '',
 }
 
 /**

@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Trash2, X } from 'lucide-react'
 import {
   ENQUIRY_STATUSES,
   ENQUIRY_TYPES,
+  enquiryTypeLabel,
   type EnquiryRecord,
   type EnquiryStatus,
   type EnquiryType,
@@ -175,7 +176,7 @@ function EnquiryDetailModal({
             </h2>
             <p className="mt-0.5 text-xs text-ink-muted">
               {formatEnquiryCreatedAt(enquiry.createdAt)} ·{' '}
-              <span className="capitalize">{enquiry.type}</span>
+              <span>{enquiryTypeLabel(enquiry.type)}</span>
               {' · '}
               {marketShortLabel(enquiry.market)} ({enquiry.host || marketHostHint(enquiry.market)})
             </p>
@@ -742,7 +743,7 @@ export function AdminEnquiriesPanel({
                     <option value="all">All types</option>
                     {ENQUIRY_TYPES.map((t) => (
                       <option key={t} value={t}>
-                        {t}
+                        {enquiryTypeLabel(t)}
                       </option>
                     ))}
                   </select>
@@ -913,7 +914,7 @@ export function AdminEnquiriesPanel({
                     <td className="whitespace-nowrap px-2 py-2.5 text-xs text-ink-muted">
                       {formatEnquiryCreatedAt(row.createdAt)}
                     </td>
-                    <td className="px-2 py-2.5 capitalize">{row.type}</td>
+                    <td className="px-2 py-2.5">{enquiryTypeLabel(row.type)}</td>
                     <td className="px-2 py-2.5 font-medium text-ink">
                       {row.name || '—'}
                     </td>
@@ -1021,7 +1022,7 @@ export function AdminEnquiriesPanel({
               <p className="font-semibold">{deleteTarget.name || 'Untitled enquiry'}</p>
               <p className="mt-1 font-mono text-xs">{deleteTarget.email || '—'}</p>
               <p className="mt-2 text-xs text-ink-muted">
-                <span className="capitalize">{deleteTarget.type}</span>
+                <span>{enquiryTypeLabel(deleteTarget.type)}</span>
                 {deleteTarget.company ? ` · ${deleteTarget.company}` : ''}
                 {' · '}
                 {formatEnquiryCreatedAt(deleteTarget.createdAt)}

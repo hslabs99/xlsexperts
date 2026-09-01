@@ -8,6 +8,7 @@ import { About } from '@/components/about'
 import { Contact } from '@/components/contact'
 import { getMarketCopy, getHeroBackgroundHoldSeconds } from '@/lib/market-server'
 import { getHeroTrustContent } from '@/lib/hero-trust-server'
+import { getHeroTopBulletTexts } from '@/lib/hero-top-bullets-server'
 import { SITE_ICONS } from '@/lib/site-icons'
 
 /** Market is chosen from host / localhost cookie — never share one cached `/` across NZ, UK, and International. */
@@ -35,9 +36,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   const copy = await getMarketCopy()
-  const [heroTrust, backgroundHoldSeconds] = await Promise.all([
+  const [heroTrust, backgroundHoldSeconds, topBullets] = await Promise.all([
     getHeroTrustContent(),
     getHeroBackgroundHoldSeconds(),
+    getHeroTopBulletTexts(),
   ])
 
   const localBusinessSchema = {
@@ -128,7 +130,11 @@ export default async function Page() {
       />
       <main>
         <Navbar />
-        <Hero trust={heroTrust} backgroundHoldSeconds={backgroundHoldSeconds} />
+        <Hero
+          trust={heroTrust}
+          backgroundHoldSeconds={backgroundHoldSeconds}
+          topBullets={topBullets}
+        />
         <Services />
         <HowWeWork />
         <CaseStudiesSection />

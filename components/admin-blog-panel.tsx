@@ -2,8 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { Plus, Trash2, Upload, Eye, Sparkles, ArrowUp, ArrowDown, ArrowUpDown, Loader2, ImageOff, ImagePlus } from 'lucide-react'
+import { Plus, Trash2, Upload, Eye, Sparkles, ArrowUp, ArrowDown, ArrowUpDown, Loader2, ImageOff, ImagePlus, Download } from 'lucide-react'
 import type { BlogPostRecord } from '@/lib/blog-shared'
+import {
+  blogExportFilename,
+  blogExportJson,
+  buildBlogExport,
+  type BlogExportScope,
+} from '@/lib/blog-export'
 import { AdminDialog } from '@/components/admin-dialog'
 import {
   AdminBlogPreviewShell,
@@ -387,12 +393,49 @@ export function AdminBlogPanel() {
     })
   }
 
+  function selectAll() {
+    setSelected(new Set(rows.map((r) => r.slug)))
+  }
+
   function selectAllFiltered() {
     setSelected(new Set(filtered.map((r) => r.slug)))
   }
 
   function clearSelection() {
     setSelected(new Set())
+  }
+
+  function selectedPosts(): BlogPostRecord[] {
+    return rows.filter((r) => selected.has(r.slug))
+  }
+
+  function exportPosts(posts: BlogPostRecord[], scope: BlogExportScope) {
+    if (!posts.length) {
+      setError(
+        scope === 'selected'
+          ? 'Select one or more posts to export.'
+          : scope === 'filtered'
+            ? 'No posts match the current filter to export.'
+            : 'No blog posts to export.'
+      )
+      return
+    }
+    setError(null)
+    const filename = blogExportFilename(scope)
+    const blob = new Blob([blogExportJson(buildBlogExport(posts, scope))], {
+      type: 'application/json;charset=utf-8',
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    setMessage(
+      `Exported ${posts.length} post${posts.length === 1 ? '' : 's'} to ${filename}.`
+    )
   }
 
   async function setPublishedForSlugs(slugs: string[], published: boolean) {
@@ -1407,14 +1450,25 @@ export function AdminBlogPanel() {
               Live posts in Firebase <code className="text-xs">blogPosts</code>.
               Use <strong>New with AI</strong> to draft markdown copy and a hero
               image from a system prompt library, or create manually. Filter
-              drafts vs published, select rows, then batch publish or unpublish
-              (hide from the public blog). NZ, International, and UK checkboxes
+              drafts vs published, select rows, then batch publish, unpublish,
+              or export. <strong>Export all</strong> (or export selected)
+              downloads a JSON file with every field including full article
+              body, for quality review. NZ, International, and UK checkboxes
               default to all three sites; uncheck one to hide a regional post
               from that market. Use the market filters or click column headers
               to isolate NZ-only, International-only, or UK-only posts.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy || rows.length === 0}
+              onClick={() => exportPosts(rows, 'all')}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+            >
+              <Download className="h-4 w-4" />
+              Export all ({rows.length})
+            </button>
             <button
               type="button"
               disabled={busy}
@@ -1543,6 +1597,14 @@ export function AdminBlogPanel() {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
+            disabled={busy || rows.length === 0}
+            onClick={selectAll}
+            className="rounded-md border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+          >
+            Select all ({rows.length})
+          </button>
+          <button
+            type="button"
             disabled={busy || filtered.length === 0}
             onClick={selectAllFiltered}
             className="rounded-md border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
@@ -1556,6 +1618,15 @@ export function AdminBlogPanel() {
             className="rounded-md border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
           >
             Clear selection
+          </button>
+          <button
+            type="button"
+            disabled={busy || selected.size === 0}
+            onClick={() => exportPosts(selectedPosts(), 'selected')}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-ink hover:bg-surface-raised disabled:opacity-60"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export selected ({selected.size})
           </button>
           <button
             type="button"
@@ -1577,9 +1648,7 @@ export function AdminBlogPanel() {
 
         <p className="mt-3 text-xs text-ink-muted">
           Showing {filtered.length} of {rows.length} posts
-          {selectedInView.length > 0
-            ? ` · ${selectedInView.length} selected`
-            : ''}
+          {selected.size > 0 ? ` · ${selected.size} selected` : ''}
         </p>
 
         <div className="mt-4 overflow-x-auto">
@@ -1587,7 +1656,31 @@ export function AdminBlogPanel() {
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-ink-muted">
                 <th className="py-2 pr-2 w-8">
-                  <span className="sr-only">Select</span>
+                  <input
+                    type="checkbox"
+                    checked={
+                      filtered.length > 0 &&
+                      selectedInView.length === filtered.length
+                    }
+                    disabled={busy || filtered.length === 0}
+                    onChange={() => {
+                      if (selectedInView.length === filtered.length) {
+                        setSelected((prev) => {
+                          const next = new Set(prev)
+                          for (const r of filtered) next.delete(r.slug)
+                          return next
+                        })
+                      } else {
+                        setSelected((prev) => {
+                          const next = new Set(prev)
+                          for (const r of filtered) next.add(r.slug)
+                          return next
+                        })
+                      }
+                    }}
+                    aria-label="Select all visible posts"
+                    title="Select all visible posts"
+                  />
                 </th>
                 <th className="py-2 pr-3">
                   <button

@@ -17,7 +17,6 @@ import {
 import { writeGeneratedFile } from '@/lib/write-generated-file'
 import {
   archiveHomeCaseStudies,
-  normalizeHomeCaseStudiesContent,
   type HomeCaseStudiesContent,
   type PublishedCaseStudiesHomeFile,
 } from '@/lib/case-studies-home'
@@ -60,13 +59,33 @@ export type HomeCaseStudiesDraft = HomeCaseStudiesContent & {
   updatedAt: string | null
 }
 
-async function readHomeDisplaySettings(): Promise<HomeCaseStudiesDisplay> {
+async function readHomeDoc(): Promise<{
+  display: HomeCaseStudiesDisplay
+  publishedAt: string | null
+  updatedAt: string | null
+}> {
   const snap = await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
     .doc(CASE_STUDIES_HOME_DOC_ID)
     .get()
-  if (!snap.exists) return normalizeHomeDisplaySettings(undefined)
-  return normalizeHomeDisplaySettings(snap.data())
+  if (!snap.exists) {
+    return {
+      display: normalizeHomeDisplaySettings(undefined),
+      publishedAt: null,
+      updatedAt: null,
+    }
+  }
+  const data = snap.data() as Record<string, unknown>
+  return {
+    display: normalizeHomeDisplaySettings(data),
+    publishedAt: typeof data.publishedAt === 'string' ? data.publishedAt : null,
+    updatedAt: firestoreUpdatedAt(data.updatedAt),
+  }
+}
+
+async function readHomeDisplaySettings(): Promise<HomeCaseStudiesDisplay> {
+  const { display } = await readHomeDoc()
+  return display
 }
 
 function snapshotFromRecords(
@@ -85,28 +104,18 @@ function snapshotFromRecords(
 }
 
 /**
- * Load homepage case studies snapshot from Firestore (localhost preview).
+ * Load homepage case studies for localhost preview.
+ * Always re-selects from live case-study records so preload count and
+ * Show-on-home toggles show up without waiting for a stale snapshot.
  */
 export async function fetchHomeCaseStudiesDraft(): Promise<HomeCaseStudiesDraft> {
-  const snap = await getAdminDb()
-    .collection(SITE_CONTENT_COLLECTION)
-    .doc(CASE_STUDIES_HOME_DOC_ID)
-    .get()
-
-  if (!snap.exists) {
-    return {
-      ...archiveHomeCaseStudies(),
-      publishedAt: null,
-      updatedAt: null,
-    }
-  }
-
-  const data = snap.data() as Record<string, unknown>
-  const content = normalizeHomeCaseStudiesContent(data)
+  const meta = await readHomeDoc()
+  const all = await fetchAllCaseStudyRecords()
+  const content = snapshotFromRecords(all, meta.display)
   return {
     ...content,
-    publishedAt: typeof data.publishedAt === 'string' ? data.publishedAt : null,
-    updatedAt: firestoreUpdatedAt(data.updatedAt),
+    publishedAt: meta.publishedAt,
+    updatedAt: meta.updatedAt,
   }
 }
 
@@ -117,17 +126,17 @@ export async function fetchHomeCaseStudiesDraft(): Promise<HomeCaseStudiesDraft>
 export async function saveHomeCaseStudiesDisplay(
   raw: unknown,
 ): Promise<HomeCaseStudiesDraft> {
-  const existing = await fetchHomeCaseStudiesDraft()
+  const meta = await readHomeDoc()
   const incoming = normalizeHomeDisplaySettings(raw)
   const display: HomeCaseStudiesDisplay = {
     initialCount:
       raw && typeof raw === 'object' && 'initialCount' in (raw as object)
         ? incoming.initialCount
-        : existing.initialCount,
+        : meta.display.initialCount,
     morePageSize:
       raw && typeof raw === 'object' && 'morePageSize' in (raw as object)
         ? incoming.morePageSize
-        : existing.morePageSize,
+        : meta.display.morePageSize,
   }
   const all = await fetchAllCaseStudyRecords()
   const content = snapshotFromRecords(all, display)
@@ -151,7 +160,7 @@ export async function saveHomeCaseStudiesDisplay(
 
   return {
     ...content,
-    publishedAt: existing.publishedAt,
+    publishedAt: meta.publishedAt,
     updatedAt,
   }
 }

@@ -29,7 +29,7 @@ export type SendEmailInput = {
    * Merged with reference_id when both are set.
    */
   customArgs?: Record<string, string>
-  /** Enable open + click tracking (campaign mailings). */
+  /** Enable open + click tracking. Off unless set — campaign mailings only. */
   tracking?: {
     open?: boolean
     click?: boolean

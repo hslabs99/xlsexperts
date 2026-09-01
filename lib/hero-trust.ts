@@ -141,6 +141,9 @@ export function heroClientFadeEasing(harshness: number): string {
 export const DEFAULT_HERO_CLIENT_HEADING =
   'Trusted by SMEs and Enterprise Clients'
 
+export const DEFAULT_HERO_PROJECTS_INTRO =
+  'Hundreds of custom business solutions delivered across engineering, finance, manufacturing, logistics and professional services.'
+
 export function normalizeHeroClientHeading(raw: unknown): string {
   let rec: unknown = raw
   if (raw && typeof raw === 'object' && 'content' in raw) {
@@ -160,11 +163,38 @@ export function normalizeHeroClientHeading(raw: unknown): string {
   return DEFAULT_HERO_CLIENT_HEADING
 }
 
+export function normalizeHeroProjectsIntro(raw: unknown): string {
+  let rec: unknown = raw
+  if (raw && typeof raw === 'object' && 'content' in raw) {
+    rec = (raw as { content: unknown }).content
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim().replace(/\s+/g, ' ')
+    return trimmed || DEFAULT_HERO_PROJECTS_INTRO
+  }
+  if (rec && typeof rec === 'object' && rec !== null) {
+    const data = rec as Record<string, unknown>
+    const value =
+      typeof data.intro === 'string'
+        ? data.intro
+        : typeof data.projectsIntro === 'string'
+          ? data.projectsIntro
+          : null
+    if (value != null) {
+      const trimmed = value.trim().replace(/\s+/g, ' ')
+      return trimmed || DEFAULT_HERO_PROJECTS_INTRO
+    }
+  }
+  return DEFAULT_HERO_PROJECTS_INTRO
+}
+
 export type HeroTrustContent = {
   projects: HeroProjectTile[]
   clients: HeroClientTile[]
   fade: HeroClientFade
   heading: string
+  /** Line above the Common projects tiles. */
+  projectsIntro: string
 }
 
 export type PublishedHeroClientsFile = {
@@ -180,7 +210,7 @@ export type PublishedHeroClientsFile = {
 export type PublishedHeroProjectsFile = {
   version: 1
   publishedAt: string
-  content: { projects: HeroProjectTile[] }
+  content: { intro: string; projects: HeroProjectTile[] }
 }
 
 export function slugifyHeroId(value: string): string {
@@ -365,6 +395,7 @@ export function defaultHeroTrustContent(): HeroTrustContent {
     clients: defaultHeroClients(),
     fade: { ...DEFAULT_HERO_CLIENT_FADE },
     heading: DEFAULT_HERO_CLIENT_HEADING,
+    projectsIntro: DEFAULT_HERO_PROJECTS_INTRO,
   }
 }
 
@@ -541,5 +572,6 @@ export function normalizeHeroTrustContent(raw: unknown): HeroTrustContent {
     projects: normalizeHeroProjects(raw),
     fade: normalizeHeroClientFade(raw),
     heading: normalizeHeroClientHeading(raw),
+    projectsIntro: normalizeHeroProjectsIntro(raw),
   }
 }

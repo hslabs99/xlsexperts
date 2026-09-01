@@ -23,6 +23,8 @@ export type SiteImageFolder =
   | 'hero-clients'
   | 'hero-projects'
 
+const MAX_PDF_BYTES = 12 * 1024 * 1024
+
 export type UploadImageInput = File | Blob | Uint8Array | Buffer
 
 function extensionFor(type: string): string {
@@ -96,4 +98,75 @@ export async function uploadSiteImageAdmin(
   return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(
     bucket.name
   )}/o/${encodeURIComponent(objectPath)}?alt=media&token=${downloadToken}`
+}
+
+function sanitizeAttachmentFilename(name: string): string {
+  const base = name.replace(/[^\w.\-]+/g, '_').replace(/^\.+/, '')
+  return base.slice(0, 180) || 'white-paper.pdf'
+}
+
+export async function uploadEmailPdfAttachmentAdmin(
+  templateId: string,
+  file: Buffer,
+  filename: string
+): Promise<{
+  storagePath: string
+  url: string
+  filename: string
+  contentType: string
+}> {
+  if (file.byteLength > MAX_PDF_BYTES) {
+    throw new Error('PDF must be no larger than 12 MB')
+  }
+  const header = file.subarray(0, 5).toString('ascii')
+  if (!header.startsWith('%PDF')) {
+    throw new Error('File must be a PDF')
+  }
+
+  const safeId = templateId.replace(/[^a-zA-Z0-9_-]/g, '')
+  if (!safeId) throw new Error('A valid template id is required')
+
+  const safeName = sanitizeAttachmentFilename(filename)
+  const objectPath = `email/attachments/${safeId}/${Date.now()}-${safeName}`
+  const downloadToken = randomUUID()
+  const bucket = getAdminStorage().bucket()
+  const object = bucket.file(objectPath)
+
+  await object.save(file, {
+    resumable: false,
+    metadata: {
+      contentType: 'application/pdf',
+      cacheControl: 'private, max-age=0, no-store',
+      metadata: {
+        firebaseStorageDownloadTokens: downloadToken,
+      },
+    },
+  })
+
+  return {
+    storagePath: objectPath,
+    url: `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(
+      bucket.name
+    )}/o/${encodeURIComponent(objectPath)}?alt=media&token=${downloadToken}`,
+    filename: safeName,
+    contentType: 'application/pdf',
+  }
+}
+
+export async function downloadStorageObject(objectPath: string): Promise<{
+  buffer: Buffer
+  contentType: string
+} | null> {
+  const path = objectPath.trim()
+  if (!path || path.includes('..')) return null
+  const bucket = getAdminStorage().bucket()
+  const object = bucket.file(path)
+  const [exists] = await object.exists()
+  if (!exists) return null
+  const [buffer] = await object.download()
+  const [metadata] = await object.getMetadata()
+  return {
+    buffer,
+    contentType: String(metadata.contentType || 'application/pdf'),
+  }
 }

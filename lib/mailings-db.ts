@@ -11,6 +11,7 @@ import {
 import {
   EMPTY_CAMPAIGN_STATS,
   htmlToPlainText,
+  isMailingContactSource,
   isMailingContactStatus,
   isMailingRegion,
   normalizeEmail,
@@ -24,7 +25,6 @@ import {
   type MailingCampaignStatus,
   type MailingContact,
   type MailingContactInput,
-  type MailingContactSource,
   type MailingContactStatus,
   type MailingRegion,
   type MailingSend,
@@ -47,11 +47,7 @@ function mapContact(
   const region: MailingRegion = isMailingRegion(data.region)
     ? data.region
     : 'NZ'
-  const source = (
-    ['upload', 'manual', 'enquiry', 'discovery'] as MailingContactSource[]
-  ).includes(data.source as MailingContactSource)
-    ? (data.source as MailingContactSource)
-    : 'manual'
+  const source = isMailingContactSource(data.source) ? data.source : 'manual'
 
   const hasOpened = Boolean(data.hasOpened)
   const hasClicked = Boolean(data.hasClicked)
@@ -305,24 +301,25 @@ export async function deleteMailingContact(id: string): Promise<void> {
 }
 
 /**
- * Upsert a prospect from enquiry / discovery booking.
+ * Upsert a prospect from enquiry / discovery booking / guide download.
  * Never downgrades client → prospect. Preserves unsubscribe.
  */
 export async function upsertProspectFromLead(input: {
   name: string
   email: string
   company?: string
-  source: 'enquiry' | 'discovery'
+  source: 'enquiry' | 'discovery' | 'guide'
   sector?: string
+  region?: MailingRegion
+  notes?: string
+  campaignTag?: string
 }): Promise<string | null> {
   const email = normalizeEmail(input.email)
   if (!email) return null
 
   const existing = await findMailingContactByEmail(email)
   if (existing) {
-    const patch: Record<string, unknown> = {
-      updatedAt: FieldValue.serverTimestamp(),
-    }
+    const patch: Parameters<typeof updateMailingContact>[1] = {}
     if (input.name.trim() && !existing.name) patch.name = input.name.trim()
     if (input.name.trim() && !existing.contact) {
       patch.contact = input.name.trim()
@@ -333,26 +330,41 @@ export async function upsertProspectFromLead(input: {
     if (input.sector?.trim() && !existing.sector) {
       patch.sector = input.sector.trim()
     }
-    // Keep client status; only set source if still empty-ish
-    if (Object.keys(patch).length > 1) {
-      await getAdminDb()
-        .collection(MAILING_CONTACTS_COLLECTION)
-        .doc(existing.id)
-        .update(patch)
+    if (input.notes?.trim()) {
+      const line = input.notes.trim()
+      const existingNotes = existing.notes?.trim() || ''
+      if (!existingNotes.includes(line)) {
+        patch.notes = existingNotes ? `${existingNotes}\n${line}` : line
+      }
+    }
+    if (input.campaignTag?.trim()) {
+      const tags = new Set(existing.campaignTags)
+      tags.add(input.campaignTag.trim())
+      patch.campaignTags = [...tags]
+    }
+    if (Object.keys(patch).length > 0) {
+      await updateMailingContact(existing.id, patch)
     }
     return existing.id
   }
 
-  return createMailingContact({
+  const id = await createMailingContact({
     contact: input.name.trim(),
     name: input.name.trim(),
     email,
     company: input.company?.trim() || '',
     sector: input.sector?.trim() || '',
     status: 'prospect',
-    region: 'NZ',
+    region: input.region ?? 'NZ',
     source: input.source,
+    notes: input.notes?.trim() || '',
   })
+  if (input.campaignTag?.trim()) {
+    await updateMailingContact(id, {
+      campaignTags: [input.campaignTag.trim()],
+    })
+  }
+  return id
 }
 
 export async function bulkUpsertMailingContacts(

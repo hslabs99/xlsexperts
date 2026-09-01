@@ -12,6 +12,7 @@ import { RelatedCaseStudies } from '@/components/solutions/related-case-studies'
 import { RelatedSolutions } from '@/components/solutions/related-solutions'
 import { SolutionFAQ, solutionFaqJsonLd } from '@/components/solutions/solution-faq'
 import { SolutionCTA } from '@/components/solutions/solution-cta'
+import { SolutionGuideCapture } from '@/components/solutions/solution-guide-capture'
 import { solutionsBreadcrumbJsonLd } from '@/components/solutions/breadcrumbs'
 import { Contact } from '@/components/contact'
 import { Navbar } from '@/components/navbar'
@@ -92,6 +93,7 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
           heading={solution.heroHeading}
           subheading={solution.heroSubheading}
           introduction={solution.heroIntroduction}
+          afterIntroduction={solution.heroAfterIntroduction}
           primaryCta={{
             label: solution.primaryCtaLabel ?? 'Discuss your project',
             href: contactHref,
@@ -121,6 +123,10 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
           />
         ) : (
           <>
+            {solution.afterIntroSections &&
+              solution.afterIntroSections.length > 0 && (
+                <SolutionDeepContent sections={solution.afterIntroSections} />
+              )}
             <ProblemSigns
               heading={solution.problemsHeading}
               problems={solution.problems}
@@ -129,14 +135,28 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
               heading={solution.capabilitiesHeading}
               capabilities={solution.capabilities}
             />
+            {solution.afterCapabilitiesSections &&
+              solution.afterCapabilitiesSections.length > 0 && (
+                <SolutionDeepContent
+                  sections={solution.afterCapabilitiesSections}
+                />
+              )}
+            {solution.leadMagnet && (
+              <SolutionGuideCapture magnet={solution.leadMagnet} />
+            )}
             <UseCaseGrid
               heading={solution.useCasesHeading}
               useCases={solution.useCases}
             />
+            {solution.afterUseCasesSections &&
+              solution.afterUseCasesSections.length > 0 && (
+                <SolutionDeepContent sections={solution.afterUseCasesSections} />
+              )}
             <TechnologyStrip
               heading={solution.technologyHeading}
               notes={solution.technologyNotes}
               technologies={solution.technologies}
+              align={solution.technologyAlign}
             />
             {solution.approachHeading && solution.approachBody && (
               <section className="bg-white py-12">
@@ -191,6 +211,9 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
           />
         </div>
         <SolutionFAQ faqs={solution.faqs} />
+        {solution.leadMagnet && (
+          <SolutionGuideCapture magnet={solution.leadMagnet} compact />
+        )}
         <SolutionCTA
           heading={solution.ctaHeading}
           body={solution.ctaBody}

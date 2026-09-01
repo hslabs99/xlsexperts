@@ -12,6 +12,7 @@ const published = {
   "version": 1,
   "publishedAt": "2026-08-27T03:12:40.115Z",
   "content": {
+    "intro": "Hundreds of custom business solutions delivered across engineering, finance, manufacturing, logistics and professional services.",
     "projects": [
       {
         "id": "financial-modelling-dashboards",

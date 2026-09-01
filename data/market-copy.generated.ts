@@ -72,6 +72,25 @@ const published = {
       },
       "caseStudies": {
         "homeIntro": "Real problems, real solutions. A sample of what we have built for NZ businesses across industries."
+      },
+      "howWeWork": {
+        "eyebrow": "Our process",
+        "heading": "How we work",
+        "intro": "Simple, transparent, and designed around you — whether this is your first time outsourcing a spreadsheet or you are running a complex enterprise rollout.",
+        "step1Title": "Discovery call",
+        "step1Description": "We start with a free 30-minute call to understand your problem, your data, and what a good outcome looks like. No jargon, no sales pitch — just a straightforward conversation about what you need.",
+        "step2Title": "Scoping & quote",
+        "step2Description": "We send you a clear written scope of work and a fixed price or hourly estimate before anything starts. You know exactly what you are getting and what it will cost — no surprises.",
+        "step3Title": "Build & review",
+        "step3Description": "We build in stages and share progress as we go. You get to review, give feedback, and request adjustments before the final delivery. Your input shapes the outcome.",
+        "step4Title": "Handover & support",
+        "step4Description": "We deliver clean, well-documented work with a handover session so your team can actually use it. Ongoing support and enhancements are available whenever you need us.",
+        "principle1": "Plain English communication — no IT jargon",
+        "principle2": "You own everything we build, no lock-in",
+        "principle3": "We work with your existing tools and systems",
+        "principle4": "Available for both one-off projects and ongoing retainers",
+        "ctaPrompt": "Ready to get started?",
+        "ctaLabel": "Book a free discovery call"
       }
     },
     "intl": {
@@ -134,6 +153,25 @@ const published = {
       },
       "caseStudies": {
         "homeIntro": "Real problems, real solutions. A sample of what we have built for businesses across USA, Canada, United Kingdom, Australia"
+      },
+      "howWeWork": {
+        "eyebrow": "Our process",
+        "heading": "How we work",
+        "intro": "Simple, transparent, and designed around you — whether this is your first time outsourcing a spreadsheet or you are running a complex enterprise rollout.",
+        "step1Title": "Discovery call",
+        "step1Description": "We start with a free 30-minute call to understand your problem, your data, and what a good outcome looks like. No jargon, no sales pitch — just a straightforward conversation about what you need.",
+        "step2Title": "Scoping & quote",
+        "step2Description": "We send you a clear written scope of work and a fixed price or hourly estimate before anything starts. You know exactly what you are getting and what it will cost — no surprises.",
+        "step3Title": "Build & review",
+        "step3Description": "We build in stages and share progress as we go. You get to review, give feedback, and request adjustments before the final delivery. Your input shapes the outcome.",
+        "step4Title": "Handover & support",
+        "step4Description": "We deliver clean, well-documented work with a handover session so your team can actually use it. Ongoing support and enhancements are available whenever you need us.",
+        "principle1": "Plain English communication — no IT jargon",
+        "principle2": "You own everything we build, no lock-in",
+        "principle3": "We work with your existing tools and systems",
+        "principle4": "Available for both one-off projects and ongoing retainers",
+        "ctaPrompt": "Ready to get started?",
+        "ctaLabel": "Book a free discovery call"
       }
     },
     "uk": {
@@ -196,6 +234,25 @@ const published = {
       },
       "caseStudies": {
         "homeIntro": "Real problems, real solutions. A sample of what we have built for businesses just like yours"
+      },
+      "howWeWork": {
+        "eyebrow": "Our process",
+        "heading": "How we work",
+        "intro": "Simple, transparent, and designed around you — whether this is your first time outsourcing a spreadsheet or you are running a complex enterprise rollout.",
+        "step1Title": "Discovery call",
+        "step1Description": "We start with a free 30-minute call to understand your problem, your data, and what a good outcome looks like. No jargon, no sales pitch — just a straightforward conversation about what you need.",
+        "step2Title": "Scoping & quote",
+        "step2Description": "We send you a clear written scope of work and a fixed price or hourly estimate before anything starts. You know exactly what you are getting and what it will cost — no surprises.",
+        "step3Title": "Build & review",
+        "step3Description": "We build in stages and share progress as we go. You get to review, give feedback, and request adjustments before the final delivery. Your input shapes the outcome.",
+        "step4Title": "Handover & support",
+        "step4Description": "We deliver clean, well-documented work with a handover session so your team can actually use it. Ongoing support and enhancements are available whenever you need us.",
+        "principle1": "Plain English communication — no IT jargon",
+        "principle2": "You own everything we build, no lock-in",
+        "principle3": "We work with your existing tools and systems",
+        "principle4": "Available for both one-off projects and ongoing retainers",
+        "ctaPrompt": "Ready to get started?",
+        "ctaLabel": "Book a free discovery call"
       }
     }
   },

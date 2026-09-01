@@ -14,8 +14,18 @@ export const MAILING_CONTACT_SOURCES = [
   'manual',
   'enquiry',
   'discovery',
+  'guide',
 ] as const
 export type MailingContactSource = (typeof MAILING_CONTACT_SOURCES)[number]
+
+export function isMailingContactSource(
+  value: unknown
+): value is MailingContactSource {
+  return (
+    typeof value === 'string' &&
+    (MAILING_CONTACT_SOURCES as readonly string[]).includes(value)
+  )
+}
 
 export const MAILING_CAMPAIGN_STATUSES = [
   'draft',
