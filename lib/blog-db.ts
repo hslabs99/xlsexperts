@@ -134,10 +134,16 @@ async function fetchSortedPublishedRecords(
   ).filter((record) => blogVisibleOnMarket(record, market))
 }
 
+export async function fetchPublishedBlogRecords(
+  market: MarketId
+): Promise<BlogPostRecord[]> {
+  return fetchSortedPublishedRecords(market)
+}
+
 export async function fetchPublishedBlogPosts(
   market: MarketId
 ): Promise<BlogPost[]> {
-  const records = await fetchSortedPublishedRecords(market)
+  const records = await fetchPublishedBlogRecords(market)
   return records.map(toPublicBlogPost)
 }
 

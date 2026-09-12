@@ -46,6 +46,13 @@ export default async function BlogIndex() {
         </div>
 
         <BlogIndexClient posts={posts} />
+        <nav className="sr-only" aria-label="All blog posts">
+          {posts.map((post) => (
+            <a key={post.slug} href={`/blog/${post.slug}`}>
+              {post.title}
+            </a>
+          ))}
+        </nav>
       </main>
     </>
   )

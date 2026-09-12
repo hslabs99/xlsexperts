@@ -8,27 +8,50 @@
 
 import 'server-only'
 
+import type { MarketId } from '@/lib/market'
 import type { BlogListItem, BlogPost } from '@/lib/types'
 import {
+  fetchBlogPostRecordBySlug,
   fetchPublishedBlogList,
-  fetchPublishedBlogPostBySlug,
   fetchPublishedBlogPosts,
+  fetchPublishedBlogRecords,
+  toPublicBlogPost,
 } from '@/lib/blog-db'
+import {
+  blogVisibleOnMarket,
+  visibleMarketsForBlog,
+  type BlogPostRecord,
+} from '@/lib/blog-shared'
 import { getMarket } from '@/lib/market-server'
+import { applyBlogPresentation } from '@/lib/blog-presentation'
+
+export type PublicBlogPost = BlogPost & { visibleOn: MarketId[] }
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
   const market = await getMarket()
-  return fetchPublishedBlogPosts(market)
+  const posts = await fetchPublishedBlogPosts(market)
+  return posts.map((post) => applyBlogPresentation(post, market))
 }
 
-/** Index cards only — omits heavy section bodies. */
+export async function getPublishedBlogRecords(): Promise<BlogPostRecord[]> {
+  const market = await getMarket()
+  return fetchPublishedBlogRecords(market)
+}
+
+/** Index cards only — omits heavy article bodies. */
 export async function getBlogListPosts(): Promise<BlogListItem[]> {
   const market = await getMarket()
-  return fetchPublishedBlogList(market)
+  const posts = await fetchPublishedBlogList(market)
+  return posts.map((post) => applyBlogPresentation(post, market))
 }
 
-export async function getBlogPost(slug: string): Promise<BlogPost | undefined> {
+export async function getBlogPost(
+  slug: string
+): Promise<PublicBlogPost | undefined> {
   const market = await getMarket()
-  const post = await fetchPublishedBlogPostBySlug(slug, market)
-  return post ?? undefined
+  const record = await fetchBlogPostRecordBySlug(slug)
+  if (!record || !record.published) return undefined
+  if (!blogVisibleOnMarket(record, market)) return undefined
+  const post = applyBlogPresentation(toPublicBlogPost(record), market)
+  return { ...post, visibleOn: visibleMarketsForBlog(record) }
 }

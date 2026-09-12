@@ -5,6 +5,7 @@ import { FloatingConsultationCta } from '@/components/floating-consultation-cta'
 import { FunnelTracker } from '@/components/funnel-tracker'
 import { MarketProvider } from '@/components/market-provider'
 import { LocalMarketSwitcher } from '@/components/local-market-switcher'
+import { PublicSiteFooter } from '@/components/public-site-footer'
 import {
   brandLabelsFromBundle,
   keywordsToArray,
@@ -38,10 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { site } = copy
   return {
     metadataBase: new URL(site.origin),
-    title: {
-      default: site.defaultTitle,
-      template: '%s | XLS Experts',
-    },
+    title: site.defaultTitle,
     description: site.defaultDescription,
     keywords: keywordsToArray(site.keywords),
     authors: [{ name: 'XLS Experts', url: site.origin }],
@@ -74,9 +72,6 @@ export async function generateMetadata(): Promise<Metadata> {
       title: site.twitterTitle,
       description: site.twitterDescription,
       images: ['/images/og-default.png'],
-    },
-    alternates: {
-      canonical: site.origin,
     },
   }
 }
@@ -113,6 +108,7 @@ export default async function RootLayout({
           <SiteTags />
           <FunnelTracker />
           {children}
+          <PublicSiteFooter />
           <FloatingConsultationCta />
         </MarketProvider>
       </body>

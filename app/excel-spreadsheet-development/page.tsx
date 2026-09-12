@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
@@ -184,7 +184,7 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
           </div>
         </section>
 
-        <Contact />
+        <PageContact topicHref="/excel-spreadsheet-development" />
       </main>
     </>
   )

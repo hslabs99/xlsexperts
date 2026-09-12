@@ -5,8 +5,11 @@ import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { hasBlogImageSrc } from '@/lib/blog-image-src'
 import { renderBlogInline } from '@/lib/blog-inline-markup'
 import { getSiteOrigin } from '@/lib/market-server'
+import { absoluteOnOrigin } from '@/lib/regions'
+import { documentTitle, marketPathAlternates } from '@/lib/seo'
 import { SITE_ICONS } from '@/lib/site-icons'
 import { Navbar } from '@/components/navbar'
+import { BlogServiceLinks } from '@/components/blog-service-links'
 import { BlogSafeImage } from '@/components/blog-safe-image'
 import { ArrowLeft } from 'lucide-react'
 
@@ -29,7 +32,7 @@ export async function generateMetadata({
   if (!post) redirectUnknownBlogSlug()
 
   const origin = await getSiteOrigin()
-  const url = `${origin}/blog/${post.slug}`
+  const url = absoluteOnOrigin(origin, `/blog/${post.slug}`)
   const imageUrl = hasBlogImageSrc(post.image)
     ? post.image.startsWith('http')
       ? post.image
@@ -37,11 +40,13 @@ export async function generateMetadata({
     : undefined
 
   return {
-    title: post.title,
+    title: { absolute: documentTitle(post.title) },
     description: post.excerpt,
     authors: [{ name: 'XLS Experts' }],
     icons: SITE_ICONS,
-    alternates: { canonical: url },
+    alternates: await marketPathAlternates(`/blog/${post.slug}`, {
+      markets: post.visibleOn,
+    }),
     openGraph: {
       type: 'article',
       url,
@@ -99,7 +104,7 @@ export default async function BlogPost({
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${origin}/blog/${post.slug}`,
+      '@id': absoluteOnOrigin(origin, `/blog/${post.slug}`),
     },
   }
 
@@ -173,6 +178,7 @@ export default async function BlogPost({
           </Link>
 
           <article className="prose prose-gray max-w-none">
+          <BlogServiceLinks slug={post.slug} category={post.category} />
             {post.sections.map((section, i) => {
               if (section.type === 'h2') {
                 return (

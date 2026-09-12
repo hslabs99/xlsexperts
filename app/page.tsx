@@ -9,29 +9,20 @@ import { Contact } from '@/components/contact'
 import { getMarketCopy, getHeroBackgroundHoldSeconds } from '@/lib/market-server'
 import { getHeroTrustContent } from '@/lib/hero-trust-server'
 import { getHeroTopBulletTexts } from '@/lib/hero-top-bullets-server'
-import { SITE_ICONS } from '@/lib/site-icons'
+import { marketLocalBusinessSchema, marketPageMetadata } from '@/lib/seo'
 
 /** Market is chosen from host / localhost cookie — never share one cached `/` across NZ, UK, and International. */
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
   const copy = await getMarketCopy()
-  return {
-    title: {
-      absolute: copy.home.metaTitle,
-    },
+  return marketPageMetadata({
+    path: '/',
+    title: copy.home.metaTitle,
     description: copy.home.metaDescription,
-    icons: SITE_ICONS,
-    alternates: {
-      canonical: copy.site.origin,
-    },
-    openGraph: {
-      title: copy.home.metaTitle,
-      description: copy.home.metaDescription,
-      url: copy.site.origin,
-      images: [{ url: '/images/og-default.png', width: 1200, height: 630 }],
-    },
-  }
+    ogTitle: copy.home.metaTitle,
+    ogDescription: copy.home.metaDescription,
+  })
 }
 
 export default async function Page() {
@@ -42,34 +33,7 @@ export default async function Page() {
     getHeroTopBulletTexts(),
   ])
 
-  const localBusinessSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'ProfessionalService',
-    name: 'XLS Experts',
-    description: copy.home.schemaDescription,
-    url: copy.site.origin,
-    logo: `${copy.site.origin}/images/xls-experts-logo.png`,
-    areaServed: {
-      '@type': 'Country',
-      name: copy.home.schemaAreaServed,
-    },
-    address: {
-      '@type': 'PostalAddress',
-      addressCountry: copy.home.schemaAddressCountry,
-      addressLocality: copy.home.schemaAddressLocality,
-    },
-    knowsAbout: [
-      'Excel VBA development',
-      'Spreadsheet automation',
-      'Excel dashboard development',
-      'Financial modelling',
-      'Power Query',
-      'Business process automation',
-      'Excel consulting',
-      'Data analysis',
-    ],
-    sameAs: [copy.site.origin],
-  }
+  const localBusinessSchema = await marketLocalBusinessSchema()
 
   const faqSchema = {
     '@context': 'https://schema.org',

@@ -63,4 +63,15 @@ export function blogVisibleOnMarket(
   return record.showUsa
 }
 
+/** Markets where this post returns 200 (for existence-aware hreflang). */
+export function visibleMarketsForBlog(
+  record: Pick<BlogPostRecord, 'showNz' | 'showUsa' | 'showUk'>
+): MarketId[] {
+  const markets: MarketId[] = []
+  if (record.showNz) markets.push('nz')
+  if (record.showUsa) markets.push('intl')
+  if (record.showUk) markets.push('uk')
+  return markets
+}
+
 export type { BlogPost, BlogSection, BlogListItem }

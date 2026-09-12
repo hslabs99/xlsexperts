@@ -14,7 +14,7 @@ import { SolutionFAQ, solutionFaqJsonLd } from '@/components/solutions/solution-
 import { SolutionCTA } from '@/components/solutions/solution-cta'
 import { SolutionGuideCapture } from '@/components/solutions/solution-guide-capture'
 import { solutionsBreadcrumbJsonLd } from '@/components/solutions/breadcrumbs'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { Navbar } from '@/components/navbar'
 import { getMarketCopy } from '@/lib/market-server'
 import {
@@ -55,10 +55,13 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
       '@type': 'ProfessionalService',
       name: 'XLS Experts',
       url: origin,
-      areaServed: { '@type': 'Place', name: areaServed },
+      areaServed: { '@type': 'Country', name: areaServed },
+      telephone: copy.contact.phoneTel.startsWith('+')
+        ? copy.contact.phoneTel
+        : `+${copy.contact.phoneTel.replace(/\D/g, '')}`,
     },
-    url: `${origin}${solution.href}`,
-    areaServed: { '@type': 'Place', name: areaServed },
+    url: `${origin.replace(/\/+$/, '')}${solution.href}`,
+    areaServed: { '@type': 'Country', name: areaServed },
     serviceType: solution.title,
   }
 
@@ -220,7 +223,7 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
           href={contactHref}
           label={solution.ctaButtonLabel}
         />
-        <Contact />
+        <PageContact topicHref={solution.href} />
       </main>
     </>
   )

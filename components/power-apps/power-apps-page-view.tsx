@@ -1,4 +1,4 @@
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { powerAppsNavItems } from '@/lib/power-apps-page'
 import { PageSectionNav } from '@/components/web-applications/page-section-nav'
 import { PowerAppsCapabilityStrip, PowerAppsHero } from './power-apps-hero'
@@ -43,7 +43,7 @@ export function PowerAppsPageView({
       <PowerAppsFaqSection />
       <PowerAppsRelatedLinks />
       <PowerAppsCta />
-      <Contact />
+      <PageContact topicHref="/power-apps-dataverse-development" />
     </main>
   )
 }

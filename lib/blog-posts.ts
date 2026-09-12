@@ -600,15 +600,15 @@ export const blogPosts: BlogPost[] = [
   },
   {
     slug: 'ai-workflow-automation-new-zealand-business',
-    title: 'A.I. Workflow Automation for New Zealand Businesses: Where to Start',
+    title: 'How teams actually run AI workflows in Excel',
     author: 'Mike',
     date: 'May 22, 2025',
     readTime: '5 min read',
     category: 'A.I. Solutions',
     image: '/images/blog-ai.png',
-    excerpt: 'A.I. workflow automation is no longer just for large enterprises. New Zealand businesses of all sizes are using tools like N8N, Zapier, and custom LLM integrations to automate repetitive knowledge work — and the results are significant.',
+    excerpt: 'Real examples of AI sitting on top of Excel: reading documents, classifying work, and drafting commentary — without ripping out the spreadsheet. See how teams actually start.',
     sections: [
-      { type: 'h2', heading: 'What is A.I. Workflow Automation?', text: 'A.I. workflow automation combines traditional process automation with artificial intelligence capabilities — natural language processing, document understanding, data classification, and generative content. Rather than simply moving data from one place to another, A.I.-powered workflows can read documents, interpret content, make decisions, draft responses, and flag exceptions, reducing the need for human handling of routine cognitive tasks.' },
+      { type: 'h2', heading: 'What these workflows look like day to day', text: 'A.I. workflow automation combines traditional process automation with artificial intelligence capabilities — natural language processing, document understanding, data classification, and generative content. Rather than simply moving data from one place to another, A.I.-powered workflows can read documents, interpret content, make decisions, draft responses, and flag exceptions, reducing the need for human handling of routine cognitive tasks.' },
       { type: 'p', text: 'For New Zealand businesses, this represents a significant opportunity. Tasks that previously required dedicated staff — processing incoming emails, categorising support requests, extracting data from documents, generating routine reports, drafting client communications — can now be handled automatically with a high degree of accuracy.' },
       { type: 'h2', heading: 'Tools We Work With' },
       { type: 'ul', items: ['N8N — open source workflow automation with A.I. capabilities', 'Zapier — no-code integration for common business tools', 'OpenAI and Anthropic APIs — LLM-powered content and data processing', 'Google Cloud AI services', 'Amazon Web Services AI', 'Microsoft Azure Cognitive Services', 'Custom Python-based automation pipelines', 'Excel and Google Sheets with LLM integrations'] },

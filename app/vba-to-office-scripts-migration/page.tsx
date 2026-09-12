@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { CheckCircle, AlertTriangle, ArrowRight, XCircle } from 'lucide-react'
 
@@ -462,7 +462,7 @@ export default async function VBAToOfficeScriptsMigrationPage() {
           </div>
         </section>
 
-        <Contact />
+        <PageContact topicHref="/vba-to-office-scripts-migration" />
       </main>
     </>
   )

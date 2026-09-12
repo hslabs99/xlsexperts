@@ -108,7 +108,7 @@ export function Navbar() {
             aria-hidden="true"
           />
         </button>
-        {open && (
+        {open ? (
           <div
             className={`absolute top-full z-50 mt-3 rounded-lg border border-gray-200 bg-white py-2 shadow-lg ${
               kind === 'solutions'
@@ -144,6 +144,15 @@ export function Navbar() {
                 </a>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="sr-only" aria-hidden="true">
+            <a href={overviewHref}>{overviewLabel}</a>
+            {items.map((item) => (
+              <a key={item.href} href={item.href}>
+                {item.label}
+              </a>
+            ))}
           </div>
         )}
       </div>

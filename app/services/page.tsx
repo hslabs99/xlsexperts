@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { marketPageMetadata } from '@/lib/seo'
 import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { serviceIcons } from '@/components/service-icons'
 import { servicePages } from '@/lib/service-pages'
 
@@ -94,7 +94,7 @@ export default function AllServicesPage() {
           </div>
         </div>
       </section>
-      <Contact />
+      <PageContact topicHref="/excel-spreadsheet-development" />
     </main>
   )
 }

@@ -122,16 +122,12 @@ export function Hero({
 
         {/* Headline */}
         <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-[56px]">
-          We automate your{' '}
-          <span style={{ color: '#1a6b3c' }}>Excel and Google spreadsheets,</span>{' '}
-          business data and workflows.
+          {copy.hero.headline}
         </h1>
 
         {/* Body copy */}
         <p className="mx-auto mt-4 max-w-2xl text-balance text-base font-medium leading-relaxed text-gray-800">
-          Whether you&apos;re managing a complex financial model, replacing manual reporting,
-          building a costing solution or looking to build a custom business application, we create
-          practical solutions that save time, improve accuracy and scale with your business.
+          {copy.hero.subhead}
         </p>
 
         {/* Trust checklist */}

@@ -101,6 +101,17 @@ const published = {
           "Automation"
         ],
         "icon": "ai"
+      },
+      {
+        "href": "/power-query-consulting",
+        "title": "Power Query Consulting",
+        "description": "Automated data pipelines in Excel and Power BI that eliminate manual preparation, standardise messy exports, and keep dashboards always current.",
+        "tags": [
+          "Power Query",
+          "ETL",
+          "Power BI"
+        ],
+        "icon": "powerQuery"
       }
     ]
   }

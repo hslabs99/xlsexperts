@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { Navbar } from '@/components/navbar'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight, Database, Globe, RefreshCw, Users } from 'lucide-react'
@@ -340,7 +340,7 @@ export default async function ExcelIntegrationsPage() {
           </div>
         </section>
 
-        <Contact />
+        <PageContact topicHref="/excel-integrations" />
       </main>
     </>
   )

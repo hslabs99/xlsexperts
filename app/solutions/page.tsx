@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Navbar } from '@/components/navbar'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { ProcessSteps } from '@/components/solutions/process-steps'
 import { PathwayDiagram } from '@/components/solutions/pathway-diagram'
 import { SolutionCTA } from '@/components/solutions/solution-cta'
@@ -283,7 +283,7 @@ export default async function SolutionsIndexPage() {
           body="Describe what is not working today, who uses it, and what a better system would achieve. We will recommend a practical next step."
           href="#contact"
         />
-        <Contact />
+        <PageContact topicHref="/excel-spreadsheet-development" />
       </main>
     </>
   )

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
+import { getMarket } from '@/lib/market-server'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { serpTokensForMarket } from '@/lib/regions'
 import { Navbar } from '@/components/navbar'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
@@ -141,6 +143,8 @@ const faqSchema = {
 
 export default async function AIWorkflowAndBusinessProcessAutomationPage() {
   const seo = await getPageSeo('/ai-workflow-and-business-process-automation')
+  const market = await getMarket()
+  const { region } = serpTokensForMarket(market)
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles(PAGE_HREF)
   return (
@@ -187,6 +191,19 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
             >
               Book a free consultation <ArrowRight className="h-4 w-4" />
             </a>
+          </div>
+        </section>
+
+        <section className="py-8" style={{ backgroundColor: '#e8f5ee' }}>
+          <div className="mx-auto max-w-3xl px-6 text-center">
+            <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
+              AI workflow automation for {region} businesses
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              We design, build and govern the process — Excel, VBA, Power
+              Automate and AI — so your team stops doing the reading, copying
+              and chasing by hand.
+            </p>
           </div>
         </section>
 
@@ -393,7 +410,7 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
           </div>
         </section>
 
-        <Contact />
+        <PageContact topicHref={PAGE_HREF} />
       </main>
     </>
   )

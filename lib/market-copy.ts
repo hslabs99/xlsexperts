@@ -79,6 +79,10 @@ export type MarketCopy = {
     trustBased: string
     statValue: string
     statLabel: string
+    /** Visible H1 under the green region line. */
+    headline: string
+    /** Supporting paragraph under the H1. */
+    subhead: string
   }
   about: {
     intro: string
@@ -221,6 +225,18 @@ export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
   { path: 'hero.trustBased', label: 'Trust point (based)', group: 'Hero' },
   { path: 'hero.statValue', label: 'Stat value (e.g. 100% NZ)', group: 'Hero' },
   { path: 'hero.statLabel', label: 'Stat label', group: 'Hero' },
+  {
+    path: 'hero.headline',
+    label: 'Hero H1',
+    group: 'Hero',
+    multiline: true,
+  },
+  {
+    path: 'hero.subhead',
+    label: 'Hero supporting paragraph',
+    group: 'Hero',
+    multiline: true,
+  },
 
   {
     path: 'about.intro',
@@ -317,6 +333,10 @@ export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
     trustBased: 'New Zealand based',
     statValue: '100% NZ',
     statLabel: 'Based team, local expertise',
+    headline:
+      'We automate your Excel and Google spreadsheets for New Zealand businesses.',
+    subhead:
+      'Whether you are managing a financial model, replacing manual reporting, or building a costing tool, we create practical NZD-quoted solutions that save time and scale with your business.',
   },
   about: {
     intro:
@@ -382,6 +402,14 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
   hero: {
     ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).hero,
     badgeSpecialists: 'Global Microsoft Excel Specialists',
+    line1: 'US & INTERNATIONAL',
+    trustBased: 'Serving US and global clients',
+    statValue: 'Global',
+    statLabel: 'US-facing team, delivered remotely',
+    headline:
+      'We automate Excel and Google Sheets for US and international teams.',
+    subhead:
+      'Whether you are managing a financial model, replacing manual reporting, or building a costing tool, we create practical USD-scoped solutions that save time and scale with your business.',
   },
   about: {
     ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).about,
@@ -445,6 +473,10 @@ export const DEFAULT_UK_MARKET_COPY: MarketCopy = {
     trustBased: 'Serving UK clients',
     statValue: 'UK',
     statLabel: 'Based expertise, delivered remotely',
+    headline:
+      'We automate Excel and Google spreadsheets for UK organisations.',
+    subhead:
+      'Whether you are managing a financial model, replacing manual reporting, or building a costing tool, we create practical GBP-quoted solutions that save time and scale with your organisation.',
   },
   about: {
     ...cloneMarketCopy(DEFAULT_INTL_MARKET_COPY).about,

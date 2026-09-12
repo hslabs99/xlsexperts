@@ -1,4 +1,4 @@
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import { WebApplicationsHero, CapabilityStrip } from './web-applications-hero'
 import { PageSectionNav } from './page-section-nav'
 import {
@@ -61,7 +61,7 @@ export function WebApplicationsPageView({
       <WebApplicationFAQ />
       <RelatedLinksSection />
       <WebApplicationCTA />
-      <Contact />
+      <PageContact topicHref="/web-applications" />
     </main>
   )
 }

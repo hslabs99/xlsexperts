@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowRight, CheckCircle } from 'lucide-react'
 import { Breadcrumbs } from '@/components/solutions/breadcrumbs'
-import { Contact } from '@/components/contact'
+import { PageContact } from '@/components/page-contact'
 import {
   useCaseNav,
   useCasesRelatedLinks,
@@ -1652,7 +1652,7 @@ Markup          $3,060`}</CodeBlock>
         </div>
       </section>
 
-      <Contact />
+      <PageContact topicHref="/use-cases" />
     </main>
   )
 }
