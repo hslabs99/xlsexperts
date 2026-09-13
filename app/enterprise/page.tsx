@@ -9,10 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
     path: '/enterprise',
     title: 'Excel in Enterprise Operational Applications',
     description:
-      'Governed enterprise Excel applications for New Zealand organisations. Pricing, forecasting, project controls, ERP extensions, documentation, UAT and long-term support—without replacing your core platforms.',
-    ogTitle: 'Excel in Enterprise Operational Applications | XLS Experts',
-    ogDescription:
-      'Turn spreadsheets into governed Excel applications your teams can rely on. Enterprise Excel consulting for SAP, JD Edwards, Simpro and Microsoft 365 environments across New Zealand.',
+      'Governed enterprise Excel applications. Pricing, forecasting, project controls, ERP extensions, documentation, UAT and long-term support—without replacing your core platforms.',
     ogImage: '/images/enterprise-hero.png',
   })
 }

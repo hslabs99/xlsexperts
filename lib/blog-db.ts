@@ -11,6 +11,7 @@ import {
   type BlogPostInput,
   type BlogPostRecord,
 } from '@/lib/blog-shared'
+import { blogSerpTemplateError } from '@/lib/blog-serp-copy'
 
 export type { BlogPostInput, BlogPostRecord } from '@/lib/blog-shared'
 
@@ -55,6 +56,8 @@ function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
     date: String(data.date ?? ''),
     readTime: String(data.readTime ?? ''),
     excerpt: String(data.excerpt ?? ''),
+    serpTitle: String(data.serpTitle ?? ''),
+    serpDescription: String(data.serpDescription ?? ''),
     image: String(data.image ?? ''),
     category: String(data.category ?? ''),
     sections: mapSections(data.sections),
@@ -83,6 +86,8 @@ export function toPublicBlogPost(record: BlogPostRecord): BlogPost {
     date: record.date,
     readTime: record.readTime,
     excerpt: record.excerpt,
+    serpTitle: record.serpTitle ?? '',
+    serpDescription: record.serpDescription ?? '',
     image: record.image,
     category: record.category,
     sections: record.sections,
@@ -97,6 +102,8 @@ export function toBlogListItem(record: BlogPostRecord): BlogListItem {
     date: record.date,
     readTime: record.readTime,
     excerpt: record.excerpt,
+    serpTitle: record.serpTitle ?? '',
+    serpDescription: record.serpDescription ?? '',
     image: record.image,
     category: record.category,
   }
@@ -182,6 +189,12 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
 
   const ref = getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(slug)
   const existing = await ref.get()
+  const serpTitle = (input.serpTitle ?? '').trim()
+  const serpDescription = (input.serpDescription ?? '').trim()
+  if (!existing.exists || serpTitle || serpDescription) {
+    const serpError = blogSerpTemplateError(serpTitle, serpDescription)
+    if (serpError) throw new Error(serpError)
+  }
 
   const payload = {
     slug,
@@ -190,6 +203,8 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
     date: input.date.trim(),
     readTime: input.readTime.trim(),
     excerpt: input.excerpt.trim(),
+    serpTitle,
+    serpDescription,
     image: input.image.trim(),
     category: input.category.trim(),
     sections: input.sections,
@@ -241,6 +256,20 @@ export async function updateBlogPostFields(
   if (patch.date !== undefined) payload.date = patch.date.trim()
   if (patch.readTime !== undefined) payload.readTime = patch.readTime.trim()
   if (patch.excerpt !== undefined) payload.excerpt = patch.excerpt.trim()
+  if (patch.serpTitle !== undefined) payload.serpTitle = patch.serpTitle.trim()
+  if (patch.serpDescription !== undefined) {
+    payload.serpDescription = patch.serpDescription.trim()
+  }
+  if (
+    patch.serpTitle !== undefined ||
+    patch.serpDescription !== undefined
+  ) {
+    const serpError = blogSerpTemplateError(
+      String(payload.serpTitle ?? patch.serpTitle ?? ''),
+      String(payload.serpDescription ?? patch.serpDescription ?? '')
+    )
+    if (serpError) throw new Error(serpError)
+  }
   if (patch.image !== undefined) payload.image = patch.image.trim()
   if (patch.category !== undefined) payload.category = patch.category.trim()
   if (patch.sections !== undefined) payload.sections = patch.sections

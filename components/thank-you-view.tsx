@@ -14,7 +14,8 @@ import {
   consumeLeadConversionToken,
   fireLeadConversionEvent,
 } from '@/lib/lead-conversion'
-import { useMarketCopy } from '@/components/market-provider'
+import { useMarket, useMarketCopy } from '@/components/market-provider'
+import { marketHasPublicTelephone } from '@/lib/regions'
 
 function parseLeadType(raw: string | null): ThankYouLeadType {
   return raw === 'discovery' ? 'discovery' : 'enquiry'
@@ -23,6 +24,8 @@ function parseLeadType(raw: string | null): ThankYouLeadType {
 export function ThankYouView() {
   const searchParams = useSearchParams()
   const marketCopy = useMarketCopy()
+  const { market } = useMarket()
+  const showTelephone = marketHasPublicTelephone(market)
   const type = parseLeadType(searchParams.get('type'))
   const day = searchParams.get('day')?.trim() || ''
   const time = searchParams.get('time')?.trim() || ''
@@ -128,6 +131,7 @@ export function ThankYouView() {
               <h2 className="text-sm font-bold uppercase tracking-widest text-gray-700">
                 Need us sooner?
               </h2>
+              {showTelephone ? (
               <a
                 href={`tel:${marketCopy.contact.phoneTel}`}
                 className="flex items-center gap-3 text-sm text-gray-600 transition-colors hover:text-gray-900"
@@ -139,6 +143,8 @@ export function ThankYouView() {
                 />
                 {marketCopy.contact.phoneDisplay}
               </a>
+              ) : null}
+              {showTelephone ? (
               <a
                 href={`https://wa.me/${marketCopy.contact.whatsapp}`}
                 target="_blank"
@@ -152,6 +158,7 @@ export function ThankYouView() {
                 />
                 {marketCopy.contact.whatsappLabel}
               </a>
+              ) : null}
             </div>
           </div>
 

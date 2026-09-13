@@ -23,6 +23,8 @@ const RESPONSE_SHAPE = `{
   "title": string,
   "slug": string,
   "excerpt": string,
+  "serpTitle": string,
+  "serpDescription": string,
   "category": string,
   "author": string,
   "readTime": string,
@@ -60,7 +62,9 @@ Rules for markdown:
 - Use ## for main sections and ### for subsections.
 - Use bullet lists with "- " where helpful.
 - Optional FAQ: a "## FAQ" section with "### Question" headings and paragraph answers.
-- Keep excerpt to 1–2 sentences for the blog card.
+- Keep excerpt to 1–2 sentences for the blog card (not the Google snippet).
+- serpTitle is the Google title only (not the H1). Max 46 characters before the site adds " | XLS Experts". Use "{region}" instead of NZ, UK, US, or New Zealand so all three domains stay correct. Do not include " | XLS Experts".
+- serpDescription is the Google snippet. 140–155 characters after "{region}" is replaced with "NZ". Use "{region}" the same way. Do not write New Zealand, United Kingdom, or United States in full.
 - slug must be lowercase kebab-case.
 - imagePrompt should describe the subject and scene for a blog hero (setting, objects, people if relevant). Do not specify infographic vs photograph vs illustration — visual style is chosen separately. No readable text or logos in the image; not high-resolution.
 - readTime like "6 min read".
@@ -105,6 +109,8 @@ ${RESPONSE_SHAPE}`
       slugifyBlogTitle(draftTitle) ||
       'untitled-post',
     excerpt: String(parsed.excerpt ?? brief).trim(),
+    serpTitle: String(parsed.serpTitle ?? '').trim(),
+    serpDescription: String(parsed.serpDescription ?? '').trim(),
     category:
       String(parsed.category ?? input.categoryHint ?? '').trim() || 'Guides',
     author: String(parsed.author ?? input.authorHint ?? 'Mike').trim() || 'Mike',

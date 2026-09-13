@@ -7,6 +7,8 @@ export type BlogAiDraft = {
   title: string
   slug: string
   excerpt: string
+  serpTitle: string
+  serpDescription: string
   category: string
   author: string
   readTime: string

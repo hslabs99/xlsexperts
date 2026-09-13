@@ -3,6 +3,8 @@ import { marketPageMetadata } from '@/lib/seo'
 import { getBlogListPosts } from '@/lib/blog'
 import { Navbar } from '@/components/navbar'
 import { BlogIndexClient } from '@/components/blog-index'
+import { getMarket } from '@/lib/market-server'
+import { serpTokensForMarket } from '@/lib/regions'
 
 /** Always resolve posts from Firestore (not a static build snapshot). */
 export const dynamic = 'force-dynamic'
@@ -11,14 +13,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return marketPageMetadata({
     path: '/blog',
     title: 'Blog',
-    description: 'Insights, guides, and case studies on Excel consulting, VBA automation, financial modelling, and data solutions for New Zealand businesses.',
-    ogTitle: 'Blog | XLS Experts',
-    ogDescription: 'Insights, guides, and case studies on Excel consulting, VBA automation, financial modelling, and data solutions for New Zealand businesses.',
+    description:
+      'Insights, guides, and case studies on Excel consulting, VBA automation, financial modelling, and data solutions.',
   })
 }
 
 export default async function BlogIndex() {
   const posts = await getBlogListPosts()
+  const { region } = serpTokensForMarket(await getMarket())
 
   return (
     <>
@@ -40,7 +42,7 @@ export default async function BlogIndex() {
             </h1>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
               Practical advice on Excel consulting, automation, financial
-              modelling, and data solutions for New Zealand businesses.
+              modelling, and data solutions for {region} businesses.
             </p>
           </div>
         </div>

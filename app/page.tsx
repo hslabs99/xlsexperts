@@ -10,6 +10,7 @@ import { getMarketCopy, getHeroBackgroundHoldSeconds } from '@/lib/market-server
 import { getHeroTrustContent } from '@/lib/hero-trust-server'
 import { getHeroTopBulletTexts } from '@/lib/hero-top-bullets-server'
 import { marketLocalBusinessSchema, marketPageMetadata } from '@/lib/seo'
+import { HomepageSeoLinks } from '@/components/homepage-seo-links'
 
 /** Market is chosen from host / localhost cookie — never share one cached `/` across NZ, UK, and International. */
 export const dynamic = 'force-dynamic'
@@ -20,8 +21,6 @@ export async function generateMetadata(): Promise<Metadata> {
     path: '/',
     title: copy.home.metaTitle,
     description: copy.home.metaDescription,
-    ogTitle: copy.home.metaTitle,
-    ogDescription: copy.home.metaDescription,
   })
 }
 
@@ -84,6 +83,7 @@ export default async function Page() {
 
   return (
     <>
+      <HomepageSeoLinks />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}

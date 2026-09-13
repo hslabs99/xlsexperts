@@ -16,7 +16,9 @@ import { SolutionGuideCapture } from '@/components/solutions/solution-guide-capt
 import { solutionsBreadcrumbJsonLd } from '@/components/solutions/breadcrumbs'
 import { PageContact } from '@/components/page-contact'
 import { Navbar } from '@/components/navbar'
-import { getMarketCopy } from '@/lib/market-server'
+import { getMarket, getMarketCopy } from '@/lib/market-server'
+import { localBusinessForMarket, serpTokensForMarket } from '@/lib/regions'
+import { resolveSerpCopy } from '@/lib/serp-copy'
 import {
   contactHrefForSolution,
   getPublishedCaseStudies,
@@ -31,7 +33,10 @@ type SolutionPageViewProps = {
 export async function SolutionPageView({ solution }: SolutionPageViewProps) {
   const copy = await getMarketCopy()
   const origin = copy.site.origin
-  const areaServed = copy.home.schemaAreaServed
+  const market = await getMarket()
+  const local = localBusinessForMarket(market)
+  const currency = serpTokensForMarket(market).currency
+  const serp = resolveSerpCopy(solution.href, market)
   const related = getRelatedSolutions(solution)
   const caseStudies = getPublishedCaseStudies(solution)
   const contactHref = contactHrefForSolution(solution.slug)
@@ -50,19 +55,28 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
     '@context': 'https://schema.org',
     '@type': 'Service',
     name: solution.title,
-    description: solution.metaDescription,
+    description: serp?.description ?? solution.metaDescription,
     provider: {
       '@type': 'ProfessionalService',
       name: 'XLS Experts',
-      url: origin,
-      areaServed: { '@type': 'Country', name: areaServed },
-      telephone: copy.contact.phoneTel.startsWith('+')
-        ? copy.contact.phoneTel
-        : `+${copy.contact.phoneTel.replace(/\D/g, '')}`,
+      url: origin.replace(/\/+$/, ''),
+      areaServed: { '@type': 'Country', name: local.areaServedName },
+      ...(local.telephone ? { telephone: local.telephone } : {}),
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: local.addressCountry,
+        ...(local.addressLocality
+          ? { addressLocality: local.addressLocality }
+          : {}),
+      },
     },
     url: `${origin.replace(/\/+$/, '')}${solution.href}`,
-    areaServed: { '@type': 'Country', name: areaServed },
+    areaServed: { '@type': 'Country', name: local.areaServedName },
     serviceType: solution.title,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: currency,
+    },
   }
 
   const breadcrumbSchema = solutionsBreadcrumbJsonLd(

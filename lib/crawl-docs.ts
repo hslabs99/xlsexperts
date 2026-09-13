@@ -74,55 +74,41 @@ export interface CrawlDocsContent {
 export type CrawlDocsBundle = Record<MarketId, CrawlDocsContent>
 
 export function defaultRobotsTxt(origin: string): string {
-  return `User-agent: *
-Allow: /
+  const block = `Allow: /
+Disallow: /admin
+Disallow: /thank-you
+Disallow: /unsubscribe
 Disallow: /api/guides/
-Disallow: /email/attachments/
+Disallow: /email/attachments/`
+  return `User-agent: *
+${block}
 
 User-agent: GPTBot
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: ChatGPT-User
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: Claude-Web
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: anthropic-ai
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: PerplexityBot
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: YouBot
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: Googlebot
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: Googlebot-Image
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 User-agent: Bingbot
-Allow: /
-Disallow: /api/guides/
-Disallow: /email/attachments/
+${block}
 
 Sitemap: ${origin}/sitemap.xml
 `

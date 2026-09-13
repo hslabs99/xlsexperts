@@ -38,7 +38,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const copy = await getMarketCopy()
   const { site } = copy
   return {
-    metadataBase: new URL(site.origin),
+    metadataBase: new URL(
+      site.origin.endsWith('/') ? site.origin : `${site.origin}/`
+    ),
     title: site.defaultTitle,
     description: site.defaultDescription,
     keywords: keywordsToArray(site.keywords),
@@ -54,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: 'website',
       locale: site.ogLocale,
-      url: site.origin,
+      url: site.origin.endsWith('/') ? site.origin : `${site.origin}/`,
       siteName: 'XLS Experts',
       title: site.ogTitle,
       description: site.ogDescription,

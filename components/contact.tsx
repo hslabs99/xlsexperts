@@ -30,7 +30,8 @@ import {
   contactLabelForServicePath,
 } from '@/lib/service-pages'
 import { contactLabelForSolutionSlug } from '@/lib/solutions'
-import { useMarketCopy } from '@/components/market-provider'
+import { useMarket, useMarketCopy } from '@/components/market-provider'
+import { marketHasPublicTelephone } from '@/lib/regions'
 import { OurBrands } from '@/components/our-brands'
 
 const concernOptions = [...CONTACT_SERVICE_OPTIONS]
@@ -60,6 +61,8 @@ type BookedSlotSummary = { day: string; time: string; method: string }
 export function Contact() {
   const router = useRouter()
   const marketCopy = useMarketCopy()
+  const { market } = useMarket()
+  const showTelephone = marketHasPublicTelephone(market)
   const [selected, setSelected] = useState<string[]>([])
   const [step, setStep] = useState<FormStep>('form')
   const [bookedSlot, setBookedSlot] = useState<BookedSlotSummary | null>(null)
@@ -331,6 +334,7 @@ export function Contact() {
                 {marketCopy.contact.heading}
               </h3>
 
+              {showTelephone ? (
               <a
                 href={`tel:${marketCopy.contact.phoneTel}`}
                 className="flex items-center gap-3 text-sm text-gray-600 transition-colors hover:text-gray-900"
@@ -338,7 +342,9 @@ export function Contact() {
                 <Phone className="h-4 w-4 shrink-0" style={{ color: '#1a6b3c' }} aria-hidden="true" />
                 {marketCopy.contact.phoneDisplay}
               </a>
+              ) : null}
 
+              {showTelephone ? (
               <a
                 href={`https://wa.me/${marketCopy.contact.whatsapp}`}
                 target="_blank"
@@ -348,6 +354,7 @@ export function Contact() {
                 <MessageSquare className="h-4 w-4 shrink-0" style={{ color: '#25D366' }} aria-hidden="true" />
                 {marketCopy.contact.whatsappLabel}
               </a>
+              ) : null}
 
               <div className="flex items-start gap-3 text-sm text-gray-500">
                 <span className="mt-0.5 text-xs font-bold" style={{ color: '#1a6b3c' }}>

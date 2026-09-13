@@ -9,6 +9,8 @@ import {
   stripLocalMarketPrefix,
   type MarketId,
 } from '@/lib/market'
+import { APEX_TO_WWW } from '@/lib/regions'
+import { hostnameOnly } from '@/lib/domain-regions'
 
 function applyMarketHeaders(
   response: NextResponse,
@@ -24,7 +26,25 @@ function applyMarketHeaders(
   return response
 }
 
+function apexWwwRedirect(request: NextRequest): NextResponse | null {
+  const host =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    ''
+  if (isLocalHost(host)) return null
+  const hostname = hostnameOnly(host)
+  const wwwHost = APEX_TO_WWW[hostname]
+  if (!wwwHost) return null
+  const url = request.nextUrl.clone()
+  url.host = wwwHost
+  url.protocol = 'https:'
+  return NextResponse.redirect(url, 301)
+}
+
 export function proxy(request: NextRequest) {
+  const apexRedirect = apexWwwRedirect(request)
+  if (apexRedirect) return apexRedirect
+
   const host =
     request.headers.get('x-forwarded-host') ||
     request.headers.get('host') ||

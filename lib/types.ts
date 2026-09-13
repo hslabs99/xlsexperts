@@ -22,6 +22,16 @@ export interface BlogPost {
   image: string
   /** Topic tag shown on cards and used for blog list filtering */
   category: string
+  /**
+   * SERP / document title. May include `{region}` (NZ / US / UK).
+   * Empty on legacy posts — public pages then fall back to `title`.
+   */
+  serpTitle?: string
+  /**
+   * SERP meta description, 140–155 characters after token fill.
+   * Empty on legacy posts — public pages then fall back to `excerpt`.
+   */
+  serpDescription?: string
   sections: BlogSection[]
 }
 

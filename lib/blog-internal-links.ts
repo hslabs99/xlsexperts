@@ -202,13 +202,37 @@ const SOLUTION_TO_TOPIC: Record<string, string> = {
   '/solutions/resource-planning-scheduling': SPREAD_HREF,
   '/solutions/project-costing-financial-modelling': MODEL_HREF,
   '/solutions/property-development-applications': MODEL_HREF,
+  '/solutions/quoting-estimating-systems': MODEL_HREF,
+  '/solutions/manufacturing-costing-estimating-quoting': MODEL_HREF,
   '/solutions/survey-inspection-field-apps': WEB_HREF,
   '/solutions/client-staff-portals': WEB_HREF,
   '/solutions/asset-maintenance-operations-solutions': WEB_HREF,
   '/solutions/workflow-automation-systems-integration': AI_HREF,
 }
 
+const POWER_APPS_HREF = '/power-apps-dataverse-development'
+
+function topicKeywords(topicHref: string): string[] {
+  const path = topicHref.toLowerCase()
+  if (path.includes('ai-workflow') || path.includes('use-cases')) {
+    return ['ai', 'workflow', 'automation', 'process']
+  }
+  if (path.includes('web-application') || path.includes('power-apps')) {
+    return ['web', 'portal', 'cloud', 'app']
+  }
+  if (path.includes('dashboard')) return ['dashboard', 'kpi', 'reporting']
+  if (path.includes('financial') || path.includes('costing') || path.includes('quoting')) {
+    return ['model', 'forecast', 'cost', 'quote', 'finance']
+  }
+  if (path.includes('vba') || path.includes('macro')) return ['vba', 'macro', 'automat']
+  if (path.includes('integrat')) return ['integrat', 'sql', 'xero', 'api']
+  if (path.includes('google-sheets')) return ['sheets', 'google']
+  if (path.includes('power-query')) return ['power-query', 'power query']
+  return []
+}
+
 export function topicHrefForPath(path: string): string {
+  if (path === POWER_APPS_HREF) return WEB_HREF
   return SOLUTION_TO_TOPIC[path] ?? path
 }
 
@@ -221,15 +245,35 @@ export function relatedPostsForTopic(
   posts: readonly BlogListItem[],
   limit = 3
 ): BlogListItem[] {
+  const mapped = topicHrefForPath(topicHref)
   const scored = posts.map((post) => {
     const hrefs = serviceHrefsForPost(post.slug, post.category)
-    const exact = hrefs[0] === topicHref ? 2 : 0
-    const included = hrefs.includes(topicHref) ? 1 : 0
-    return { post, score: exact + included }
+    const exact = hrefs[0] === mapped ? 2 : 0
+    const included = hrefs.includes(mapped) ? 1 : 0
+    const hay = `${post.slug} ${post.category} ${post.title}`.toLowerCase()
+    const keywordHit = topicKeywords(mapped).some((k) => hay.includes(k))
+      ? 1
+      : 0
+    return { post, score: exact + included + keywordHit }
   })
-  return scored
+
+  const picked: BlogListItem[] = []
+  const seen = new Set<string>()
+  const add = (post: BlogListItem) => {
+    if (seen.has(post.slug) || picked.length >= limit) return
+    seen.add(post.slug)
+    picked.push(post)
+  }
+
+  scored
     .filter((row) => row.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((row) => row.post)
+    .forEach((row) => add(row.post))
+
+  const rest = [...posts].sort(
+    (a, b) => hashString(`${mapped}:${a.slug}`) - hashString(`${mapped}:${b.slug}`)
+  )
+  for (const post of rest) add(post)
+
+  return picked.slice(0, limit)
 }

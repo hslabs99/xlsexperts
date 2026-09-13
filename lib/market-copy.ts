@@ -382,7 +382,10 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
   },
   contact: {
     ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).contact,
-    locationLine: 'Serving clients across USA, Canada, Australia',
+    phoneDisplay: '',
+    phoneTel: '',
+    whatsapp: '',
+    locationLine: 'Serving US and international clients remotely',
     locationBadge: 'USA',
     emailPlaceholder: 'jane@acme.com',
     phonePlaceholder: '+1 000 000 0000',
@@ -397,7 +400,7 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
       'Leading Excel and Google spreadsheet consulting firm. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.',
     schemaAreaServed: 'USA, Canada, Australia',
     schemaAddressCountry: 'US',
-    schemaAddressLocality: 'Global',
+    schemaAddressLocality: '',
   },
   hero: {
     ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).hero,
@@ -456,7 +459,7 @@ export const DEFAULT_UK_MARKET_COPY: MarketCopy = {
       'Leading Excel and spreadsheet consulting firm in the United Kingdom. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.',
     schemaAreaServed: 'United Kingdom',
     schemaAddressCountry: 'GB',
-    schemaAddressLocality: 'London',
+    schemaAddressLocality: '',
     faqCostQuestion: 'How much does Excel consulting cost in the UK?',
     faqCostAnswer:
       'XLS Experts projects typically start from £500 for small automation tasks. Most projects fall in the £1,000–£6,000 range depending on complexity. We provide a clear scope and fixed price before starting any work.',
@@ -630,7 +633,9 @@ export function normalizeMarketCopy(
   )
   return {
     site: normalizeSection(data.site, fallback.site),
-    contact: normalizeSection(data.contact, fallback.contact),
+    contact: normalizeSection(data.contact, fallback.contact, {
+      allowEmptyKeys: ['phoneDisplay', 'phoneTel', 'whatsapp'],
+    }),
     home: normalizeSection(data.home, fallback.home),
     hero: normalizeSection(data.hero, fallback.hero, {
       allowEmptyKeys: [

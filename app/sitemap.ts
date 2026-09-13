@@ -8,7 +8,7 @@ import {
   absoluteOnOrigin,
   sitemapLanguageAlternates,
 } from '@/lib/regions'
-import { servicePageHrefs } from '@/lib/service-pages'
+import { servicePageHrefs, ALL_SERVICES_HREF } from '@/lib/service-pages'
 import { ALL_SOLUTIONS_HREF, solutionPageHrefs } from '@/lib/solutions'
 
 function withHreflang(
@@ -51,6 +51,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     })),
+    {
+      url: absoluteOnOrigin(base, ALL_SERVICES_HREF),
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
     {
       url: absoluteOnOrigin(base, ALL_SOLUTIONS_HREF),
       lastModified: new Date(),

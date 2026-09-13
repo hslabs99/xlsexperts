@@ -11,7 +11,8 @@ import {
   DEFAULT_FIND_OUT_ABOUT,
   type FindOutAboutContent,
 } from '@/lib/find-out-about'
-import { useMarketCopy } from '@/components/market-provider'
+import { useMarket, useMarketCopy } from '@/components/market-provider'
+import { marketHasPublicTelephone } from '@/lib/regions'
 import {
   SiteChatButton,
   SiteChatPanel,
@@ -41,6 +42,8 @@ function FloatingConsultationCtaInner({
   pathname: string | null
 }) {
   const marketCopy = useMarketCopy()
+  const { market } = useMarket()
+  const showTelephone = marketHasPublicTelephone(market)
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null)
   const [contactFromChatTimeout, setContactFromChatTimeout] = useState(false)
   const [findOutContent, setFindOutContent] = useState<FindOutAboutContent>(
@@ -207,11 +210,14 @@ function FloatingConsultationCtaInner({
             <p className="mt-1 text-sm text-gray-600">
               {contactFromChatTimeout
                 ? 'We’re not available in chat right now — leave an enquiry or book a discovery call.'
-                : 'Call us, or send an enquiry / book a discovery call.'}
+                : showTelephone
+                  ? 'Call us, or send an enquiry / book a discovery call.'
+                  : 'Send an enquiry or book a discovery call.'}
             </p>
           </div>
 
           <div className="space-y-2 p-3">
+            {showTelephone ? (
             <a
               href={`tel:${marketCopy.contact.phoneTel}`}
               data-funnel-cta="Call now"
@@ -225,6 +231,7 @@ function FloatingConsultationCtaInner({
                 <span className="mt-0.5 block text-xs text-gray-500">Call now</span>
               </span>
             </a>
+            ) : null}
 
             <a
               href={contactHref}

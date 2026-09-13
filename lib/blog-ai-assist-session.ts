@@ -115,6 +115,8 @@ export function seedBlogAiAssistFromPost(
       title: title || 'Untitled post',
       slug: post.slug.trim(),
       excerpt,
+      serpTitle: '',
+      serpDescription: '',
       category: post.category.trim() || 'Guides',
       author: post.author.trim() || 'Mike',
       readTime: post.readTime.trim() || '5 min read',

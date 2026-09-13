@@ -11,6 +11,8 @@ export type BlogExportPost = {
   date: string
   readTime: string
   excerpt: string
+  serpTitle: string
+  serpDescription: string
   image: string
   category: string
   published: boolean
@@ -53,6 +55,8 @@ export function toBlogExportPost(post: BlogPostRecord): BlogExportPost {
     date: post.date,
     readTime: post.readTime,
     excerpt: post.excerpt,
+    serpTitle: post.serpTitle ?? '',
+    serpDescription: post.serpDescription ?? '',
     image: post.image,
     category: post.category,
     published: post.published,

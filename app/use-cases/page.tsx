@@ -9,8 +9,6 @@ export async function generateMetadata(): Promise<Metadata> {
     path: USE_CASES_HREF,
     title: useCasesPageMeta.title,
     description: useCasesPageMeta.description,
-    ogTitle: useCasesPageMeta.ogTitle,
-    ogDescription: useCasesPageMeta.ogDescription,
     keywords: [
       'A.I. Excel use cases',
       'Power Query A.I.',

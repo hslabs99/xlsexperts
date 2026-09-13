@@ -4,7 +4,8 @@ import type { Metadata } from 'next'
 import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
 import { hasBlogImageSrc } from '@/lib/blog-image-src'
 import { renderBlogInline } from '@/lib/blog-inline-markup'
-import { getSiteOrigin } from '@/lib/market-server'
+import { blogSerpForPost } from '@/lib/blog-serp-copy'
+import { getMarket, getSiteOrigin } from '@/lib/market-server'
 import { absoluteOnOrigin } from '@/lib/regions'
 import { documentTitle, marketPathAlternates } from '@/lib/seo'
 import { SITE_ICONS } from '@/lib/site-icons'
@@ -32,6 +33,10 @@ export async function generateMetadata({
   if (!post) redirectUnknownBlogSlug()
 
   const origin = await getSiteOrigin()
+  const market = await getMarket()
+  const serp = blogSerpForPost(post.slug, market, post)
+  const metaTitle = serp.title
+  const metaDescription = serp.description
   const url = absoluteOnOrigin(origin, `/blog/${post.slug}`)
   const imageUrl = hasBlogImageSrc(post.image)
     ? post.image.startsWith('http')
@@ -40,8 +45,8 @@ export async function generateMetadata({
     : undefined
 
   return {
-    title: { absolute: documentTitle(post.title) },
-    description: post.excerpt,
+    title: { absolute: documentTitle(metaTitle) },
+    description: metaDescription,
     authors: [{ name: 'XLS Experts' }],
     icons: SITE_ICONS,
     alternates: await marketPathAlternates(`/blog/${post.slug}`, {
@@ -50,8 +55,8 @@ export async function generateMetadata({
     openGraph: {
       type: 'article',
       url,
-      title: post.title,
-      description: post.excerpt,
+      title: metaTitle,
+      description: metaDescription,
       publishedTime: new Date(post.date).toISOString(),
       authors: ['XLS Experts'],
       ...(imageUrl
@@ -61,8 +66,8 @@ export async function generateMetadata({
     },
     twitter: {
       card: imageUrl ? 'summary_large_image' : 'summary',
-      title: post.title,
-      description: post.excerpt,
+      title: metaTitle,
+      description: metaDescription,
       ...(imageUrl ? { images: [imageUrl] } : {}),
     },
   }

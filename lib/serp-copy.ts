@@ -19,6 +19,8 @@ export const BRAND_TITLE_SUFFIX = ' | XLS Experts'
 export const TITLE_MAX = 60
 export const DESC_MIN = 140
 export const DESC_MAX = 155
+/** Characters available before ` | XLS Experts`. */
+export const TITLE_BODY_MAX = TITLE_MAX - BRAND_TITLE_SUFFIX.length
 
 /** Homepage titles/descriptions are written per market — not a token swap. */
 const HOME_BY_MARKET: Record<MarketId, SerpTemplate> = {

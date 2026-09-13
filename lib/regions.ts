@@ -88,6 +88,43 @@ export function originForMarket(market: MarketId): string {
   return publishedOrigins.nz
 }
 
+/** Apex host → www host. Preview / Cloud Run hosts are not listed. */
+export const APEX_TO_WWW: Record<string, string> = {
+  'xlsexperts.co.nz': 'www.xlsexperts.co.nz',
+  'xlsexperts.com': 'www.xlsexperts.com',
+  'xlsexperts.co.uk': 'www.xlsexperts.co.uk',
+}
+
+/**
+ * LocalBusiness fields per market. NZ has a real Auckland number.
+ * .com and .co.uk have no local line — omit telephone rather than the NZ number.
+ */
+export type RegionLocalBusiness = {
+  addressCountry: 'NZ' | 'US' | 'GB'
+  addressLocality?: string
+  telephone?: string
+  areaServedName: string
+}
+
+export function localBusinessForMarket(market: MarketId): RegionLocalBusiness {
+  if (market === 'uk') {
+    return { addressCountry: 'GB', areaServedName: 'United Kingdom' }
+  }
+  if (market === 'intl') {
+    return { addressCountry: 'US', areaServedName: 'United States' }
+  }
+  return {
+    addressCountry: 'NZ',
+    addressLocality: 'Auckland',
+    telephone: '+6421783967',
+    areaServedName: 'New Zealand',
+  }
+}
+
+export function marketHasPublicTelephone(market: MarketId): boolean {
+  return Boolean(localBusinessForMarket(market).telephone)
+}
+
 const REGION_SEO: readonly {
   binding: DomainRegionBinding
   origin: string

@@ -9,6 +9,12 @@ import {
   type PageSeoMarkets,
 } from '@/lib/page-seo'
 import { MARKET_IDS, marketLabel, marketShortLabel, type MarketId } from '@/lib/market'
+import {
+  DESC_MAX,
+  DESC_MIN,
+  TITLE_MAX,
+  renderedTitleLength,
+} from '@/lib/serp-copy'
 
 const FIELD_HELP: {
   key: keyof PageSeoFields
@@ -32,13 +38,13 @@ const FIELD_HELP: {
     key: 'metaTitle',
     label: 'Meta title',
     rows: 2,
-    hint: 'Browser tab / SERP title (document <title>).',
+    hint: 'Browser tab / Google title. Max 60 characters including “ | XLS Experts”. Prefer {region} instead of NZ/UK/US.',
   },
   {
     key: 'metaDescription',
     label: 'Meta description',
     rows: 3,
-    hint: 'SERP snippet under the title.',
+    hint: 'Google snippet. 140–155 characters after {region} is filled. Leave Open Graph blank to reuse this.',
   },
   {
     key: 'keywords',
@@ -510,6 +516,14 @@ export function AdminPageSeoPanel() {
                 {FIELD_HELP.map((field) => {
                   const value = String(fields[field.key] ?? '')
                   const rows = field.rows ?? 1
+                  const titleLen =
+                    field.key === 'metaTitle' ? renderedTitleLength(value) : null
+                  const descLen =
+                    field.key === 'metaDescription' ? value.trim().length : null
+                  const countBad =
+                    (titleLen !== null && titleLen > TITLE_MAX) ||
+                    (descLen !== null &&
+                      (descLen < DESC_MIN || descLen > DESC_MAX))
                   return (
                     <label key={field.key} className="block space-y-1">
                       <span className="text-sm font-medium text-ink">
@@ -545,6 +559,20 @@ export function AdminPageSeoPanel() {
                           className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-ink"
                         />
                       )}
+                      {titleLen !== null ? (
+                        <span
+                          className={`block text-xs ${countBad ? 'text-red-700' : 'text-ink-muted'}`}
+                        >
+                          {titleLen}/{TITLE_MAX} including “ | XLS Experts”
+                        </span>
+                      ) : null}
+                      {descLen !== null ? (
+                        <span
+                          className={`block text-xs ${countBad ? 'text-red-700' : 'text-ink-muted'}`}
+                        >
+                          {descLen} characters (need {DESC_MIN}–{DESC_MAX})
+                        </span>
+                      ) : null}
                     </label>
                   )
                 })}

@@ -87,11 +87,7 @@ export async function pageSeoMetadata(path: string): Promise<Metadata> {
   const title = seo.metaTitle || item?.label || 'XLS Experts'
   const description = seo.metaDescription
   const keywords = keywordsList(seo.keywords)
-  const ogTitle = seo.ogTitle || title
-  const ogDescription = seo.ogDescription || description
   const ogImage = seo.ogImage.trim() || undefined
-  const twitterTitle = seo.twitterTitle || ogTitle
-  const twitterDescription = seo.twitterDescription || ogDescription
   const twitterImage = seo.twitterImage.trim() || ogImage
 
   const base = await marketPageMetadata({
@@ -99,14 +95,19 @@ export async function pageSeoMetadata(path: string): Promise<Metadata> {
     title,
     description,
     keywords,
-    ogTitle,
-    ogDescription,
     ogImage,
     robots: {
       index: seo.robotsIndex,
       follow: seo.robotsFollow,
     },
   })
+
+  const twitterTitle =
+    typeof base.openGraph?.title === 'string'
+      ? base.openGraph.title
+      : title
+  const twitterDescription =
+    base.openGraph?.description || description
 
   return {
     ...base,

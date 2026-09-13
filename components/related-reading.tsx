@@ -5,7 +5,7 @@ import { relatedPostsForTopic, topicHrefForPath } from '@/lib/blog-internal-link
 export async function RelatedReading({ topicHref }: { topicHref: string }) {
   const posts = await getBlogListPosts()
   const related = relatedPostsForTopic(topicHrefForPath(topicHref), posts, 3)
-  if (related.length < 2) return null
+  if (related.length === 0) return null
 
   return (
     <section className="border-t border-gray-100 bg-white py-16">

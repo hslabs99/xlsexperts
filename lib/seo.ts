@@ -6,6 +6,7 @@ import { getMarket, getMarketCopy } from '@/lib/market-server'
 import {
   absoluteOnOrigin,
   buildAlternates,
+  localBusinessForMarket,
   normalizePathname,
   serpTokensForMarket,
 } from '@/lib/regions'
@@ -73,8 +74,8 @@ export async function marketPageMetadata({
   title,
   description,
   keywords,
-  ogTitle,
-  ogDescription,
+  ogTitle: _ogTitle,
+  ogDescription: _ogDescription,
   ogImage = '/images/og-default.png',
   ogImageWidth = 1200,
   ogImageHeight = 630,
@@ -95,22 +96,33 @@ export async function marketPageMetadata({
           .filter(Boolean)
       : keywords
   const indexable = !robotsAreNoIndex(robots)
+  const isHomepage = pathname === '/'
+  const document = documentTitle(resolvedTitle)
   return {
-    title: { absolute: documentTitle(resolvedTitle) },
+    title: { absolute: document },
     description: resolvedDescription,
     icons: SITE_ICONS,
     ...(keywordList && keywordList.length > 0
       ? { keywords: keywordList }
       : {}),
     ...(robots ? { robots } : {}),
-    alternates: await marketPathAlternates(pathname, { indexable }),
+    // Next.js Metadata rewrites homepage URLs to origin with no trailing slash.
+    // Homepage canonical + hreflang are emitted as raw <link> tags instead.
+    ...(isHomepage
+      ? {}
+      : { alternates: await marketPathAlternates(pathname, { indexable }) }),
     openGraph: {
-      title: ogTitle ?? resolvedTitle,
-      description: ogDescription ?? resolvedDescription,
-      url,
+      title: document,
+      description: resolvedDescription,
+      ...(isHomepage ? {} : { url }),
       images: [
         { url: ogImage, width: ogImageWidth, height: ogImageHeight },
       ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: document,
+      description: resolvedDescription,
     },
   }
 }
@@ -143,31 +155,32 @@ export async function marketServiceSchema({
   const copy = await getMarketCopy()
   const market = await getMarket()
   const href = path.startsWith('/') ? path : `/${path}`
+  const serp = resolveSerpCopy(href, market)
+  const schemaDescription = serp?.description ?? description
   const url = absoluteOnOrigin(copy.site.origin, href)
-  const areaName = copy.home.schemaAreaServed
+  const local = localBusinessForMarket(market)
   const currency = serpTokensForMarket(market).currency
-  const telephone = copy.contact.phoneTel.startsWith('+')
-    ? copy.contact.phoneTel
-    : `+${copy.contact.phoneTel.replace(/\D/g, '')}`
   return {
     '@context': 'https://schema.org',
     '@type': 'Service',
     name,
-    description,
+    description: schemaDescription,
     provider: {
       '@type': 'ProfessionalService',
       name: 'XLS Experts',
-      url: copy.site.origin,
-      telephone,
-      areaServed: { '@type': 'Country', name: areaName },
+      url: copy.site.origin.replace(/\/+$/, ''),
+      ...(local.telephone ? { telephone: local.telephone } : {}),
+      areaServed: { '@type': 'Country', name: local.areaServedName },
       address: {
         '@type': 'PostalAddress',
-        addressCountry: copy.home.schemaAddressCountry,
-        addressLocality: copy.home.schemaAddressLocality,
+        addressCountry: local.addressCountry,
+        ...(local.addressLocality
+          ? { addressLocality: local.addressLocality }
+          : {}),
       },
     },
     url,
-    areaServed: { '@type': 'Country', name: areaName },
+    areaServed: { '@type': 'Country', name: local.areaServedName },
     serviceType: serviceType ?? name,
     offers: {
       '@type': 'Offer',
@@ -180,10 +193,8 @@ export async function marketServiceSchema({
 export async function marketLocalBusinessSchema() {
   const copy = await getMarketCopy()
   const market = await getMarket()
+  const local = localBusinessForMarket(market)
   const currency = serpTokensForMarket(market).currency
-  const telephone = copy.contact.phoneTel.startsWith('+')
-    ? copy.contact.phoneTel
-    : `+${copy.contact.phoneTel.replace(/\D/g, '')}`
   return {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
@@ -191,16 +202,18 @@ export async function marketLocalBusinessSchema() {
     description: copy.home.schemaDescription,
     url: absoluteOnOrigin(copy.site.origin, '/'),
     logo: `${copy.site.origin.replace(/\/+$/, '')}/images/xls-experts-logo.png`,
-    telephone,
+    ...(local.telephone ? { telephone: local.telephone } : {}),
     currenciesAccepted: currency,
     areaServed: {
       '@type': 'Country',
-      name: copy.home.schemaAreaServed,
+      name: local.areaServedName,
     },
     address: {
       '@type': 'PostalAddress',
-      addressCountry: copy.home.schemaAddressCountry,
-      addressLocality: copy.home.schemaAddressLocality,
+      addressCountry: local.addressCountry,
+      ...(local.addressLocality
+        ? { addressLocality: local.addressLocality }
+        : {}),
     },
     knowsAbout: [
       'Excel VBA development',
@@ -212,6 +225,6 @@ export async function marketLocalBusinessSchema() {
       'Excel consulting',
       'Data analysis',
     ],
-    sameAs: [copy.site.origin.replace(/\/+$/, '')],
+    sameAs: [absoluteOnOrigin(copy.site.origin, '/')],
   }
 }

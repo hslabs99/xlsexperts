@@ -9,10 +9,9 @@ import { servicePages } from '@/lib/service-pages'
 export async function generateMetadata(): Promise<Metadata> {
   return marketPageMetadata({
     path: '/services',
-    title: 'All Services | Excel & Business Automation NZ | XLS Experts',
-    description: 'Browse all XLS Experts services — Excel VBA, dashboards, financial modelling, Power Query, Google Sheets, AI workflow automation and more for New Zealand businesses.',
-    ogTitle: 'All Services | XLS Experts',
-    ogDescription: 'Excel, spreadsheet and business automation services for New Zealand organisations.',
+    title: 'All Services',
+    description:
+      'Browse all XLS Experts services — Excel VBA, dashboards, financial modelling, Power Query, Google Sheets, AI workflow automation and more.',
   })
 }
 
