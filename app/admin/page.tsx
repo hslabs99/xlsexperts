@@ -55,6 +55,7 @@ import {
   type AdminSession,
   type AdminTabId,
 } from '@/lib/admin-users'
+import { parseAdminFocusHash } from '@/lib/admin-focus'
 
 type AdminTab = AdminTabId
 
@@ -193,6 +194,22 @@ export default function AdminPage() {
       setTab(visibleTabs[0].id)
     }
   }, [session, visibleTabs, tab])
+
+  useEffect(() => {
+    if (!authReady || !session) return
+    if (!canAccessTab(session, 'cms', viewMode)) return
+
+    function applyFocusFromHash() {
+      const focus = parseAdminFocusHash(window.location.hash)
+      if (!focus) return
+      setTab('cms')
+      setCmsSubTab(focus.cms)
+    }
+
+    applyFocusFromHash()
+    window.addEventListener('hashchange', applyFocusFromHash)
+    return () => window.removeEventListener('hashchange', applyFocusFromHash)
+  }, [authReady, session, viewMode])
 
   function handleViewModeChange(mode: AdminViewMode) {
     setViewMode(mode)

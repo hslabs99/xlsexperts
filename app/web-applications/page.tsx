@@ -2,28 +2,19 @@ import type { Metadata } from 'next'
 import { marketServiceSchema, marketSiteOrigin } from '@/lib/seo'
 import { getMarket } from '@/lib/market-server'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd, toSolutionFaqs } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { WebApplicationsPageView } from '@/components/web-applications/web-applications-page-view'
-import { webAppFaqs } from '@/lib/web-applications-page'
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageSeoMetadata('/web-applications')
-}
-
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: webAppFaqs.map((faq) => ({
-    '@type': 'Question',
-    name: faq.question,
-    acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-  })),
 }
 
 export default async function WebApplicationsPage() {
   const origin = await marketSiteOrigin()
   const market = await getMarket()
   const seo = await getPageSeo('/web-applications')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   const serviceSchema = await marketServiceSchema({
     path: '/web-applications',
     name: 'Web Application Development',
@@ -52,10 +43,12 @@ export default async function WebApplicationsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
@@ -64,6 +57,7 @@ export default async function WebApplicationsPage() {
       <WebApplicationsPageView
         h1={seo.h1}
         heroIntro={seo.heroIntro}
+        faqs={toSolutionFaqs(seo.faqs)}
         market={market}
       />
     </>

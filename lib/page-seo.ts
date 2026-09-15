@@ -1,11 +1,20 @@
 /**
- * Page-level CMS content (H1, hero intro, meta) for service and solution landings.
+ * Page-level CMS content (H1, hero intro, meta, FAQs) for service and solution landings.
  * Admin → CMS: edit drafts in Firebase, Publish writes data/page-seo.generated.ts.
  */
 
 import { servicePages } from '@/lib/service-pages'
 import { solutionPages } from '@/lib/solutions'
 import { DEFAULT_MARKET, isMarketId, type MarketId } from '@/lib/market'
+import {
+  cloneFaqs,
+  faqsForMarket,
+  parseFaqs,
+  rewriteFaqsForMarket,
+  type PageSeoFaq,
+} from '@/lib/page-seo-faqs'
+
+export type { PageSeoFaq }
 
 export type PageSeoKind = 'service' | 'solution'
 
@@ -39,6 +48,8 @@ export type PageSeoFields = {
   robotsFollow: boolean
   /** Internal notes for SEO tech (not rendered publicly) */
   seoNotes: string
+  /** On-page FAQ pairs. Empty overlay falls back to code defaults. */
+  faqs: PageSeoFaq[]
 }
 
 export type PageSeoCatalogItem = {
@@ -233,6 +244,7 @@ function emptyFields(): PageSeoFields {
     robotsIndex: true,
     robotsFollow: true,
     seoNotes: '',
+    faqs: [],
   }
 }
 
@@ -281,6 +293,7 @@ function fieldsFromPartial(
         : base.robotsFollow,
     seoNotes:
       typeof partial.seoNotes === 'string' ? partial.seoNotes : base.seoNotes,
+    faqs: parseFaqs(partial.faqs),
   }
 }
 
@@ -316,6 +329,10 @@ export function normalizePath(path: string): string {
   return withSlash.replace(/\/$/, '') || '/'
 }
 
+function withNzFaqs(path: string, fields: PageSeoFields): PageSeoFields {
+  return { ...fields, faqs: faqsForMarket(path, 'nz') }
+}
+
 /** Default fields for a catalog path (code defaults before any CMS edit). */
 export function defaultPageSeoForPath(path: string): PageSeoFields {
   const normalized = normalizePath(path)
@@ -323,38 +340,45 @@ export function defaultPageSeoForPath(path: string): PageSeoFields {
   if (!item) return emptyFields()
 
   if (item.kind === 'service') {
-    return fieldsFromPartial(SERVICE_DEFAULTS[normalized] ?? {
-      h1: item.label,
-      metaTitle: `${item.label} | XLS Experts`,
-      metaDescription: '',
-      ogTitle: `${item.label} | XLS Experts`,
-    })
+    return withNzFaqs(
+      normalized,
+      fieldsFromPartial(
+        SERVICE_DEFAULTS[normalized] ?? {
+          h1: item.label,
+          metaTitle: `${item.label} | XLS Experts`,
+          metaDescription: '',
+          ogTitle: `${item.label} | XLS Experts`,
+        }
+      )
+    )
   }
 
   const solution = solutionPages.find((s) => s.href === normalized)
   if (!solution) {
-    return fieldsFromPartial({
-      h1: item.label,
-      metaTitle: `${item.label} | XLS Experts`,
-    })
+    return withNzFaqs(
+      normalized,
+      fieldsFromPartial({
+        h1: item.label,
+        metaTitle: `${item.label} | XLS Experts`,
+      })
+    )
   }
 
-  return fieldsFromPartial({
-    h1: solution.heroHeading,
-    heroIntro: solution.heroIntroduction,
-    metaTitle: solution.metaTitle,
-    metaDescription: solution.metaDescription,
-    ogTitle: `${solution.metaTitle} | XLS Experts`,
-    ogDescription: solution.metaDescription,
-  })
+  return withNzFaqs(
+    normalized,
+    fieldsFromPartial({
+      h1: solution.heroHeading,
+      heroIntro: solution.heroIntroduction,
+      metaTitle: solution.metaTitle,
+      metaDescription: solution.metaDescription,
+      ogTitle: `${solution.metaTitle} | XLS Experts`,
+      ogDescription: solution.metaDescription,
+    })
+  )
 }
 
 export function defaultPageSeoBundle(): PageSeoBundle {
-  const pages: PageSeoBundle = {}
-  for (const item of PAGE_SEO_CATALOG) {
-    pages[item.path] = defaultPageSeoForPath(item.path)
-  }
-  return pages
+  return defaultPageSeoMarkets().nz
 }
 
 /**
@@ -387,27 +411,44 @@ export function globalizePageSeoFields(fields: PageSeoFields): PageSeoFields {
     ogDescription: scrub(fields.ogDescription) || fields.ogDescription,
     twitterTitle: scrub(fields.twitterTitle),
     twitterDescription: scrub(fields.twitterDescription),
+    faqs: rewriteFaqsForMarket(fields.faqs, 'intl'),
   }
 }
 
-export function defaultIntlPageSeoBundle(): PageSeoBundle {
+function defaultBundleForMarket(market: Exclude<MarketId, 'nz'>): PageSeoBundle {
   const pages: PageSeoBundle = {}
   for (const item of PAGE_SEO_CATALOG) {
-    pages[item.path] = globalizePageSeoFields(defaultPageSeoForPath(item.path))
+    pages[item.path] = {
+      ...globalizePageSeoFields(defaultPageSeoForPath(item.path)),
+      faqs: faqsForMarket(item.path, market),
+    }
   }
   return pages
 }
 
+let cachedPageSeoMarkets: PageSeoMarkets | null = null
+
+export function defaultIntlPageSeoBundle(): PageSeoBundle {
+  return defaultPageSeoMarkets().intl
+}
+
 export function defaultUkPageSeoBundle(): PageSeoBundle {
-  return defaultIntlPageSeoBundle()
+  return defaultPageSeoMarkets().uk
 }
 
 export function defaultPageSeoMarkets(): PageSeoMarkets {
-  return {
-    nz: defaultPageSeoBundle(),
-    intl: defaultIntlPageSeoBundle(),
-    uk: defaultUkPageSeoBundle(),
+  if (!cachedPageSeoMarkets) {
+    const nz: PageSeoBundle = {}
+    for (const item of PAGE_SEO_CATALOG) {
+      nz[item.path] = defaultPageSeoForPath(item.path)
+    }
+    cachedPageSeoMarkets = {
+      nz,
+      intl: defaultBundleForMarket('intl'),
+      uk: defaultBundleForMarket('uk'),
+    }
   }
+  return cachedPageSeoMarkets
 }
 
 export function clonePageSeoBundle(source: PageSeoBundle): PageSeoBundle {
@@ -461,6 +502,7 @@ export function mergePageSeo(
         : base.robotsFollow,
     seoNotes:
       typeof overlay.seoNotes === 'string' ? next.seoNotes : base.seoNotes,
+    faqs: next.faqs.length > 0 ? cloneFaqs(next.faqs) : cloneFaqs(base.faqs),
   }
 }
 
@@ -590,10 +632,14 @@ export function resolvePageSeo(
     market === 'nz'
       ? defaultPageSeoForPath(normalized)
       : market === 'uk'
-        ? defaultUkPageSeoBundle()[normalized] ??
-          globalizePageSeoFields(defaultPageSeoForPath(normalized))
-        : defaultIntlPageSeoBundle()[normalized] ??
-          globalizePageSeoFields(defaultPageSeoForPath(normalized))
+        ? defaultUkPageSeoBundle()[normalized] ?? {
+            ...globalizePageSeoFields(defaultPageSeoForPath(normalized)),
+            faqs: faqsForMarket(normalized, 'uk'),
+          }
+        : defaultIntlPageSeoBundle()[normalized] ?? {
+            ...globalizePageSeoFields(defaultPageSeoForPath(normalized)),
+            faqs: faqsForMarket(normalized, 'intl'),
+          }
   const overlay = published?.[normalized]
   return mergePageSeo(defaults, overlay)
 }

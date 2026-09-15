@@ -1,6 +1,7 @@
 /**
- * Detect NZ / UK / US-specific wording in blog copy so Admin can warn
- * when a post is tagged for a market its text was not written for.
+ * Detect NZ / UK / US-specific wording in CMS copy so Admin can warn
+ * when text is tagged for a market it was not written for, or when
+ * shared records (case studies) hide regional phrasing in body fields.
  *
  * `{region}` and other SERP tokens are ignored — those are filled per host.
  */
@@ -34,10 +35,12 @@ const PATTERNS: Record<MarketId, readonly RegExp[]> = {
     /\bwellington\b/i,
     /\bchristchurch\b/i,
     /\bhamilton\b/i,
+    /\btauranga\b/i,
     /\bnzd\b/i,
     /\bnz\$/i,
     /\bco\.nz\b/i,
     /\bkiwi(?:s)?\b/i,
+    /\bgst\b/i,
     /\bnz\b/i,
   ],
   uk: [
@@ -54,6 +57,7 @@ const PATTERNS: Record<MarketId, readonly RegExp[]> = {
     /\bedinburgh\b/i,
     /\bgbp\b/i,
     /\bco\.uk\b/i,
+    /\bvat\b/i,
     /\buk\b/i,
   ],
   intl: [
@@ -110,19 +114,22 @@ function sampleAround(text: string, match: RegExpExecArray): string {
   return text.slice(start, end).replace(/\s+/g, ' ').trim()
 }
 
-export function detectBlogCopyMarkets(
-  source: BlogRegionCopySource
+export function detectCopyMarketsFromText(
+  text: string
 ): { detected: MarketId[]; samples: Partial<Record<MarketId, string[]>> } {
-  const text = blogCopyPlainText(source)
+  const scanned = stripSerpTokens(text)
   const samples: Partial<Record<MarketId, string[]>> = {}
   const detected: MarketId[] = []
   for (const market of MARKET_IDS) {
     const found: string[] = []
     for (const pattern of PATTERNS[market]) {
-      const re = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`)
+      const re = new RegExp(
+        pattern.source,
+        pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`
+      )
       let hit: RegExpExecArray | null
-      while ((hit = re.exec(text)) !== null) {
-        const snippet = sampleAround(text, hit)
+      while ((hit = re.exec(scanned)) !== null) {
+        const snippet = sampleAround(scanned, hit)
         if (snippet && !found.includes(snippet)) found.push(snippet)
         if (found.length >= 3) break
       }
@@ -134,6 +141,26 @@ export function detectBlogCopyMarkets(
     }
   }
   return { detected, samples }
+}
+
+/** Regional markets named in the text that are not the market being edited. */
+export function foreignRegionalMarkets(
+  text: string,
+  current: MarketId
+): { foreign: MarketId[]; samples: Partial<Record<MarketId, string[]>> } {
+  const { detected, samples } = detectCopyMarketsFromText(text)
+  const foreign = detected.filter((id) => id !== current)
+  const foreignSamples: Partial<Record<MarketId, string[]>> = {}
+  for (const id of foreign) {
+    if (samples[id]?.length) foreignSamples[id] = samples[id]
+  }
+  return { foreign, samples: foreignSamples }
+}
+
+export function detectBlogCopyMarkets(
+  source: BlogRegionCopySource
+): { detected: MarketId[]; samples: Partial<Record<MarketId, string[]>> } {
+  return detectCopyMarketsFromText(blogCopyPlainText(source))
 }
 
 export function taggedMarketsFromFlags(flags: BlogRegionFlags): MarketId[] {
@@ -205,4 +232,75 @@ export function blogRegionCopyTickTitle(
   const label =
     market === 'nz' ? 'NZ' : market === 'uk' ? 'UK' : 'International/US'
   return `Copy is not ${label}-specific — this domain tick conflicts`
+}
+
+export type CaseStudyRegionCopySource = {
+  title?: string
+  client?: string
+  sector?: string
+  slug?: string
+  problem?: string
+  solution?: string
+  outcome?: string
+  tags?: readonly string[]
+}
+
+export type CaseStudyRegionCopyReport = {
+  detected: MarketId[]
+  samples: Partial<Record<MarketId, string[]>>
+  mixed: boolean
+  label: string
+}
+
+export function caseStudyCopyPlainText(
+  source: CaseStudyRegionCopySource
+): string {
+  return [
+    source.client,
+    source.sector,
+    source.title,
+    source.slug?.replace(/-/g, ' '),
+    source.problem,
+    source.solution,
+    source.outcome,
+    ...(source.tags ?? []),
+  ]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join('\n')
+}
+
+export function caseStudyRegionCopyReport(
+  source: CaseStudyRegionCopySource
+): CaseStudyRegionCopyReport {
+  const { detected, samples } = detectCopyMarketsFromText(
+    caseStudyCopyPlainText(source)
+  )
+  const mixed = detected.length > 1
+  const copyLabel =
+    detected.length === 0
+      ? 'Neutral'
+      : detected.map((id) => marketShortLabel(id)).join('+')
+  const label =
+    detected.length === 0
+      ? copyLabel
+      : mixed
+        ? `Mixed ${copyLabel}`
+        : `${copyLabel} copy`
+
+  return { detected, samples, mixed, label }
+}
+
+export function caseStudyRegionCopyHoverTitle(
+  report: CaseStudyRegionCopyReport
+): string {
+  if (report.detected.length === 0) {
+    return 'No NZ / UK / US-specific wording in client, sector, title, problem, solution, outcome or tags'
+  }
+  const bits = report.detected.map((id) => {
+    const snippet = report.samples[id]?.[0]
+    return snippet
+      ? `${marketShortLabel(id)} (“${snippet}”)`
+      : marketShortLabel(id)
+  })
+  return `Regional wording found: ${bits.join('; ')}`
 }

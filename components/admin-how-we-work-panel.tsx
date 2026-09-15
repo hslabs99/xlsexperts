@@ -9,6 +9,8 @@ import {
   type MarketCopyBundle,
 } from '@/lib/market-copy'
 import { MARKET_IDS, marketLabel, type MarketId } from '@/lib/market'
+import { cmsAnchorId } from '@/lib/admin-focus'
+import { cmsFocusRingClass, useCmsEditorFocus } from '@/lib/use-cms-editor-focus'
 
 export function AdminHowWeWorkPanel() {
   const [markets, setMarkets] = useState<MarketCopyBundle>(
@@ -53,6 +55,10 @@ export function AdminHowWeWorkPanel() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const focusHighlight = useCmsEditorFocus('how-we-work', (focus) =>
+    focus.path ? cmsAnchorId(['hww', focus.market, focus.path]) : null
+  )
 
   function updateField(market: MarketId, path: string, value: string) {
     setMarkets((prev) => ({
@@ -228,7 +234,14 @@ export function AdminHowWeWorkPanel() {
                     </div>
                   </td>
                   {MARKET_IDS.map((id) => (
-                    <td key={id} className="px-3 py-3">
+                    <td
+                      key={id}
+                      id={cmsAnchorId(['hww', id, field.path])}
+                      className={`px-3 py-3 ${cmsFocusRingClass(
+                        focusHighlight ===
+                          cmsAnchorId(['hww', id, field.path])
+                      )}`}
+                    >
                       <FieldInput
                         value={getByPath(markets[id], field.path)}
                         onChange={(v) => updateField(id, field.path, v)}

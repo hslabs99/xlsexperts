@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -41,14 +42,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  { q: 'When should a spreadsheet be professionally audited?', a: 'A spreadsheet should be audited when it supports significant financial decisions, is used in regulatory submissions, has been inherited from someone who has left, or has grown in complexity beyond what the original author intended. If numbers from a spreadsheet are used to make material decisions, it is worth getting independent assurance.' },
-  { q: 'What does a spreadsheet audit actually involve?', a: 'Our audits review formula consistency (are all rows using the same logic?), calculation integrity (does the model do what it says it does?), structural quality (inputs, calculations and outputs properly separated?), error checking (broken references, circular references, hard-coded overrides) and documentation adequacy.' },
-  { q: 'How long does a spreadsheet audit take?', a: 'A straightforward workbook audit typically takes two to four days. A complex multi-sheet model or a formal audit with a written report suitable for external use typically takes five to ten business days.' },
-  { q: 'Can you audit a spreadsheet confidentially?', a: 'Yes. All audit engagements are conducted under a non-disclosure agreement. We handle your data securely and return or delete files at the conclusion of the engagement.' },
-  { q: 'Do you fix issues found during the audit?', a: 'The audit itself produces a report of findings. We offer a separate remediation engagement to fix identified issues — this can be quoted after the audit is complete and the scope of fixes is clear.' },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: '/spreadsheet-auditing',
@@ -58,20 +51,17 @@ async function buildServiceSchema() {
 }
 
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-}
-
 export default async function SpreadsheetAuditingPage() {
   const seo = await getPageSeo('/spreadsheet-auditing')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/spreadsheet-auditing')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -147,7 +137,7 @@ export default async function SpreadsheetAuditingPage() {
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">Frequently asked questions</h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>

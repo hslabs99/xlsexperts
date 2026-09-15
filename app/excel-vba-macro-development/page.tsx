@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -57,33 +58,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  {
-    q: 'Are Excel macros and VBA the same thing?',
-    a: 'Yes in practice. A macro is a sequence of automated actions in Excel; VBA (Visual Basic for Applications) is the programming language those macros are written in. Whether you call it a macro or a VBA project, we build the right level of automation — from a simple one-click process to a full application with validation, logging and documentation.',
-  },
-  {
-    q: 'What can Excel VBA / macros actually automate?',
-    a: 'Almost any task you perform manually in Excel — data imports and exports, report formatting, emailing, file management, form processing, PDF creation, consolidating multiple files, and integration with Word and Outlook.',
-  },
-  {
-    q: 'Is VBA still worth investing in, or should we use Python instead?',
-    a: 'VBA is the right choice when the solution lives in Excel and your team works in Excel. It requires no additional software, runs inside the file, and your team can operate it without technical knowledge. Python is better suited to server-side automation, large data volumes or integration with systems outside Office.',
-  },
-  {
-    q: 'Are macros safe to use in a business environment?',
-    a: 'Yes, when written correctly. We write signed macros and configure trust settings properly so they run without disruptive security warnings. We follow security best practices and never use macros to access data outside the intended scope.',
-  },
-  {
-    q: 'Can you take over or improve macros someone else wrote?',
-    a: 'Yes. Code reviews and takeovers are a regular part of our work. We assess the existing code, document what it does, fix bugs and either refactor what is there or rebuild cleanly depending on what makes more sense.',
-  },
-  {
-    q: 'How long does a typical project take?',
-    a: 'Simple automation macros can be delivered in a day or two. A fuller VBA application — with a user interface, validation, error handling and documentation — typically takes two to four weeks.',
-  },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: PAGE_HREF,
@@ -93,30 +67,23 @@ async function buildServiceSchema() {
   })
 }
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({
-    '@type': 'Question',
-    name: f.q,
-    acceptedAnswer: { '@type': 'Answer', text: f.a },
-  })),
-}
-
 export default async function ExcelVbaMacroDevelopmentPage() {
   const seo = await getPageSeo('/excel-vba-macro-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles(PAGE_HREF)
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -247,7 +214,7 @@ export default async function ExcelVbaMacroDevelopmentPage() {
               Frequently asked questions
             </h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">
                     {faq.q}

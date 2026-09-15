@@ -22,6 +22,11 @@ import {
   parseGeneratedPublishedJson,
   writeGeneratedFile,
 } from '@/lib/write-generated-file'
+import {
+  CMS_DRAFT_CACHE_KEYS,
+  cachedDraft,
+  invalidateDraftCache,
+} from '@/lib/cms-draft-cache'
 
 const GENERATED_RELATIVE = path.join('data', 'market-copy.generated.ts')
 
@@ -30,6 +35,15 @@ const GENERATED_RELATIVE = path.join('data', 'market-copy.generated.ts')
  * Falls back to built-in defaults (missing markets seeded from defaults) if missing.
  */
 export async function fetchMarketCopyDraft(): Promise<{
+  markets: MarketCopyBundle
+  heroBackgroundHoldSeconds: number
+  publishedAt: string | null
+  updatedAt: string | null
+}> {
+  return cachedDraft(CMS_DRAFT_CACHE_KEYS.marketCopy, loadMarketCopyDraft)
+}
+
+async function loadMarketCopyDraft(): Promise<{
   markets: MarketCopyBundle
   heroBackgroundHoldSeconds: number
   publishedAt: string | null
@@ -82,7 +96,7 @@ export async function saveMarketCopyDraft(
   heroBackgroundHoldSeconds: number
 }> {
   const normalized = normalizeMarketCopyBundle(markets)
-  const existing = await fetchMarketCopyDraft()
+  const existing = await loadMarketCopyDraft()
   const heroBackgroundHoldSeconds =
     extras && 'heroBackgroundHoldSeconds' in extras
       ? normalizeHeroBackgroundHoldSeconds(extras.heroBackgroundHoldSeconds)
@@ -98,6 +112,7 @@ export async function saveMarketCopyDraft(
       },
       { merge: true }
     )
+  invalidateDraftCache(CMS_DRAFT_CACHE_KEYS.marketCopy)
   return { markets: normalized, heroBackgroundHoldSeconds }
 }
 
@@ -134,7 +149,7 @@ export async function publishMarketCopy(
   publishedAt: string
   filePath: string
 }> {
-  const draft = await fetchMarketCopyDraft()
+  const draft = await loadMarketCopyDraft()
   const bundle =
     markets != null ? normalizeMarketCopyBundle(markets) : draft.markets
   const heroBackgroundHoldSeconds =
@@ -165,6 +180,7 @@ export async function publishMarketCopy(
       { merge: true }
     )
 
+  invalidateDraftCache(CMS_DRAFT_CACHE_KEYS.marketCopy)
   return {
     markets: bundle,
     heroBackgroundHoldSeconds,
@@ -182,7 +198,7 @@ export async function patchPublishedSiteOrigins(origins: {
   intl: string
   uk: string
 }): Promise<void> {
-  const draft = await fetchMarketCopyDraft()
+  const draft = await loadMarketCopyDraft()
   await saveMarketCopyDraft(applySiteOrigins(draft.markets, origins))
 
   const published = await readPublishedMarketCopyFromDisk()

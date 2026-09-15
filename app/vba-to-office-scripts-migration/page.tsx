@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
@@ -112,40 +113,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  {
-    q: 'Should we migrate all our VBA to Office Scripts?',
-    a: 'Not necessarily. VBA remains the right choice for desktop-only automations, complex UI-driven tools, workbooks that do not need to run in the cloud, and scenarios requiring full Excel object model access. We assess each automation individually and recommend migration only where it adds genuine value.',
-  },
-  {
-    q: 'Can Office Scripts replace VBA userforms?',
-    a: 'No. Office Scripts have no UI capability. If your VBA relies on userforms or dialogs, the replacement is either an Office Add-in task pane (a web-based interface), a Power Apps canvas app, or a redesigned workflow that eliminates the need for user input at runtime.',
-  },
-  {
-    q: 'Can you work with our existing Microsoft 365 environment?',
-    a: 'Yes. We regularly migrate spreadsheet automation into Office Scripts and Power Automate within your existing Microsoft 365 tenancy, SharePoint sites, security policies and licensing — including organisational script sharing where IT enables it.',
-  },
-  {
-    q: 'Can we keep Excel interfaces while moving shared work into SharePoint?',
-    a: 'Yes. A common modernisation path is to keep familiar Excel workbooks for analysis while moving shared lists, approvals, documents and scheduled automation into SharePoint and Power Automate with Office Scripts.',
-  },
-  {
-    q: 'Do all Microsoft 365 licences include Office Scripts?',
-    a: 'No. Office Scripts are included in Microsoft 365 Business Standard, Business Premium, E3, and E5. They are not available in Microsoft 365 Business Basic or Microsoft 365 Apps for Business. Running scripts via Power Automate also requires a qualifying Power Automate licence.',
-  },
-  {
-    q: 'How does Office Scripts perform with large Excel files?',
-    a: 'Performance depends on how the script is written. Reading and writing large ranges in bulk (using getValues/setValues on whole ranges rather than cell-by-cell loops) is significantly faster. Scripts that iterate row-by-row on thousands of records will time out. We design scripts with the batch API pattern from the outset.',
-  },
-  {
-    q: 'Can Office Scripts trigger automatically on a schedule?',
-    a: 'Yes, but only via Power Automate. A scheduled flow in Power Automate calls the "Run script" action against a specific workbook in SharePoint or OneDrive. The script itself cannot self-schedule — it always needs a flow trigger.',
-  },
-  {
-    q: 'We use SharePoint on-premises, not SharePoint Online. Does this work?',
-    a: 'No. Office Scripts require Microsoft 365 cloud services and Excel for the web. They do not function against SharePoint Server (on-premises). If your organisation has not migrated to SharePoint Online, VBA or alternative automation approaches remain the path forward.',
-  },
-]
 
 async function buildServiceSchema() {
   return marketServiceSchema({
@@ -155,16 +122,6 @@ async function buildServiceSchema() {
   })
 }
 
-
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({
-    '@type': 'Question',
-    name: f.q,
-    acceptedAnswer: { '@type': 'Answer', text: f.a },
-  })),
-}
 
 const severityColour: Record<string, string> = {
   high: '#dc2626',
@@ -181,16 +138,19 @@ const severityLabel: Record<string, string> = {
 export default async function VBAToOfficeScriptsMigrationPage() {
   const seo = await getPageSeo('/vba-to-office-scripts-migration')
   const serviceSchema = await buildServiceSchema()
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -407,7 +367,7 @@ export default async function VBAToOfficeScriptsMigrationPage() {
               Frequently asked questions
             </h2>
             <div className="divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="px-8 py-7">
                   <h3 className="font-display mb-3 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>

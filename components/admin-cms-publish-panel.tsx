@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { CmsRegionHealthFinding, CmsRegionHealthReport } from '@/lib/cms-region-health'
+import { marketShortLabel } from '@/lib/market'
 
 type FilePublishId =
   | 'market-copy'
@@ -41,7 +43,7 @@ const FILE_PUBLISHES: FilePublishDef[] = [
     title: 'Pages CMS',
     editIn: 'CMS → Pages CMS',
     description:
-      'H1, intro, and meta for every service and solution page (NZ, International, UK).',
+      'H1, intro, meta, and FAQs for every service and solution page (NZ, International, UK).',
     file: 'data/page-seo.generated.ts',
     statusUrl: '/api/admin/page-seo',
   },
@@ -58,7 +60,8 @@ const FILE_PUBLISHES: FilePublishDef[] = [
     id: 'home-services',
     title: 'Home services',
     editIn: 'CMS → Home services',
-    description: 'Featured “What we do” tiles on the homepage.',
+    description:
+      'Featured “What we do” tiles on the homepage, with separate NZ / International / UK copy.',
     file: 'data/home-services.generated.ts',
     statusUrl: '/api/admin/home-services',
   },
@@ -173,6 +176,9 @@ export function AdminCmsPublishPanel() {
   )
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [health, setHealth] = useState<CmsRegionHealthReport | null>(null)
+  const [healthLoading, setHealthLoading] = useState(true)
+  const [healthError, setHealthError] = useState<string | null>(null)
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) {
@@ -196,9 +202,53 @@ export function AdminCmsPublishPanel() {
     }
   }, [])
 
+  const loadHealth = useCallback(async () => {
+    setHealthLoading(true)
+    setHealthError(null)
+    try {
+      const res = await fetch('/api/admin/cms-region-health')
+      const data = (await res.json()) as CmsRegionHealthReport & {
+        ok?: boolean
+        error?: string
+      }
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || 'Regional health check failed')
+      }
+      setHealth(data)
+    } catch (err) {
+      setHealthError(
+        err instanceof Error ? err.message : 'Regional health check failed'
+      )
+    } finally {
+      setHealthLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     void load()
-  }, [load])
+    void loadHealth()
+  }, [load, loadHealth])
+
+  const healthBySource = useMemo(() => {
+    const groups: Array<{
+      source: string
+      label: string
+      items: CmsRegionHealthFinding[]
+    }> = []
+    if (!health) return groups
+    for (const item of health.findings) {
+      const existing = groups.find((group) => group.source === item.source)
+      if (existing) existing.items.push(item)
+      else {
+        groups.push({
+          source: item.source,
+          label: item.sourceLabel,
+          items: [item],
+        })
+      }
+    }
+    return groups
+  }, [health])
 
   async function handlePublishOne(id: FilePublishId) {
     setBusyId(id)
@@ -208,6 +258,7 @@ export function AdminCmsPublishPanel() {
       const result = await publishFile(id)
       setMessage(result)
       await load({ silent: true })
+      await loadHealth()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Publish failed')
     } finally {
@@ -233,6 +284,7 @@ export function AdminCmsPublishPanel() {
         `Published all generated files. ${done.length} of ${ids.length} succeeded.`
       )
       await load({ silent: true })
+      await loadHealth()
     } catch (err) {
       setError(
         err instanceof Error
@@ -326,6 +378,88 @@ export function AdminCmsPublishPanel() {
             {error || message}
           </div>
         )}
+
+        <div className="mt-6 rounded-md border border-border bg-white p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">
+                Regional health check
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm text-ink-muted">
+                Scans the last saved CMS drafts (NZ / International / UK) for
+                country wording that does not belong on that market, including
+                page FAQs. Click a finding to open it in the editor.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={busy || healthLoading}
+              onClick={() => void loadHealth()}
+              className="shrink-0 rounded-md border border-border bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-gray-50 disabled:opacity-60"
+            >
+              {healthLoading ? 'Scanning…' : 'Rescan'}
+            </button>
+          </div>
+
+          {healthError ? (
+            <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              {healthError}
+            </p>
+          ) : healthLoading && !health ? (
+            <p className="mt-3 text-sm text-ink-muted">Scanning drafts…</p>
+          ) : health && health.findingCount === 0 ? (
+            <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              No out-of-region wording in Site CMS, Pages CMS (including FAQs),
+              How we work, Home services, or Top Bullets.
+            </p>
+          ) : health ? (
+            <div className="mt-4 space-y-4">
+              <p className="text-sm font-medium text-amber-900">
+                {health.findingCount} finding
+                {health.findingCount === 1 ? '' : 's'} in unpublished / draft CMS
+                copy.
+              </p>
+              {health.errors.length > 0 ? (
+                <p className="text-xs text-amber-800">
+                  Partial scan: {health.errors.join(' · ')}
+                </p>
+              ) : null}
+              {healthBySource.map((group) => (
+                <div key={group.source} className="space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    {group.label} ({group.items.length})
+                  </h4>
+                  <ul className="space-y-2">
+                    {group.items.map((item) => (
+                      <li key={item.id}>
+                        <a
+                          href={item.href}
+                          className="block rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink transition hover:border-amber-400 hover:bg-amber-100"
+                        >
+                          <span className="font-semibold">{item.title}</span>
+                          <span className="ml-2 rounded-full bg-white px-1.5 py-0.5 text-[11px] font-medium text-amber-900">
+                            {marketShortLabel(item.market)}
+                          </span>
+                          <span className="mt-1 block text-xs text-ink-muted">
+                            {item.detail}
+                          </span>
+                          {item.samples[0] ? (
+                            <span className="mt-1 block truncate text-[11px] text-ink-muted">
+                              {item.samples[0]}
+                            </span>
+                          ) : null}
+                          <span className="mt-1 block text-[11px] font-medium text-brand">
+                            Edit in {item.sourceLabel} →
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div className="mt-6 space-y-3">
           {FILE_PUBLISHES.map((item) => {

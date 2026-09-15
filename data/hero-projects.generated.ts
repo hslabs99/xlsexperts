@@ -2,7 +2,7 @@
  * PUBLISHED homepage hero common projects — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → CMS → Common Projects, then click Publish to regenerate this file.
  *
- * Generated at 2026-08-27T03:12:40.115Z
+ * Generated at 2026-09-13T12:17:30.662Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedHeroProjectsFile } from '@/lib/hero-trust'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-27T03:12:40.115Z",
+  "publishedAt": "2026-09-13T12:17:30.662Z",
   "content": {
     "intro": "Hundreds of custom business solutions delivered across engineering, finance, manufacturing, logistics and professional services.",
     "projects": [

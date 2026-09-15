@@ -9,6 +9,11 @@ import {
 } from '@/lib/firebase'
 import { writeGeneratedFile } from '@/lib/write-generated-file'
 import {
+  CMS_DRAFT_CACHE_KEYS,
+  cachedDraft,
+  invalidateDraftCache,
+} from '@/lib/cms-draft-cache'
+import {
   defaultPageSeoMarkets,
   normalizePageSeoMarkets,
   type PageSeoMarkets,
@@ -24,6 +29,14 @@ const GENERATED_RELATIVE = path.join('data', 'page-seo.generated.ts')
  * from International.
  */
 export async function fetchPageSeoDraft(): Promise<{
+  markets: PageSeoMarkets
+  publishedAt: string | null
+  updatedAt: string | null
+}> {
+  return cachedDraft(CMS_DRAFT_CACHE_KEYS.pageSeo, loadPageSeoDraft)
+}
+
+async function loadPageSeoDraft(): Promise<{
   markets: PageSeoMarkets
   publishedAt: string | null
   updatedAt: string | null
@@ -77,6 +90,7 @@ export async function savePageSeoDraft(
       },
       { merge: true }
     )
+  invalidateDraftCache(CMS_DRAFT_CACHE_KEYS.pageSeo)
   return normalized
 }
 
@@ -114,7 +128,7 @@ export async function publishPageSeo(
   const bundle =
     markets != null
       ? normalizePageSeoMarkets(markets)
-      : (await fetchPageSeoDraft()).markets
+      : (await loadPageSeoDraft()).markets
 
   const publishedAt = new Date().toISOString()
   const payload: PublishedPageSeoFile = {
@@ -138,5 +152,6 @@ export async function publishPageSeo(
       { merge: true }
     )
 
+  invalidateDraftCache(CMS_DRAFT_CACHE_KEYS.pageSeo)
   return { markets: bundle, publishedAt, filePath: GENERATED_RELATIVE }
 }

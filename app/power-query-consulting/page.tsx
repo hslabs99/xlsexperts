@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -41,14 +42,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  { q: 'What is Power Query and what can it do?', a: 'Power Query is a data transformation tool built into Excel and Power BI. It connects to data sources, applies cleaning and transformation steps, and loads structured data ready for analysis. It replaces manual data preparation with a repeatable, one-click refresh process.' },
-  { q: 'What data sources can Power Query connect to?', a: 'Power Query connects to Excel files, CSV files, SQL Server, Oracle, MySQL, PostgreSQL, SharePoint, OneDrive, web pages, APIs, Azure services, Salesforce and many more. If you have a data source, we can usually connect to it.' },
-  { q: 'Can Power Query replace VBA for data import tasks?', a: 'For many data import and transformation tasks, yes. Power Query is often faster to build and easier to maintain than VBA for ETL-style work. We will advise on the right approach based on your specific requirements — sometimes a combination of Power Query and VBA is optimal.' },
-  { q: 'Does Power Query work in our version of Excel?', a: 'Power Query is built into Excel 2016 and later, and all Microsoft 365 versions. For Excel 2010 and 2013 it can be installed as a free add-in. We confirm compatibility before starting any engagement.' },
-  { q: 'How much does Power Query consulting cost in New Zealand?', a: 'A straightforward data connection and transformation project typically starts from $1,000 NZD. More complex multi-source pipelines with automated refresh and documentation are typically $2,000 to $6,000 NZD. We provide a fixed quote after reviewing your data sources.' },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: '/power-query-consulting',
@@ -58,20 +51,17 @@ async function buildServiceSchema() {
 }
 
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-}
-
 export default async function PowerQueryConsultingPage() {
   const seo = await getPageSeo('/power-query-consulting')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/power-query-consulting')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -147,7 +137,7 @@ export default async function PowerQueryConsultingPage() {
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">Frequently asked questions</h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>

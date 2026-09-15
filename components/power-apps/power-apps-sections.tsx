@@ -388,7 +388,12 @@ export function CoverageSection() {
   )
 }
 
-export function PowerAppsFaqSection() {
+export function PowerAppsFaqSection({
+  faqs,
+}: {
+  faqs?: { question: string; answer: string }[]
+}) {
+  const items = faqs && faqs.length > 0 ? faqs : powerAppsFaqs
   return (
     <SectionShell id="faqs">
       <div className="mx-auto max-w-3xl">
@@ -398,7 +403,7 @@ export function PowerAppsFaqSection() {
           Apps, Dataverse and Dynamics 365 custom apps.
         </p>
         <div className="space-y-4">
-          {powerAppsFaqs.map((faq) => (
+          {items.map((faq) => (
             <details
               key={faq.question}
               className="group rounded-xl border border-gray-200 bg-white p-6 open:shadow-sm"

@@ -2,7 +2,7 @@
  * PUBLISHED homepage case studies — imported by the public site (no Firestore on first paint).
  * Edit in Admin → Case Studies, then Publish homepage (or CMS → Publish).
  *
- * Generated at 2026-08-19T02:13:08.599Z
+ * Generated at 2026-09-13T12:17:37.702Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedCaseStudiesHomeFile } from '@/lib/case-studies-home'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-19T02:13:08.599Z",
+  "publishedAt": "2026-09-13T12:17:37.702Z",
   "items": [
     {
       "slug": "maintenance-scheduling-ocs",
@@ -32,7 +32,7 @@ const published = {
     },
     {
       "slug": "valet-parking-pullman",
-      "client": "Pullman Hotel Auckland",
+      "client": "Pullman Hotel",
       "sector": "Hospitality",
       "title": "Valet Parking Hybrid App",
       "image": "https://firebasestorage.googleapis.com/v0/b/xlsexperts-49c22.firebasestorage.app/o/case-studies%2Fvalet-parking-pullman%2Fhero.jpg?alt=media&token=9fc36cd1-0376-43c0-841b-cbd1d224e0ea",
@@ -86,9 +86,58 @@ const published = {
       ],
       "serviceSlugs": [],
       "solutionSlugs": []
+    },
+    {
+      "slug": "boat-package-costing-application",
+      "client": "Innovision Boats",
+      "sector": "Marine",
+      "title": "Boat Package Costing Application",
+      "image": "https://firebasestorage.googleapis.com/v0/b/xlsexperts-49c22.firebasestorage.app/o/case-studies%2Fboat-package-costing-application%2Fhero-1784785437677.webp?alt=media&token=7739a864-2944-4bcc-ae91-263bd4373b41",
+      "problem": "Innovision Boats needed a more efficient tool for users to specify their boat requirements, which would then integrate with their pricing system and streamline parts ordering for the workshop.",
+      "solution": "We developed a user-friendly boat specification application that seamlessly connects user inputs to pricing calculations and parts management.",
+      "outcome": "The new application improved operational efficiency, reduced errors in pricing, and enhanced the overall customer experience by simplifying the boat specification process.",
+      "tags": [
+        "Excel",
+        "VBA",
+        "Web Applications"
+      ],
+      "serviceSlugs": [
+        "excel-spreadsheet-development",
+        "excel-vba-macro-development"
+      ],
+      "solutionSlugs": [
+        "quoting-estimating-systems",
+        "workflow-automation-systems-integration"
+      ]
+    },
+    {
+      "slug": "department-renovation-costing-application",
+      "client": "Apartment Renovations",
+      "sector": "Construction",
+      "title": "Renovation Costing Application",
+      "image": "https://firebasestorage.googleapis.com/v0/b/xlsexperts-49c22.firebasestorage.app/o/case-studies%2Fdepartment-renovation-costing-application%2Fhero-1784862339959.webp?alt=media&token=86f2b54e-bbb7-45ea-9f36-d67c015cdd54",
+      "problem": "The client faced challenges in achieving accurate job costing using a traditional spreadsheet model, leading to inefficiencies and potential errors.",
+      "solution": "We developed a comprehensive cloud-based renovation costing application that encompasses all fit-out components, enabling real estate agents to cost entire projects effectively.",
+      "outcome": "The new application streamlined the costing process, improved accuracy, and enhanced the client's ability to manage renovation projects efficiently.",
+      "tags": [
+        "cloud-app",
+        "costing",
+        "renovation"
+      ],
+      "serviceSlugs": [
+        "web-applications",
+        "google-sheets-development",
+        "excel-integrations"
+      ],
+      "solutionSlugs": [
+        "project-costing-financial-modelling",
+        "property-development-applications"
+      ]
     }
   ],
-  "hasMore": true
+  "hasMore": true,
+  "initialCount": 6,
+  "morePageSize": 4
 } as PublishedCaseStudiesHomeFile
 
 export const PUBLISHED_CASE_STUDIES_HOME = published

@@ -1,26 +1,18 @@
 import { marketServiceSchema, marketSiteOrigin } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd, toSolutionFaqs } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PowerAppsPageView } from '@/components/power-apps/power-apps-page-view'
-import { POWER_APPS_HREF, powerAppsFaqs } from '@/lib/power-apps-page'
+import { POWER_APPS_HREF } from '@/lib/power-apps-page'
 
 export async function generateMetadata() {
   return pageSeoMetadata(POWER_APPS_HREF)
 }
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: powerAppsFaqs.map((faq) => ({
-    '@type': 'Question',
-    name: faq.question,
-    acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-  })),
-}
-
 export default async function PowerAppsDataverseDevelopmentPage() {
   const origin = await marketSiteOrigin()
   const seo = await getPageSeo(POWER_APPS_HREF)
+  const faqSchema = faqPageJsonLd(seo.faqs)
   const serviceSchema = await marketServiceSchema({
     path: POWER_APPS_HREF,
     name: 'Microsoft Power Apps & Dataverse Development',
@@ -49,16 +41,22 @@ export default async function PowerAppsDataverseDevelopmentPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Navbar />
-      <PowerAppsPageView h1={seo.h1} heroIntro={seo.heroIntro} />
+      <PowerAppsPageView
+        h1={seo.h1}
+        heroIntro={seo.heroIntro}
+        faqs={toSolutionFaqs(seo.faqs)}
+      />
     </>
   )
 }

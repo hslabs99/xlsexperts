@@ -7,10 +7,15 @@ import {
   HOME_SERVICES_MAX_TILES,
   HOME_SERVICES_MIN_TILES,
   SERVICE_ICON_LABELS,
+  cloneHomeServicesContent,
+  defaultHomeServicesBundle,
   defaultHomeServicesContent,
+  homeServiceTileText,
+  homeServicesContentText,
   tileFromServicePage,
   unusedServicePages,
   type HomeServiceTile,
+  type HomeServicesBundle,
   type HomeServicesContent,
 } from '@/lib/home-services'
 import {
@@ -18,17 +23,51 @@ import {
   getServiceByHref,
   servicePages,
 } from '@/lib/service-pages'
+import {
+  MARKET_IDS,
+  marketLabel,
+  marketShortLabel,
+  type MarketId,
+} from '@/lib/market'
+import { cmsAnchorId, scrollCmsAnchor } from '@/lib/admin-focus'
+import { cmsFocusRingClass, useCmsEditorFocus } from '@/lib/use-cms-editor-focus'
+import {
+  foreignRegionalMarkets,
+} from '@/lib/blog-region-copy'
+
+function conflictClass(hasConflict: boolean, extra = '') {
+  return `rounded-md border px-3 py-2 ${
+    hasConflict
+      ? 'border-red-500 bg-red-50 text-red-950 ring-1 ring-red-400'
+      : 'border-border'
+  } ${extra}`.trim()
+}
+
+function foreignHint(text: string, market: MarketId): string | null {
+  const { foreign, samples } = foreignRegionalMarkets(text, market)
+  if (foreign.length === 0) return null
+  const bits = foreign.map((id) => {
+    const snippet = samples[id]?.[0]
+    return snippet
+      ? `${marketShortLabel(id)} (“${snippet}”)`
+      : marketShortLabel(id)
+  })
+  return `Out-of-market wording: ${bits.join('; ')}`
+}
 
 export function AdminHomeServicesPanel() {
-  const [content, setContent] = useState<HomeServicesContent>(
-    defaultHomeServicesContent()
+  const [bundle, setBundle] = useState<HomeServicesBundle>(
+    defaultHomeServicesBundle()
   )
+  const [market, setMarket] = useState<MarketId>('nz')
   const [publishedAt, setPublishedAt] = useState<string | null>(null)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  const content = bundle[market]
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -37,7 +76,7 @@ export function AdminHomeServicesPanel() {
       const res = await fetch('/api/admin/home-services')
       const data = (await res.json()) as {
         ok?: boolean
-        content?: HomeServicesContent
+        content?: HomeServicesBundle
         publishedAt?: string | null
         updatedAt?: string | null
         error?: string
@@ -45,7 +84,7 @@ export function AdminHomeServicesPanel() {
       if (!res.ok || !data.ok || !data.content) {
         throw new Error(data.error || 'Failed to load homepage services')
       }
-      setContent(data.content)
+      setBundle(data.content)
       setPublishedAt(data.publishedAt ?? null)
       setUpdatedAt(data.updatedAt ?? null)
     } catch (err) {
@@ -63,20 +102,48 @@ export function AdminHomeServicesPanel() {
     void load()
   }, [load])
 
+  const focusHighlight = useCmsEditorFocus('home-services', (focus) => {
+    setMarket(focus.market)
+    if (focus.tileHref) return cmsAnchorId(['hs', 'tile', focus.tileHref])
+    if (focus.field) return cmsAnchorId(['hs', 'field', focus.field])
+    return null
+  })
+
+  useEffect(() => {
+    if (focusHighlight) scrollCmsAnchor(focusHighlight)
+  }, [focusHighlight, market])
+
   const availableToAdd = useMemo(
     () => unusedServicePages(content.tiles),
     [content.tiles]
   )
 
+  const marketConflicts = useMemo(() => {
+    const map = {} as Record<MarketId, ReturnType<typeof foreignRegionalMarkets>>
+    for (const id of MARKET_IDS) {
+      map[id] = foreignRegionalMarkets(homeServicesContentText(bundle[id]), id)
+    }
+    return map
+  }, [bundle])
+
+  function updateMarketContent(
+    updater: (prev: HomeServicesContent) => HomeServicesContent
+  ) {
+    setBundle((prev) => ({
+      ...prev,
+      [market]: updater(prev[market]),
+    }))
+  }
+
   function updateChrome<K extends keyof HomeServicesContent>(
     key: K,
     value: HomeServicesContent[K]
   ) {
-    setContent((prev) => ({ ...prev, [key]: value }))
+    updateMarketContent((prev) => ({ ...prev, [key]: value }))
   }
 
   function updateTile(index: number, patch: Partial<HomeServiceTile>) {
-    setContent((prev) => ({
+    updateMarketContent((prev) => ({
       ...prev,
       tiles: prev.tiles.map((tile, i) =>
         i === index ? { ...tile, ...patch } : tile
@@ -87,7 +154,7 @@ export function AdminHomeServicesPanel() {
   function onServiceChange(index: number, href: string) {
     const page = getServiceByHref(href)
     if (!page) return
-    setContent((prev) => ({
+    updateMarketContent((prev) => ({
       ...prev,
       tiles: prev.tiles.map((tile, i) => {
         if (i !== index) return tile
@@ -99,14 +166,14 @@ export function AdminHomeServicesPanel() {
   function addTile() {
     const next = availableToAdd[0]
     if (!next) return
-    setContent((prev) => {
+    updateMarketContent((prev) => {
       if (prev.tiles.length >= HOME_SERVICES_MAX_TILES) return prev
       return { ...prev, tiles: [...prev.tiles, tileFromServicePage(next)] }
     })
   }
 
   function removeTile(index: number) {
-    setContent((prev) => {
+    updateMarketContent((prev) => {
       if (prev.tiles.length <= HOME_SERVICES_MIN_TILES) return prev
       return {
         ...prev,
@@ -116,7 +183,7 @@ export function AdminHomeServicesPanel() {
   }
 
   function moveTile(index: number, direction: -1 | 1) {
-    setContent((prev) => {
+    updateMarketContent((prev) => {
       const nextIndex = index + direction
       if (nextIndex < 0 || nextIndex >= prev.tiles.length) return prev
       const tiles = [...prev.tiles]
@@ -134,11 +201,11 @@ export function AdminHomeServicesPanel() {
       const res = await fetch('/api/admin/home-services', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, content }),
+        body: JSON.stringify({ action, content: bundle }),
       })
       const data = (await res.json()) as {
         ok?: boolean
-        content?: HomeServicesContent
+        content?: HomeServicesBundle
         publishedAt?: string
         filePath?: string
         message?: string
@@ -147,7 +214,7 @@ export function AdminHomeServicesPanel() {
       if (!res.ok || !data.ok || !data.content) {
         throw new Error(data.error || `${action} failed`)
       }
-      setContent(data.content)
+      setBundle(data.content)
       if (action === 'publish') {
         setPublishedAt(data.publishedAt ?? null)
       } else {
@@ -174,22 +241,39 @@ export function AdminHomeServicesPanel() {
     )
   }
 
+  const activeConflicts = marketConflicts[market]
+  const chromeFields: {
+    key: keyof HomeServicesContent
+    label: string
+    multiline?: boolean
+  }[] = [
+    { key: 'eyebrow', label: 'Eyebrow' },
+    { key: 'heading', label: 'Heading' },
+    { key: 'intro', label: 'Intro', multiline: true },
+    { key: 'viewAllLabel', label: 'View-all label' },
+    { key: 'useCasesLabel', label: 'Use-cases label' },
+    { key: 'ctaPrompt', label: 'CTA prompt' },
+    { key: 'ctaLabel', label: 'CTA button' },
+  ]
+
   return (
     <div className="space-y-6 rounded-lg border border-border bg-surface p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-ink">
-            Home services
+            Home services — NZ / International / UK
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-            Featured tiles on the homepage “What we do” section. Pick 4–8
-            existing service pages, then edit title, description, tags, icon and
-            order. Save stores a draft in Firebase{' '}
+            Featured tiles on the homepage “What we do” section. Each domain
+            has its own copy — NZ text on the UK or .com site is a conflict.
+            Red fields and tile banners name the out-of-market wording. Save
+            stores a draft in Firebase{' '}
             <code className="text-xs">Site Content / home-services</code>.{' '}
             <strong>Publish</strong> writes{' '}
-            <code className="text-xs">data/home-services.generated.ts</code>{' '}
-            so the live homepage never queries the database. Localhost shows
-            the draft after Save.
+            <code className="text-xs">data/home-services.generated.ts</code>.
+            Local testing: open <code className="text-xs">/nz</code>,{' '}
+            <code className="text-xs">/usa</code>, or{' '}
+            <code className="text-xs">/uk</code> once.
           </p>
           <p className="mt-2 text-xs text-ink-muted">
             Last draft update:{' '}
@@ -206,11 +290,29 @@ export function AdminHomeServicesPanel() {
         <div className="flex shrink-0 flex-wrap gap-2">
           <button
             type="button"
-            disabled={busy}
-            onClick={() => setContent(defaultHomeServicesContent())}
+            disabled={busy || market === 'nz'}
+            onClick={() =>
+              setBundle((prev) => ({
+                ...prev,
+                [market]: cloneHomeServicesContent(prev.nz),
+              }))
+            }
             className="rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50 disabled:opacity-60"
           >
-            Reset to original
+            Copy NZ into this market
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              setBundle((prev) => ({
+                ...prev,
+                [market]: defaultHomeServicesContent(market),
+              }))
+            }
+            className="rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50 disabled:opacity-60"
+          >
+            Reset this market
           </button>
           <button
             type="button"
@@ -244,74 +346,114 @@ export function AdminHomeServicesPanel() {
         </div>
       )}
 
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="group"
+        aria-label="Market"
+      >
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          Market
+        </span>
+        {MARKET_IDS.map((id) => {
+          const active = market === id
+          const hasForeign = marketConflicts[id].foreign.length > 0
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                setMarket(id)
+                setMessage(null)
+              }}
+              className={
+                active
+                  ? hasForeign
+                    ? 'rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white'
+                    : 'rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white'
+                  : hasForeign
+                    ? 'rounded-md border border-red-500 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800'
+                    : 'rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50'
+              }
+            >
+              {marketShortLabel(id)}
+              {hasForeign ? ' · conflict' : ''}
+            </button>
+          )
+        })}
+        <span className="text-xs text-ink-muted">
+          Editing: {marketLabel(market)}
+        </span>
+      </div>
+
+      {activeConflicts.foreign.length > 0 ? (
+        <div
+          role="status"
+          className="rounded-md border border-red-400 bg-red-50 p-3 text-sm text-red-950"
+        >
+          This {marketLabel(market)} copy still names{' '}
+          {activeConflicts.foreign.map(marketLabel).join(' and ')}. Rewrite the
+          red fields before publishing to that domain.
+        </div>
+      ) : (
+        <p className="text-xs text-ink-muted">
+          No out-of-market country wording found in this {marketShortLabel(market)}{' '}
+          draft.
+        </p>
+      )}
+
       <div className="space-y-4 rounded-md border border-border bg-white p-4">
         <h3 className="text-base font-semibold text-ink">Section copy</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Eyebrow</span>
-            <input
-              type="text"
-              value={content.eyebrow}
-              onChange={(e) => updateChrome('eyebrow', e.target.value)}
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Heading</span>
-            <input
-              type="text"
-              value={content.heading}
-              onChange={(e) => updateChrome('heading', e.target.value)}
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-        </div>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-ink">Intro</span>
-          <textarea
-            value={content.intro}
-            onChange={(e) => updateChrome('intro', e.target.value)}
-            rows={3}
-            className="rounded-md border border-border px-3 py-2"
-          />
-        </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">View-all label</span>
-            <input
-              type="text"
-              value={content.viewAllLabel}
-              onChange={(e) => updateChrome('viewAllLabel', e.target.value)}
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">Use-cases label</span>
-            <input
-              type="text"
-              value={content.useCasesLabel}
-              onChange={(e) => updateChrome('useCasesLabel', e.target.value)}
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">CTA prompt</span>
-            <input
-              type="text"
-              value={content.ctaPrompt}
-              onChange={(e) => updateChrome('ctaPrompt', e.target.value)}
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium text-ink">CTA button</span>
-            <input
-              type="text"
-              value={content.ctaLabel}
-              onChange={(e) => updateChrome('ctaLabel', e.target.value)}
-              className="rounded-md border border-border px-3 py-2"
-            />
-          </label>
+          {chromeFields.map((field) => {
+            const value = String(content[field.key] ?? '')
+            const hint = foreignHint(value, market)
+            const input = field.multiline ? (
+              <textarea
+                value={value}
+                onChange={(e) =>
+                  updateChrome(
+                    field.key,
+                    e.target.value as HomeServicesContent[typeof field.key]
+                  )
+                }
+                rows={3}
+                className={conflictClass(Boolean(hint), 'sm:col-span-2')}
+              />
+            ) : (
+              <input
+                type="text"
+                value={value}
+                onChange={(e) =>
+                  updateChrome(
+                    field.key,
+                    e.target.value as HomeServicesContent[typeof field.key]
+                  )
+                }
+                className={conflictClass(Boolean(hint))}
+              />
+            )
+            return (
+              <label
+                key={field.key}
+                id={cmsAnchorId(['hs', 'field', field.key])}
+                className={`flex flex-col gap-1 text-sm ${
+                  field.multiline ? 'sm:col-span-2' : ''
+                } ${cmsFocusRingClass(
+                  focusHighlight === cmsAnchorId(['hs', 'field', field.key])
+                )}`}
+              >
+                <span
+                  className={`font-medium ${hint ? 'text-red-800' : 'text-ink'}`}
+                >
+                  {field.label}
+                </span>
+                {input}
+                {hint ? (
+                  <span className="text-xs font-medium text-red-700">{hint}</span>
+                ) : null}
+              </label>
+            )
+          })}
         </div>
       </div>
 
@@ -343,28 +485,56 @@ export function AdminHomeServicesPanel() {
           const hrefOptions = servicePages.filter(
             (page) => page.href === tile.href || !usedElsewhere.has(page.href)
           )
+          const titleHint = foreignHint(tile.title, market)
+          const descriptionHint = foreignHint(tile.description, market)
+          const tagsHint = foreignHint(tile.tags.join(', '), market)
+          const tileHint = foreignHint(homeServiceTileText(tile), market)
+          const tileConflict = Boolean(tileHint)
           return (
             <div
               key={`${tile.href}-${index}`}
-              className="space-y-3 rounded-md border border-border bg-white p-4"
+              id={cmsAnchorId(['hs', 'tile', tile.href])}
+              className={`space-y-3 rounded-md border p-4 ${
+                tileConflict
+                  ? 'border-red-500 bg-red-50 ring-1 ring-red-400'
+                  : 'border-border bg-white'
+              } ${cmsFocusRingClass(
+                focusHighlight === cmsAnchorId(['hs', 'tile', tile.href])
+              )}`}
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
+              <div
+                className={`flex flex-wrap items-start justify-between gap-3 rounded-md px-3 py-2 ${
+                  tileConflict ? 'bg-red-100' : 'bg-transparent'
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <div
                     className="flex h-10 w-10 items-center justify-center"
-                    style={{ backgroundColor: '#e8f5ee' }}
+                    style={{
+                      backgroundColor: tileConflict ? '#fecaca' : '#e8f5ee',
+                    }}
                   >
                     <Icon
                       className="h-5 w-5"
-                      style={{ color: '#1a6b3c' }}
+                      style={{ color: tileConflict ? '#991b1b' : '#1a6b3c' }}
                       aria-hidden="true"
                     />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-ink">
-                      Tile {index + 1}
+                    <p className="text-xs text-ink-muted">Tile {index + 1}</p>
+                    <p
+                      className={`text-sm font-semibold ${
+                        titleHint || tileConflict ? 'text-red-800' : 'text-ink'
+                      }`}
+                    >
+                      {tile.title || 'Untitled service'}
                     </p>
                     <p className="text-xs text-ink-muted">{tile.href}</p>
+                    {tileHint ? (
+                      <p className="mt-1 text-xs font-medium text-red-700">
+                        {tileHint}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -437,27 +607,49 @@ export function AdminHomeServicesPanel() {
               </div>
 
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-ink">Title</span>
+                <span
+                  className={`font-medium ${titleHint ? 'text-red-800' : 'text-ink'}`}
+                >
+                  Title
+                </span>
                 <input
                   type="text"
                   value={tile.title}
                   onChange={(e) => updateTile(index, { title: e.target.value })}
-                  className="rounded-md border border-border px-3 py-2"
+                  className={conflictClass(Boolean(titleHint))}
                 />
+                {titleHint ? (
+                  <span className="text-xs font-medium text-red-700">
+                    {titleHint}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-ink">Description</span>
+                <span
+                  className={`font-medium ${descriptionHint ? 'text-red-800' : 'text-ink'}`}
+                >
+                  Description
+                </span>
                 <textarea
                   value={tile.description}
                   onChange={(e) =>
                     updateTile(index, { description: e.target.value })
                   }
                   rows={3}
-                  className="rounded-md border border-border px-3 py-2"
+                  className={conflictClass(Boolean(descriptionHint))}
                 />
+                {descriptionHint ? (
+                  <span className="text-xs font-medium text-red-700">
+                    {descriptionHint}
+                  </span>
+                ) : null}
               </label>
               <label className="flex flex-col gap-1 text-sm">
-                <span className="font-medium text-ink">Tags</span>
+                <span
+                  className={`font-medium ${tagsHint ? 'text-red-800' : 'text-ink'}`}
+                >
+                  Tags
+                </span>
                 <input
                   type="text"
                   value={tile.tags.join(', ')}
@@ -466,11 +658,16 @@ export function AdminHomeServicesPanel() {
                       tags: e.target.value.split(',').map((tag) => tag.trim()),
                     })
                   }
-                  className="rounded-md border border-border px-3 py-2"
+                  className={conflictClass(Boolean(tagsHint))}
                 />
                 <span className="text-xs text-ink-muted">
                   Comma-separated, e.g. Formulas, Data Validation, Templates
                 </span>
+                {tagsHint ? (
+                  <span className="text-xs font-medium text-red-700">
+                    {tagsHint}
+                  </span>
+                ) : null}
               </label>
             </div>
           )

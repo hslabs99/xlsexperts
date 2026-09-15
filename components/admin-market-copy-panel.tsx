@@ -16,6 +16,8 @@ import {
 } from '@/lib/market-copy'
 import { MARKET_IDS, marketLabel, type MarketId } from '@/lib/market'
 import { HERO_BADGE_LINK_OPTIONS } from '@/lib/hero-badge-links'
+import { cmsAnchorId, scrollCmsAnchor } from '@/lib/admin-focus'
+import { cmsFocusRingClass, useCmsEditorFocus } from '@/lib/use-cms-editor-focus'
 
 export function AdminMarketCopyPanel() {
   const [markets, setMarkets] = useState<MarketCopyBundle>(
@@ -74,6 +76,20 @@ export function AdminMarketCopyPanel() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const focusHighlight = useCmsEditorFocus('site', (focus) => {
+    if (focus.group && groups.includes(focus.group)) {
+      setGroupFilter(focus.group)
+      setFilter('')
+    }
+    return focus.field
+      ? cmsAnchorId(['site', focus.market, focus.field])
+      : null
+  })
+
+  useEffect(() => {
+    if (focusHighlight) scrollCmsAnchor(focusHighlight)
+  }, [focusHighlight, groupFilter, filter])
 
   const visibleFields = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -322,7 +338,14 @@ export function AdminMarketCopyPanel() {
               </p>
               <div className="mt-2 grid gap-3 lg:grid-cols-3">
                 {MARKET_IDS.map((market) => (
-                  <div key={market} className="space-y-2">
+                  <div
+                    key={market}
+                    id={cmsAnchorId(['site', market, badge.textPath])}
+                    className={`space-y-2 rounded-md p-1 ${cmsFocusRingClass(
+                      focusHighlight ===
+                        cmsAnchorId(['site', market, badge.textPath])
+                    )}`}
+                  >
                     <p className="text-xs font-medium text-ink">
                       {marketLabel(market)}
                     </p>
@@ -432,7 +455,14 @@ export function AdminMarketCopyPanel() {
               ) : null}
               <div className="mt-2 grid gap-3 lg:grid-cols-3">
                 {MARKET_IDS.map((market) => (
-                  <div key={market} className="space-y-2">
+                  <div
+                    key={market}
+                    id={cmsAnchorId(['site', market, field.path])}
+                    className={`space-y-2 rounded-md p-1 ${cmsFocusRingClass(
+                      focusHighlight ===
+                        cmsAnchorId(['site', market, field.path])
+                    )}`}
+                  >
                     <p className="text-xs font-medium text-ink">
                       {marketLabel(market)}
                     </p>
@@ -529,7 +559,13 @@ export function AdminMarketCopyPanel() {
                     ) : null}
                   </td>
                   {MARKET_IDS.map((id) => (
-                    <td key={id} className="px-3 py-3">
+                    <td
+                      key={id}
+                      id={cmsAnchorId(['site', id, field.path])}
+                      className={`px-3 py-3 ${cmsFocusRingClass(
+                        focusHighlight === cmsAnchorId(['site', id, field.path])
+                      )}`}
+                    >
                       <FieldInput
                         as={InputTag}
                         value={getByPath(markets[id], field.path)}

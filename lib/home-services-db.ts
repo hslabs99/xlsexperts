@@ -9,9 +9,14 @@ import {
 } from '@/lib/firebase'
 import { writeGeneratedFile } from '@/lib/write-generated-file'
 import {
-  defaultHomeServicesContent,
-  normalizeHomeServicesContent,
-  type HomeServicesContent,
+  CMS_DRAFT_CACHE_KEYS,
+  cachedDraft,
+  invalidateDraftCache,
+} from '@/lib/cms-draft-cache'
+import {
+  defaultHomeServicesBundle,
+  normalizeHomeServicesBundle,
+  type HomeServicesBundle,
   type PublishedHomeServicesFile,
 } from '@/lib/home-services'
 
@@ -31,9 +36,18 @@ function firestoreUpdatedAt(raw: unknown): string | null {
 /**
  * Load draft homepage services from Firestore.
  * Falls back to the seeded current-homepage replica if missing.
+ * Legacy single-document drafts are cloned into NZ / Intl / UK.
  */
 export async function fetchHomeServicesDraft(): Promise<{
-  content: HomeServicesContent
+  content: HomeServicesBundle
+  publishedAt: string | null
+  updatedAt: string | null
+}> {
+  return cachedDraft(CMS_DRAFT_CACHE_KEYS.homeServices, loadHomeServicesDraft)
+}
+
+async function loadHomeServicesDraft(): Promise<{
+  content: HomeServicesBundle
   publishedAt: string | null
   updatedAt: string | null
 }> {
@@ -44,7 +58,7 @@ export async function fetchHomeServicesDraft(): Promise<{
 
   if (!snap.exists) {
     return {
-      content: defaultHomeServicesContent(),
+      content: defaultHomeServicesBundle(),
       publishedAt: null,
       updatedAt: null,
     }
@@ -52,7 +66,7 @@ export async function fetchHomeServicesDraft(): Promise<{
 
   const data = snap.data() as Record<string, unknown>
   return {
-    content: normalizeHomeServicesContent(data),
+    content: normalizeHomeServicesBundle(data),
     publishedAt:
       typeof data.publishedAt === 'string' ? data.publishedAt : null,
     updatedAt: firestoreUpdatedAt(data.updatedAt),
@@ -61,9 +75,9 @@ export async function fetchHomeServicesDraft(): Promise<{
 
 /** Save draft homepage services to Firestore (does not publish the static file). */
 export async function saveHomeServicesDraft(
-  content: HomeServicesContent
-): Promise<HomeServicesContent> {
-  const normalized = normalizeHomeServicesContent(content)
+  content: HomeServicesBundle
+): Promise<HomeServicesBundle> {
+  const normalized = normalizeHomeServicesBundle(content)
   await getAdminDb()
     .collection(SITE_CONTENT_COLLECTION)
     .doc(HOME_SERVICES_DOC_ID)
@@ -74,6 +88,7 @@ export async function saveHomeServicesDraft(
       },
       { merge: true }
     )
+  invalidateDraftCache(CMS_DRAFT_CACHE_KEYS.homeServices)
   return normalized
 }
 
@@ -82,6 +97,7 @@ function serializeGeneratedFile(payload: PublishedHomeServicesFile): string {
   return `/**
  * PUBLISHED homepage services — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → CMS → Home services, then click Publish to regenerate this file.
+ * \`content\` is NZ / International / UK copy. Each host only serves its own market.
  *
  * Generated at ${payload.publishedAt}
  * Do not edit by hand; Publish overwrites it.
@@ -102,20 +118,20 @@ export default published
  * Public pages import this file — never query Firestore for homepage tiles.
  */
 export async function publishHomeServices(
-  content?: HomeServicesContent
+  content?: HomeServicesBundle
 ): Promise<{
-  content: HomeServicesContent
+  content: HomeServicesBundle
   publishedAt: string
   filePath: string
 }> {
   const bundle =
     content != null
-      ? normalizeHomeServicesContent(content)
-      : (await fetchHomeServicesDraft()).content
+      ? normalizeHomeServicesBundle(content)
+      : (await loadHomeServicesDraft()).content
 
   const publishedAt = new Date().toISOString()
   const payload: PublishedHomeServicesFile = {
-    version: 1,
+    version: 2,
     publishedAt,
     content: bundle,
   }

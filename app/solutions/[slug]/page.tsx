@@ -6,6 +6,7 @@ import {
   solutionSlugs,
 } from '@/lib/solutions'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { toSolutionFaqs } from '@/lib/page-seo-faqs'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -37,6 +38,7 @@ export default async function SolutionSlugPage({ params }: PageProps) {
         heroIntroduction: seo.heroIntro || solution.heroIntroduction,
         metaTitle: seo.metaTitle || solution.metaTitle,
         metaDescription: seo.metaDescription || solution.metaDescription,
+        faqs: seo.faqs.length > 0 ? toSolutionFaqs(seo.faqs) : solution.faqs,
       }}
     />
   )

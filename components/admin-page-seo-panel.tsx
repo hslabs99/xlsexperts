@@ -1,13 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import {
   defaultPageSeoMarkets,
   pagesForKind,
+  type PageSeoFaq,
   type PageSeoFields,
   type PageSeoKind,
   type PageSeoMarkets,
 } from '@/lib/page-seo'
+import { cloneFaqs } from '@/lib/page-seo-faqs'
 import { MARKET_IDS, marketLabel, marketShortLabel, type MarketId } from '@/lib/market'
 import {
   DESC_MAX,
@@ -15,6 +18,8 @@ import {
   TITLE_MAX,
   renderedTitleLength,
 } from '@/lib/serp-copy'
+import { cmsAnchorId, replaceAdminFocusHash, scrollCmsAnchor } from '@/lib/admin-focus'
+import { cmsFocusRingClass, useCmsEditorFocus } from '@/lib/use-cms-editor-focus'
 
 const FIELD_HELP: {
   key: keyof PageSeoFields
@@ -97,7 +102,9 @@ const FIELD_HELP: {
 ]
 
 export function AdminPageSeoPanel() {
-  const [markets, setMarkets] = useState<PageSeoMarkets>(defaultPageSeoMarkets())
+  const [markets, setMarkets] = useState<PageSeoMarkets>(() =>
+    defaultPageSeoMarkets()
+  )
   const [market, setMarket] = useState<MarketId>('nz')
   const [publishedAt, setPublishedAt] = useState<string | null>(null)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
@@ -109,6 +116,8 @@ export function AdminPageSeoPanel() {
   const [selectedPath, setSelectedPath] = useState(
     pagesForKind('service')[0]?.path ?? ''
   )
+  const [bookmarkField, setBookmarkField] = useState('')
+  const pendingAnchor = useRef<{ id: string; top: number } | null>(null)
 
   const list = useMemo(() => pagesForKind(kind), [kind])
   const pages = markets[market]
@@ -152,11 +161,80 @@ export function AdminPageSeoPanel() {
     void load()
   }, [load])
 
+  const focusHighlight = useCmsEditorFocus('pages', (focus) => {
+    setMarket(focus.market)
+    if (focus.kind) setKind(focus.kind)
+    if (focus.path) setSelectedPath(focus.path)
+    if (focus.field) setBookmarkField(focus.field)
+    return focus.field
+      ? cmsAnchorId(['pages', 'field', focus.field])
+      : cmsAnchorId(['pages', 'editor'])
+  })
+
+  const restoredAfterLoad = useRef(false)
+  useEffect(() => {
+    if (loading || !focusHighlight || restoredAfterLoad.current) return
+    restoredAfterLoad.current = true
+    scrollCmsAnchor(
+      focusHighlight,
+      focusHighlight.includes('faqs') ? 'start' : 'center'
+    )
+  }, [loading, focusHighlight])
+
   useEffect(() => {
     if (!list.some((item) => item.path === selectedPath)) {
       setSelectedPath(list[0]?.path ?? '')
     }
   }, [kind, list, selectedPath])
+
+  useEffect(() => {
+    if (loading || !selectedPath) return
+    replaceAdminFocusHash({
+      tab: 'cms',
+      cms: 'pages',
+      market,
+      path: selectedPath,
+      kind,
+      field: bookmarkField,
+    })
+  }, [bookmarkField, kind, loading, market, selectedPath])
+
+  useLayoutEffect(() => {
+    const pending = pendingAnchor.current
+    if (!pending) return
+    pendingAnchor.current = null
+    if (!pending.id) {
+      window.scrollTo(0, pending.top)
+      return
+    }
+    const el = document.getElementById(pending.id)
+    if (!el) return
+    window.scrollBy(0, el.getBoundingClientRect().top - pending.top)
+  }, [market])
+
+  function changeMarket(next: MarketId) {
+    if (next === market) return
+    const faqId = cmsAnchorId(['pages', 'field', 'faqs'])
+    const fieldId = bookmarkField
+      ? cmsAnchorId(['pages', 'field', bookmarkField])
+      : faqId
+    const el =
+      document.getElementById(fieldId) ?? document.getElementById(faqId)
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      const inView = rect.bottom > 80 && rect.top < window.innerHeight
+      if (inView) {
+        pendingAnchor.current = { id: el.id, top: rect.top }
+        if (el.id === faqId) setBookmarkField('faqs')
+      } else {
+        pendingAnchor.current = { id: '', top: window.scrollY }
+      }
+    } else {
+      pendingAnchor.current = { id: '', top: window.scrollY }
+    }
+    setMarket(next)
+    setMessage(null)
+  }
 
   function updateField<K extends keyof PageSeoFields>(
     key: K,
@@ -183,10 +261,10 @@ export function AdminPageSeoPanel() {
       ...prev,
       [target]: {
         ...prev[target],
-        [selected.path]: { ...nzFields },
+        [selected.path]: { ...nzFields, faqs: cloneFaqs(nzFields.faqs ?? []) },
       },
     }))
-    setMarket(target)
+    changeMarket(target)
     setMessage(
       `Copied NZ fields for ${selected.path} into ${marketLabel(target)}. Review and save draft.`
     )
@@ -279,11 +357,11 @@ export function AdminPageSeoPanel() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-ink">
-            Pages CMS — H1, intro &amp; meta
+            Pages CMS — H1, intro, meta &amp; FAQs
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-            Per service and solution landing pages: H1, hero intro, and SEO
-            meta. Separate fields for <strong>New Zealand</strong>,{' '}
+            Per service and solution landing pages: H1, hero intro, SEO meta,
+            and on-page FAQs. Separate fields for <strong>New Zealand</strong>,{' '}
             <strong>International</strong>, and the{' '}
             <strong>United Kingdom</strong>. Site-wide defaults, homepage, and
             contact live under <strong>CMS → Site CMS</strong>. Use the left
@@ -327,8 +405,8 @@ export function AdminPageSeoPanel() {
           </div>
           <p className="max-w-xs text-right text-xs text-ink-muted">
             Saves the full CMS catalog: every service and solution page (H1, intro,
-            and meta), for <strong>NZ, International, and UK</strong> — not only
-            the page open on the right.
+            meta, and FAQs), for <strong>NZ, International, and UK</strong> — not
+            only the page open on the right.
           </p>
         </div>
       </div>
@@ -344,33 +422,15 @@ export function AdminPageSeoPanel() {
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Market">
-        <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-          Market
-        </span>
-        {MARKET_IDS.map((id) => {
-          const active = market === id
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => {
-                setMarket(id)
-                setMessage(null)
-              }}
-              className={
-                active
-                  ? 'rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white'
-                  : 'rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50'
-              }
-            >
-              {marketShortLabel(id)}
-            </button>
-          )
-        })}
-        <span className="text-xs text-ink-muted">
-          Editing: {marketLabel(market)}
-        </span>
+      <div className="sticky top-0 z-20 -mx-6 mb-1 border-b border-border bg-surface/95 px-6 py-3 backdrop-blur">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <PagesMarketSwitcher market={market} onChange={changeMarket} />
+          {selected ? (
+            <p className="truncate text-xs text-ink-muted">
+              {selected.label}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
@@ -434,7 +494,7 @@ export function AdminPageSeoPanel() {
           </nav>
         </div>
 
-        <div className="space-y-4">
+        <div id={cmsAnchorId(['pages', 'editor'])} className="space-y-4">
           {selected && fields ? (
             <>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -525,7 +585,14 @@ export function AdminPageSeoPanel() {
                     (descLen !== null &&
                       (descLen < DESC_MIN || descLen > DESC_MAX))
                   return (
-                    <label key={field.key} className="block space-y-1">
+                    <label
+                      key={field.key}
+                      id={cmsAnchorId(['pages', 'field', field.key])}
+                      className={`block space-y-1 rounded-md ${cmsFocusRingClass(
+                        focusHighlight ===
+                          cmsAnchorId(['pages', 'field', field.key])
+                      )}`}
+                    >
                       <span className="text-sm font-medium text-ink">
                         {field.label}
                       </span>
@@ -538,6 +605,7 @@ export function AdminPageSeoPanel() {
                         <textarea
                           value={value}
                           rows={rows}
+                          onFocus={() => setBookmarkField(field.key)}
                           onChange={(e) =>
                             updateField(
                               field.key,
@@ -550,6 +618,7 @@ export function AdminPageSeoPanel() {
                         <input
                           type="text"
                           value={value}
+                          onFocus={() => setBookmarkField(field.key)}
                           onChange={(e) =>
                             updateField(
                               field.key,
@@ -577,6 +646,15 @@ export function AdminPageSeoPanel() {
                   )
                 })}
               </div>
+
+              <PageSeoFaqEditor
+                faqs={fields.faqs ?? []}
+                highlight={focusHighlight}
+                market={market}
+                onMarketChange={changeMarket}
+                onChange={(faqs) => updateField('faqs', faqs)}
+                onFocusField={() => setBookmarkField('faqs')}
+              />
             </>
           ) : (
             <p className="text-sm text-ink-muted">No pages in this group.</p>
@@ -586,3 +664,182 @@ export function AdminPageSeoPanel() {
     </div>
   )
 }
+
+function PagesMarketSwitcher({
+  market,
+  onChange,
+  compact,
+}: {
+  market: MarketId
+  onChange: (market: MarketId) => void
+  compact?: boolean
+}) {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-2"
+      role="group"
+      aria-label="Market"
+    >
+      <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+        Market
+      </span>
+      {MARKET_IDS.map((id) => {
+        const active = market === id
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={
+              active
+                ? compact
+                  ? 'rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white'
+                  : 'rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white'
+                : compact
+                  ? 'rounded-md border border-border bg-white px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-gray-50'
+                  : 'rounded-md border border-border bg-white px-4 py-2 text-sm font-semibold text-ink transition hover:bg-gray-50'
+            }
+          >
+            {marketShortLabel(id)}
+          </button>
+        )
+      })}
+      <span className="text-xs text-ink-muted">
+        Editing: {marketLabel(market)}
+      </span>
+    </div>
+  )
+}
+
+function PageSeoFaqEditor({
+  faqs,
+  highlight,
+  market,
+  onMarketChange,
+  onChange,
+  onFocusField,
+}: {
+  faqs: PageSeoFaq[]
+  highlight: string | null
+  market: MarketId
+  onMarketChange: (market: MarketId) => void
+  onChange: (faqs: PageSeoFaq[]) => void
+  onFocusField: () => void
+}) {
+  function updateFaq(index: number, patch: Partial<PageSeoFaq>) {
+    const next = cloneFaqs(faqs)
+    next[index] = { ...next[index], ...patch }
+    onChange(next)
+  }
+
+  function moveFaq(index: number, delta: number) {
+    const target = index + delta
+    if (target < 0 || target >= faqs.length) return
+    const next = cloneFaqs(faqs)
+    const [item] = next.splice(index, 1)
+    next.splice(target, 0, item)
+    onChange(next)
+  }
+
+  return (
+    <div
+      id={cmsAnchorId(['pages', 'field', 'faqs'])}
+      className={`scroll-mt-24 space-y-3 rounded-md border border-border bg-white p-4 ${cmsFocusRingClass(
+        highlight === cmsAnchorId(['pages', 'field', 'faqs'])
+      )}`}
+      onFocusCapture={onFocusField}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-semibold text-ink">On-page FAQs</h4>
+          <p className="mt-1 text-xs text-ink-muted">
+            Stay on this block and switch NZ / Intl / UK. Empty pairs are dropped
+            on save.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange([...cloneFaqs(faqs), { q: '', a: '' }])}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-gray-50"
+        >
+          <Plus className="h-4 w-4" />
+          Add question
+        </button>
+      </div>
+      <PagesMarketSwitcher
+        market={market}
+        onChange={onMarketChange}
+        compact
+      />
+
+      {faqs.length === 0 ? (
+        <p className="text-sm text-ink-muted">
+          No FAQs yet. Add a question or save draft to load the seeded defaults.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {faqs.map((faq, index) => (
+            <div
+              key={`faq-${index}`}
+              className="space-y-2 rounded-md border border-border bg-surface p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  Question {index + 1}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    title="Move up"
+                    aria-label={`Move FAQ ${index + 1} up`}
+                    onClick={() => moveFaq(index, -1)}
+                    disabled={index === 0}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-ink hover:bg-white disabled:opacity-40"
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Move down"
+                    aria-label={`Move FAQ ${index + 1} down`}
+                    onClick={() => moveFaq(index, 1)}
+                    disabled={index === faqs.length - 1}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-ink hover:bg-white disabled:opacity-40"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Remove"
+                    aria-label={`Remove FAQ ${index + 1}`}
+                    onClick={() =>
+                      onChange(faqs.filter((_, i) => i !== index))
+                    }
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+              <input
+                type="text"
+                value={faq.q}
+                onChange={(e) => updateFaq(index, { q: e.target.value })}
+                placeholder="Question"
+                className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-ink"
+              />
+              <textarea
+                value={faq.a}
+                rows={4}
+                onChange={(e) => updateFaq(index, { a: e.target.value })}
+                placeholder="Answer"
+                className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-ink"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+

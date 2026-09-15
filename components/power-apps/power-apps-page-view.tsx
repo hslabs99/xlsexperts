@@ -21,9 +21,11 @@ import {
 export function PowerAppsPageView({
   h1,
   heroIntro,
+  faqs,
 }: {
   h1?: string
   heroIntro?: string
+  faqs?: { question: string; answer: string }[]
 }) {
   return (
     <main className="pt-16">
@@ -40,7 +42,7 @@ export function PowerAppsPageView({
       <AudienceSection />
       <ApproachSection />
       <CoverageSection />
-      <PowerAppsFaqSection />
+      <PowerAppsFaqSection faqs={faqs} />
       <PowerAppsRelatedLinks />
       <PowerAppsCta />
       <PageContact topicHref="/power-apps-dataverse-development" />

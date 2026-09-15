@@ -17,6 +17,8 @@ import {
   marketShortLabel,
   type MarketId,
 } from '@/lib/market'
+import { cmsAnchorId, scrollCmsAnchor } from '@/lib/admin-focus'
+import { cmsFocusRingClass, useCmsEditorFocus } from '@/lib/use-cms-editor-focus'
 
 export function AdminHeroTopBulletsPanel() {
   const [content, setContent] = useState<HeroTopBulletsBundle>(
@@ -66,6 +68,15 @@ export function AdminHeroTopBulletsPanel() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const focusHighlight = useCmsEditorFocus('top-bullets', (focus) => {
+    setMarket(focus.market)
+    return focus.bulletId ? cmsAnchorId(['tb', focus.bulletId]) : null
+  })
+
+  useEffect(() => {
+    if (focusHighlight) scrollCmsAnchor(focusHighlight)
+  }, [focusHighlight, market])
 
   function updateBullets(next: HeroTopBullet[]) {
     setContent((prev) => ({ ...prev, [market]: next }))
@@ -280,7 +291,10 @@ export function AdminHeroTopBulletsPanel() {
         {bullets.map((bullet, index) => (
           <div
             key={bullet.id}
-            className="flex flex-col gap-3 rounded-md border border-border bg-white p-4 sm:flex-row sm:items-center"
+            id={cmsAnchorId(['tb', bullet.id])}
+            className={`flex flex-col gap-3 rounded-md border border-border bg-white p-4 sm:flex-row sm:items-center ${cmsFocusRingClass(
+              focusHighlight === cmsAnchorId(['tb', bullet.id])
+            )}`}
           >
             <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
               <span className="font-medium text-ink">

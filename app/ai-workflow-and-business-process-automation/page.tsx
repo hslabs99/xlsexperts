@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getMarket } from '@/lib/market-server'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { serpTokensForMarket } from '@/lib/regions'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
@@ -87,41 +88,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  {
-    q: 'What tools do you use for A.I. workflow and business process automation?',
-    a: 'We use Excel VBA, Power Automate, Power Query and A.I. platforms such as OpenAI and Azure A.I. depending on what the process requires. We choose the right tool for each job rather than applying a single technology to every problem.',
-  },
-  {
-    q: 'Do you always replace the existing spreadsheet?',
-    a: 'No. Spreadsheet and process modernisation often succeeds by improving the workbook, adding validation and automation, or connecting it to better data sources. Replacement is recommended when Excel is being asked to do something it cannot do reliably — such as multi-user transactional work or acting as a system of record.',
-  },
-  {
-    q: 'Can a system begin in Excel and move to the cloud later?',
-    a: 'Yes. We often design an intermediate solution that solves the immediate problem in Excel or Microsoft 365, then plan a later migration once requirements and usage patterns are clearer.',
-  },
-  {
-    q: 'How do you know which processes are worth automating?',
-    a: 'We use a simple framework: frequency multiplied by time cost multiplied by error risk. High-frequency, time-consuming processes with significant error consequences — including document reading and data classification — are the best candidates. We walk through your operations in discovery and identify the highest-value opportunities.',
-  },
-  {
-    q: 'How do you decide which technology to use?',
-    a: 'We start with the business process, then weigh user count, collaboration needs, data volume, integration requirements, IT constraints and total cost of ownership — not a preferred technology stack. Excel remains appropriate when used properly; we do not assume every spreadsheet should be replaced.',
-  },
-  {
-    q: 'Will A.I. replace the Excel-based processes we already have?',
-    a: 'No — our approach is to integrate A.I. as an input or decision layer that feeds your existing Excel and business processes. The workflows, formulas and reporting structures you already rely on remain in place. A.I. handles unstructured data preparation and classification that currently requires human reading and transcription.',
-  },
-  {
-    q: 'Do we need to change our existing systems to automate a process?',
-    a: 'Usually not. Most of our automation work sits alongside existing systems rather than replacing them — connecting them, processing their outputs and feeding results back in. We work with whatever systems you already have.',
-  },
-  {
-    q: 'How do you handle exceptions, accuracy and data privacy?',
-    a: 'Exception handling and human review are built into every automation we deliver. For A.I. extraction, accuracy is monitored over time and exceptions are flagged for review. We use API-based processing rather than consumer A.I. tools, and can work with Azure-hosted models for clients with strict data residency requirements.',
-  },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: PAGE_HREF,
@@ -131,32 +97,25 @@ async function buildServiceSchema() {
   })
 }
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({
-    '@type': 'Question',
-    name: f.q,
-    acceptedAnswer: { '@type': 'Answer', text: f.a },
-  })),
-}
-
 export default async function AIWorkflowAndBusinessProcessAutomationPage() {
   const seo = await getPageSeo('/ai-workflow-and-business-process-automation')
   const market = await getMarket()
   const { region } = serpTokensForMarket(market)
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles(PAGE_HREF)
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -355,7 +314,7 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
               Frequently asked questions
             </h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">
                     {faq.q}

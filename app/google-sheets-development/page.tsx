@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -41,14 +42,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  { q: 'What can Google Apps Script automate in Sheets?', a: 'Apps Script can automate almost any task in Google Sheets — sending emails, creating calendar events, updating other Sheets, calling external APIs, processing form submissions, generating PDFs and pushing data to other Google Workspace apps.' },
-  { q: 'Is Google Sheets suitable for business-critical data?', a: 'Google Sheets is suitable for many business processes, particularly those that require real-time collaboration and access from any device. For high-volume data, complex calculations or data that needs strict version control, we will advise on whether Sheets is the right tool or whether a different approach is more appropriate.' },
-  { q: 'Can you connect Google Sheets to external systems?', a: 'Yes. Apps Script can call external APIs, and Sheets supports connections to Google BigQuery, databases via Looker Studio and a range of third-party integrations. We advise on the best connection approach for your specific data source.' },
-  { q: 'Can you migrate our Excel spreadsheets to Google Sheets?', a: 'Yes. We handle Excel to Google Sheets migrations, including rewriting VBA macros as Apps Script, adapting formulas that behave differently and restructuring data models to take advantage of real-time collaboration.' },
-  { q: 'Do you work with Google Workspace businesses outside Auckland?', a: 'Yes. Google Sheets development is fully remote by nature. We work with Google Workspace businesses throughout New Zealand and can deliver solutions to any region.' },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: '/google-sheets-development',
@@ -58,20 +51,17 @@ async function buildServiceSchema() {
 }
 
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-}
-
 export default async function GoogleSheetsDevelopmentPage() {
   const seo = await getPageSeo('/google-sheets-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/google-sheets-development')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -147,7 +137,7 @@ export default async function GoogleSheetsDevelopmentPage() {
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">Frequently asked questions</h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>

@@ -1,29 +1,28 @@
 import 'server-only'
 
 import { PUBLISHED_HOME_SERVICES } from '@/data/home-services.generated'
-import { getIsLocalDev } from '@/lib/market-server'
+import { getIsLocalDev, getMarket } from '@/lib/market-server'
 import { withTimeout } from '@/lib/with-timeout'
 import {
-  defaultHomeServicesContent,
-  normalizeHomeServicesContent,
+  defaultHomeServicesBundle,
+  normalizeHomeServicesBundle,
+  pickHomeServices,
   type HomeServicesContent,
 } from '@/lib/home-services'
 
-/** Published homepage services (static import — zero DB). */
-export function getPublishedHomeServices(): HomeServicesContent {
-  try {
-    return normalizeHomeServicesContent(PUBLISHED_HOME_SERVICES)
-  } catch {
-    return defaultHomeServicesContent()
-  }
-}
-
 /**
- * Public homepage services for this request.
+ * Public homepage services for this request's market.
  * Localhost reads the CMS draft so Save draft is enough to preview.
  * Production reads the published static file.
  */
 export async function getHomeServicesContent(): Promise<HomeServicesContent> {
+  const market = await getMarket()
+  let bundle = defaultHomeServicesBundle()
+  try {
+    bundle = normalizeHomeServicesBundle(PUBLISHED_HOME_SERVICES)
+  } catch {
+    bundle = defaultHomeServicesBundle()
+  }
   if (await getIsLocalDev()) {
     try {
       const { fetchHomeServicesDraft } = await import('@/lib/home-services-db')
@@ -32,7 +31,7 @@ export async function getHomeServicesContent(): Promise<HomeServicesContent> {
         6_000,
         'fetchHomeServicesDraft'
       )
-      return draft.content
+      bundle = draft.content
     } catch (error) {
       console.error(
         '[home-services] localhost CMS draft unavailable, using published copy',
@@ -40,5 +39,5 @@ export async function getHomeServicesContent(): Promise<HomeServicesContent> {
       )
     }
   }
-  return getPublishedHomeServices()
+  return pickHomeServices(bundle, market)
 }

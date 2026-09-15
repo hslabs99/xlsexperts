@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -97,52 +98,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  {
-    q: 'Which databases can Excel connect to?',
-    a: 'Excel can connect to SQL Server, MySQL, PostgreSQL, Oracle, SQLite, Azure SQL, Amazon RDS, Google BigQuery and others via Power Query, ODBC, OLE DB or ADO. We advise on the right connection method for your specific database and environment — including on-premise networks where firewall and driver setup matter.',
-  },
-  {
-    q: 'Can Excel connect directly to our SQL Server database?',
-    a: 'Yes. VBA uses ADO (ActiveX Data Objects) to open a direct connection to SQL Server, MySQL, PostgreSQL, Oracle, and other databases. Excel can read, write, update, and delete records with full transactional control. Power Query provides an additional no-code layer for read-only queries where that is sufficient.',
-  },
-  {
-    q: 'Is it secure to connect Excel directly to a database?',
-    a: 'Yes, when configured correctly. We use connection strings with least-privilege database accounts, recommend read-only access for reporting connections, and can configure Windows Authentication rather than stored passwords. We document the security approach for your IT team.',
-  },
-  {
-    q: 'Can Excel write data back to a SQL database?',
-    a: 'Yes. Using VBA with ADO connections, Excel can insert, update or delete records. This is useful for data entry tools where validated data needs to flow back into a central system, and for multi-user applications where Excel is the front-end and the database is the source of truth.',
-  },
-  {
-    q: 'Will a live database connection slow Excel down?',
-    a: 'A well-designed connection uses parameterised queries that return only the data needed — this is generally faster than loading a full CSV export. We optimise queries for performance and test on your data volumes before delivery.',
-  },
-  {
-    q: 'Simpro says we cannot access their API. What are our options?',
-    a: 'Simpro and similar field service platforms often have limited or gated API access for their standard tiers. The practical alternative is a structured export-process-upload workflow: data is downloaded as CSV or Excel from Simpro, processed and transformed using VBA, then re-uploaded in the format Simpro accepts. We build these workflows to run reliably and include validation at every step to catch errors before they reach the system.',
-  },
-  {
-    q: 'Can multiple people use the same Excel file at the same time?',
-    a: 'Standard shared workbooks are unreliable for concurrent editing. The correct architecture for multi-user Excel applications is to store all data in a SQL database and use Excel purely as the front-end. VBA handles all reads and writes to the database, which supports concurrent access properly. The result looks and feels like Excel to users but behaves like a proper application.',
-  },
-  {
-    q: 'How do you handle authentication for REST APIs?',
-    a: 'VBA supports API key authentication, Basic authentication, OAuth 2.0 token-based flows, and custom header authentication via WinHTTP. For OAuth, we build a token refresh flow so credentials do not need to be re-entered. Power Query supports a similar range through its built-in web connector. We match the authentication method to what the API requires.',
-  },
-  {
-    q: 'Can Excel pull live data from Shopify or WooCommerce?',
-    a: 'Yes. Both platforms have well-documented REST APIs. We build VBA or Power Query connections that authenticate, paginate through results, and load order, product, inventory, or customer data directly into Excel. Refresh can be triggered manually or on a schedule using Task Scheduler.',
-  },
-  {
-    q: 'What happens when the third-party software updates and breaks the integration?',
-    a: 'API-based integrations are dependent on the API version and the provider\'s change management. We build integrations against stable API versions where available, include version pinning, and document all dependencies. For export-based workflows, changes to the export format are the most common break point — we design these to surface format mismatches clearly rather than silently processing incorrect data.',
-  },
-  {
-    q: 'Do you work with cloud databases as well as on-premises SQL Server?',
-    a: 'Yes. We connect Excel to cloud-hosted databases including Azure SQL Database, Amazon RDS, Supabase, PlanetScale, and others via standard ADO connection strings. The connection configuration differs slightly for cloud vs on-premises, and firewall and IP whitelisting requirements need to be managed — but the Excel and VBA layer is identical.',
-  },
-]
 
 async function buildServiceSchema() {
   return marketServiceSchema({
@@ -155,30 +110,23 @@ async function buildServiceSchema() {
 }
 
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({
-    '@type': 'Question',
-    name: f.q,
-    acceptedAnswer: { '@type': 'Answer', text: f.a },
-  })),
-}
-
 export default async function ExcelIntegrationsPage() {
   const seo = await getPageSeo('/excel-integrations')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-integrations')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -330,7 +278,7 @@ export default async function ExcelIntegrationsPage() {
               Frequently asked questions
             </h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
                   <h3 className="font-display mb-3 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>

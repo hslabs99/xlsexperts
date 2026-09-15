@@ -5,8 +5,8 @@ import {
   saveHomeServicesDraft,
 } from '@/lib/home-services-db'
 import {
-  normalizeHomeServicesContent,
-  type HomeServicesContent,
+  normalizeHomeServicesBundle,
+  type HomeServicesBundle,
 } from '@/lib/home-services'
 import { withTimeout } from '@/lib/with-timeout'
 
@@ -32,7 +32,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = (await request.json()) as {
-      content?: HomeServicesContent
+      content?: HomeServicesBundle
       action?: 'save' | 'publish'
     }
 
@@ -41,7 +41,7 @@ export async function PUT(request: Request) {
     if (action === 'publish') {
       const content =
         body.content != null
-          ? normalizeHomeServicesContent(body.content)
+          ? normalizeHomeServicesBundle(body.content)
           : undefined
       const result = await withTimeout(
         publishHomeServices(content),
@@ -54,7 +54,7 @@ export async function PUT(request: Request) {
         publishedAt: result.publishedAt,
         filePath: result.filePath,
         message:
-          'Published to static file. The public homepage imports this file — no database read.',
+          'Published to static file. Each domain imports its own market — no database read.',
       })
     }
 
@@ -66,7 +66,7 @@ export async function PUT(request: Request) {
     }
 
     const content = await withTimeout(
-      saveHomeServicesDraft(normalizeHomeServicesContent(body.content)),
+      saveHomeServicesDraft(normalizeHomeServicesBundle(body.content)),
       8_000,
       'saveHomeServicesDraft'
     )

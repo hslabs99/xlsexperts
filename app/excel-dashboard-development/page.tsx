@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -42,14 +43,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  { q: 'How long does an Excel dashboard take to build?', a: 'A straightforward single-page dashboard typically takes three to seven days. A multi-page interactive dashboard with automated data refresh and complex calculations is typically two to four weeks.' },
-  { q: 'Can you connect the dashboard directly to our data source?', a: 'Yes. We regularly connect Excel dashboards to SQL databases, accounting systems, CSV exports, SharePoint lists and other sources using Power Query or VBA. This eliminates manual data entry and keeps the dashboard current.' },
-  { q: 'Will the dashboard work in our version of Excel?', a: 'We build to match your environment. Slicer and interactive features require Excel 2013 or later. We confirm compatibility before starting and test on your specific version.' },
-  { q: 'How is an Excel dashboard different from Power BI?', a: 'Excel dashboards are self-contained files your team already knows how to work with. They require no additional licences, can be emailed or shared as a file, and are often faster to build and maintain. Power BI is better suited to very large datasets, real-time data feeds or organisation-wide deployment.' },
-  { q: 'Can you refresh and maintain our existing dashboards?', a: 'Yes. Dashboard maintenance and quarterly refresh services are available. We can also modernise existing dashboards that have become outdated or hard to maintain.' },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: '/excel-dashboard-development',
@@ -59,20 +52,17 @@ async function buildServiceSchema() {
 }
 
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-}
-
 export default async function ExcelDashboardDevelopmentPage() {
   const seo = await getPageSeo('/excel-dashboard-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-dashboard-development')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -148,7 +138,7 @@ export default async function ExcelDashboardDevelopmentPage() {
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">Frequently asked questions</h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>

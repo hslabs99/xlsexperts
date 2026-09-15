@@ -4,6 +4,12 @@
  */
 
 import {
+  DEFAULT_MARKET,
+  MARKET_IDS,
+  isMarketId,
+  type MarketId,
+} from '@/lib/market'
+import {
   ALL_SERVICES_HREF,
   canonicalizeServiceHref,
   getServiceByHref,
@@ -58,10 +64,12 @@ export type HomeServicesContent = {
   tiles: HomeServiceTile[]
 }
 
+export type HomeServicesBundle = Record<MarketId, HomeServicesContent>
+
 export type PublishedHomeServicesFile = {
-  version: 1
+  version: 1 | 2
   publishedAt: string
-  content: HomeServicesContent
+  content: HomeServicesBundle
 }
 
 export function tileFromServicePage(page: ServicePage): HomeServiceTile {
@@ -75,8 +83,42 @@ export function tileFromServicePage(page: ServicePage): HomeServiceTile {
 }
 
 /** Exact replica of the homepage section as it shipped before CMS. */
-export function defaultHomeServicesContent(): HomeServicesContent {
+function withMarketDefaultTiles(
+  content: HomeServicesContent,
+  market: MarketId
+): HomeServicesContent {
+  if (market === 'nz') return content
   return {
+    ...content,
+    tiles: content.tiles.map((tile) => {
+      if (tile.href !== '/web-applications') return tile
+      return {
+        ...tile,
+        description:
+          market === 'uk'
+            ? 'Custom web application development for UK businesses—secure multi-user cloud apps, customer portals, field systems, hybrid Excel solutions and SaaS platforms.'
+            : 'Custom web application development for businesses worldwide—secure multi-user cloud apps, customer portals, field systems, hybrid Excel solutions and SaaS platforms.',
+      }
+    }),
+  }
+}
+
+export function cloneHomeServicesContent(
+  content: HomeServicesContent
+): HomeServicesContent {
+  return {
+    ...content,
+    tiles: content.tiles.map((tile) => ({
+      ...tile,
+      tags: [...tile.tags],
+    })),
+  }
+}
+
+export function defaultHomeServicesContent(
+  market: MarketId = DEFAULT_MARKET
+): HomeServicesContent {
+  const base: HomeServicesContent = {
     eyebrow: 'What we do',
     heading: 'Services',
     intro:
@@ -89,6 +131,15 @@ export function defaultHomeServicesContent(): HomeServicesContent {
     ctaLabel: 'Book a free discovery call',
     ctaHref: '#contact',
     tiles: homeServicePages.map(tileFromServicePage),
+  }
+  return withMarketDefaultTiles(base, market)
+}
+
+export function defaultHomeServicesBundle(): HomeServicesBundle {
+  return {
+    nz: defaultHomeServicesContent('nz'),
+    intl: defaultHomeServicesContent('intl'),
+    uk: defaultHomeServicesContent('uk'),
   }
 }
 
@@ -151,6 +202,89 @@ function fillToMinimum(tiles: HomeServiceTile[]): HomeServiceTile[] {
     next.push(tileFromServicePage(page))
   }
   return next
+}
+
+function looksLikeSingleContent(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false
+  const rec = raw as Record<string, unknown>
+  return (
+    Array.isArray(rec.tiles) ||
+    typeof rec.eyebrow === 'string' ||
+    typeof rec.heading === 'string'
+  )
+}
+
+function looksLikeBundle(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false
+  const rec = raw as Record<string, unknown>
+  return MARKET_IDS.some(
+    (id) => rec[id] != null && typeof rec[id] === 'object' && !Array.isArray(rec[id])
+  )
+}
+
+function unwrapHomeServicesPayload(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw
+  const rec = raw as Record<string, unknown>
+  if (looksLikeBundle(rec.content)) return rec.content
+  if (looksLikeBundle(rec.markets)) return rec.markets
+  if (looksLikeBundle(rec)) return rec
+  if (looksLikeSingleContent(rec.content)) return rec.content
+  return rec
+}
+
+export function normalizeHomeServicesBundle(raw: unknown): HomeServicesBundle {
+  const inner = unwrapHomeServicesPayload(raw)
+  const rec =
+    inner && typeof inner === 'object' && !Array.isArray(inner)
+      ? (inner as Record<string, unknown>)
+      : {}
+
+  if (looksLikeBundle(rec)) {
+    const fallbackSource =
+      rec.nz ?? rec.intl ?? rec.uk ?? defaultHomeServicesContent()
+    const fallback = normalizeHomeServicesContent(fallbackSource)
+    const bundle = {} as HomeServicesBundle
+    for (const market of MARKET_IDS) {
+      bundle[market] = rec[market]
+        ? normalizeHomeServicesContent(rec[market])
+        : cloneHomeServicesContent(fallback)
+    }
+    return bundle
+  }
+
+  const shared = normalizeHomeServicesContent(
+    looksLikeSingleContent(rec) ? rec : raw
+  )
+  return {
+    nz: cloneHomeServicesContent(shared),
+    intl: withMarketDefaultTiles(cloneHomeServicesContent(shared), 'intl'),
+    uk: withMarketDefaultTiles(cloneHomeServicesContent(shared), 'uk'),
+  }
+}
+
+export function pickHomeServices(
+  bundle: HomeServicesBundle,
+  market: MarketId | string | null | undefined
+): HomeServicesContent {
+  const id = isMarketId(market) ? market : DEFAULT_MARKET
+  return bundle[id] ?? defaultHomeServicesContent()
+}
+
+export function homeServiceTileText(tile: HomeServiceTile): string {
+  return [tile.title, tile.description, tile.tags.join(' ')].join('\n')
+}
+
+export function homeServicesContentText(content: HomeServicesContent): string {
+  return [
+    content.eyebrow,
+    content.heading,
+    content.intro,
+    content.viewAllLabel,
+    content.useCasesLabel,
+    content.ctaPrompt,
+    content.ctaLabel,
+    ...content.tiles.map(homeServiceTileText),
+  ].join('\n')
 }
 
 /**

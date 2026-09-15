@@ -2,7 +2,7 @@
  * PUBLISHED market copy — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → International, then click Publish to regenerate this file.
  *
- * Generated at 2026-08-28T04:59:27.755Z
+ * Generated at 2026-09-13T12:16:50.885Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedMarketCopyFile } from '@/lib/market-copy'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-08-28T04:59:27.755Z",
+  "publishedAt": "2026-09-13T12:16:50.885Z",
   "markets": {
     "nz": {
       "site": {
@@ -98,43 +98,43 @@ const published = {
     "intl": {
       "site": {
         "origin": "https://www.xlsexperts.com",
-        "htmlLang": "en-US",
-        "ogLocale": "en_US",
+        "htmlLang": "en-USA",
+        "ogLocale": "en_USA",
         "defaultTitle": "Excel & Spreadsheet Consulting | XLS Experts",
-        "defaultDescription": "XLS Experts are US-facing Excel and spreadsheet consultants for American and international teams. We build models, automate data, and create dashboards that transform how your business works.",
-        "keywords": "Excel consultant USA, Excel VBA developer USA, spreadsheet automation USA, Excel dashboard, Excel financial modeling, Power Query, business process automation, Excel expert USA",
+        "defaultDescription": "XLS Experts are leading Excel and spreadsheet consultants. We build models, automate data, and create dashboards that transform how your business works.",
+        "keywords": "Excel consultant USA, Excel VBA developer USA, spreadsheet automation USA, Excel dashboard, Excel financial modelling, Power Query, business process automation, Excel expert USA Australia Canada UK",
         "ogTitle": "Excel & Spreadsheet Consulting | XLS Experts",
-        "ogDescription": "US-facing Excel consultants. VBA automation, dashboards, financial modeling, and workflow automation for American and global teams.",
-        "ogImageAlt": "XLS Experts — Excel & Spreadsheet Consulting",
-        "twitterTitle": "Excel & Spreadsheet Consulting | XLS Experts",
-        "twitterDescription": "US-facing Excel consultants. VBA automation, dashboards, financial modeling for American and global teams."
+        "ogDescription": "USA leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling, and workflow automation.",
+        "ogImageAlt": "XLS Experts — Excel & Spreadsheet Consulting USA",
+        "twitterTitle": "Excel & Spreadsheet Consulting USA | XLS Experts",
+        "twitterDescription": "Global Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling."
       },
       "contact": {
         "heading": "Contact directly",
-        "phoneDisplay": "",
-        "phoneTel": "",
-        "whatsapp": "",
+        "phoneDisplay": "+64 21 783 967",
+        "phoneTel": "+6421783967",
+        "whatsapp": "6421783967",
         "whatsappLabel": "WhatsApp us",
-        "locationLine": "Serving US and international clients remotely",
+        "locationLine": "Serving clients across USA, Canada, United Kingdom, Australia",
         "locationBadge": "USA",
         "emailPlaceholder": "jane@acme.com",
-        "phonePlaceholder": "+1 000 000 0000"
+        "phonePlaceholder": "+64 21 000 000"
       },
       "home": {
-        "metaTitle": "US Excel Experts: Automation & VBA",
-        "metaDescription": "US-facing Excel consultants for American and global teams. VBA automation, dashboards and financial modeling scoped in USD.",
-        "schemaDescription": "US-facing Excel and Google Sheets consulting firm. VBA automation, dashboard development, financial modeling, Power Query, and workflow automation for American and international teams.",
-        "schemaAreaServed": "United States",
-        "schemaAddressCountry": "US",
-        "schemaAddressLocality": "",
-        "faqCostQuestion": "How much does Excel consulting cost in the US?",
-        "faqCostAnswer": "XLS Experts projects typically start from about $1,000 USD for small automation tasks. Most projects fall in the $2,000–$10,000 range depending on complexity. We provide a clear scope and fixed price before starting any work.",
-        "faqIndustriesAnswer": "XLS Experts works with businesses across finance, insurance, energy, healthcare, construction, logistics, retail, hospitality, education, and not-for-profit sectors in the United States and internationally.",
-        "faqOutsideQuestion": "Do you work with businesses outside the United States?",
-        "faqOutsideAnswer": "Yes. The .com site is for US and international teams. Most project work is delivered remotely, with one project manager as your point of contact."
+        "metaTitle": "Global Excel Experts, Excel Data Analysis, Consulting & Solutions",
+        "metaDescription": "Spreadsheet experts ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.",
+        "schemaDescription": "Leading Excel and Google spreadsheet consulting firm. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.",
+        "schemaAreaServed": "USA, Canada, United Kingdom, Australia",
+        "schemaAddressCountry": "USA",
+        "schemaAddressLocality": "Global",
+        "faqCostQuestion": "How much does Excel consulting cost?",
+        "faqCostAnswer": "XLS Experts projects typically start from $500 USD for small automation tasks. Most projects fall in the $2,000–$10,000 range depending on complexity. We provide a clear scope and fixed price before starting any work.",
+        "faqIndustriesAnswer": "XLS Experts works with businesses across finance, insurance, energy, healthcare, construction, logistics, retail, hospitality, education, and not-for-profit sectors.",
+        "faqOutsideQuestion": "Do you work with businesses outside the USA?",
+        "faqOutsideAnswer": "Yes. We work with businesses across the globe. Most project work can be delivered remotely."
       },
       "hero": {
-        "line1": "US & INTERNATIONAL",
+        "line1": "GLOBAL",
         "line2": "BUSINESS AUTOMATION SPECIALISTS",
         "badgeSpecialists": "The Global Microsoft Excel Specialists",
         "badgeEnterprise": "VBA Programming",
@@ -142,9 +142,9 @@ const published = {
         "badgeSpecialistsHref": "/excel-spreadsheet-development",
         "badgeEnterpriseHref": "/excel-vba-macro-development",
         "badgeAiHref": "/ai-workflow-and-business-process-automation",
-        "trustBased": "Serving US and global clients",
-        "statValue": "Global",
-        "statLabel": "US-facing team, delivered remotely",
+        "trustBased": "Serving Global Clients",
+        "statValue": "100% Global Availability",
+        "statLabel": "Global Based team, local expertise",
         "headline": "We automate Excel and Google Sheets for US and international teams.",
         "subhead": "Whether you are managing a financial model, replacing manual reporting, or building a costing tool, we create practical USD-scoped solutions that save time and scale with your business."
       },
@@ -181,43 +181,43 @@ const published = {
     "uk": {
       "site": {
         "origin": "https://www.xlsexperts.co.uk",
-        "htmlLang": "en-GB",
-        "ogLocale": "en_GB",
-        "defaultTitle": "Excel & Spreadsheet Consulting UK | XLS Experts",
-        "defaultDescription": "XLS Experts are Excel and spreadsheet consultants for UK organisations. We build models, automate data, and create dashboards that transform how your business works.",
-        "keywords": "Excel consultant UK, Excel VBA developer UK, spreadsheet automation United Kingdom, Excel dashboard UK, Excel financial modelling UK, Power Query UK, business process automation UK, Excel expert London",
-        "ogTitle": "Excel & Spreadsheet Consulting UK | XLS Experts",
-        "ogDescription": "Excel consultants for UK organisations. VBA automation, dashboards, financial modelling, and workflow automation.",
+        "htmlLang": "en-UK",
+        "ogLocale": "en_UK",
+        "defaultTitle": "Excel & Spreadsheet Consulting | XLS Experts",
+        "defaultDescription": "XLS Experts are leading UK Excel and spreadsheet consultants. We build models, automate data, and create dashboards that transform how your business works.",
+        "keywords": "Excel consultant UK, Excel VBA developer UK, spreadsheet automation UK, Excel dashboard, Excel financial modelling, Power Query, business process automation, Excel expert UK",
+        "ogTitle": "Excel & Spreadsheet Consulting | XLS Experts",
+        "ogDescription": "UK's leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling, and workflow automation.",
         "ogImageAlt": "XLS Experts — Excel & Spreadsheet Consulting UK",
         "twitterTitle": "Excel & Spreadsheet Consulting UK | XLS Experts",
-        "twitterDescription": "Excel consultants for UK organisations. VBA automation, dashboards, financial modelling."
+        "twitterDescription": "UK's leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling."
       },
       "contact": {
         "heading": "Contact directly",
-        "phoneDisplay": "",
-        "phoneTel": "",
-        "whatsapp": "",
+        "phoneDisplay": "+44 21 783 967",
+        "phoneTel": "+4421783967",
+        "whatsapp": "6421783967",
         "whatsappLabel": "WhatsApp us",
-        "locationLine": "United Kingdom — serving clients nationwide",
+        "locationLine": "Serving UK businesses like yours!",
         "locationBadge": "UK",
         "emailPlaceholder": "jane@acme.co.uk",
-        "phonePlaceholder": "+44 20 0000 0000"
+        "phonePlaceholder": "+44 21 000 000"
       },
       "home": {
-        "metaTitle": "UK Excel Experts: Modelling & VBA",
-        "metaDescription": "UK Excel consultants for British organisations. VBA automation, dashboards and financial modelling with GBP quotes.",
-        "schemaDescription": "Excel and Google Sheets consulting for UK organisations. VBA automation, dashboard development, financial modelling, Power Query, and workflow automation.",
+        "metaTitle": "Global Excel Experts, Excel Data Analysis, Consulting & Solutions",
+        "metaDescription": "Spreadsheet experts ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.",
+        "schemaDescription": "Leading Excel and Google spreadsheet consulting firm. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.",
         "schemaAreaServed": "United Kingdom",
-        "schemaAddressCountry": "GB",
-        "schemaAddressLocality": "",
+        "schemaAddressCountry": "UK",
+        "schemaAddressLocality": "UK",
         "faqCostQuestion": "How much does Excel consulting cost in the UK?",
-        "faqCostAnswer": "XLS Experts projects typically start from about £800 GBP for small automation tasks. Most projects fall in the £1,500–£8,000 range depending on complexity. We provide a clear scope and fixed price before starting any work.",
-        "faqIndustriesAnswer": "XLS Experts works with businesses across finance, insurance, energy, healthcare, construction, logistics, retail, hospitality, education, and not-for-profit sectors throughout the United Kingdom.",
-        "faqOutsideQuestion": "Do you work with businesses outside London?",
-        "faqOutsideAnswer": "Yes. We work with organisations across the United Kingdom including Manchester, Birmingham, Edinburgh, Bristol and Leeds. Most project work is delivered remotely."
+        "faqCostAnswer": "XLS Experts projects typically start from GBP 500 for small automation tasks. Most projects fall in the 1,000–10,000 range depending on complexity. We provide a clear scope and fixed price before starting any work.",
+        "faqIndustriesAnswer": "XLS Experts works with businesses across finance, insurance, energy, healthcare, construction, logistics, retail, hospitality, education, and not-for-profit sectors throughout the UK.",
+        "faqOutsideQuestion": "Do you work with businesses outside the UK?",
+        "faqOutsideAnswer": "Yes. We work with businesses across all of the UK. Most project work can be delivered remotely."
       },
       "hero": {
-        "line1": "UNITED KINGDOM",
+        "line1": "UK",
         "line2": "BUSINESS AUTOMATION SPECIALISTS",
         "badgeSpecialists": "UK Microsoft Excel Specialists",
         "badgeEnterprise": "VBA Programming",
@@ -225,16 +225,16 @@ const published = {
         "badgeSpecialistsHref": "/excel-spreadsheet-development",
         "badgeEnterpriseHref": "/excel-vba-macro-development",
         "badgeAiHref": "/ai-workflow-and-business-process-automation",
-        "trustBased": "Serving UK clients",
-        "statValue": "UK",
-        "statLabel": "Based expertise, delivered remotely",
+        "trustBased": "Serving Global Clients",
+        "statValue": "100% Global Availability",
+        "statLabel": "Global Based team, local expertise",
         "headline": "We automate Excel and Google spreadsheets for UK organisations.",
         "subhead": "Whether you are managing a financial model, replacing manual reporting, or building a costing tool, we create practical GBP-quoted solutions that save time and scale with your organisation."
       },
       "about": {
-        "intro": "We are a UK-facing data automation consultancy with expertise in Excel, VBA, Google Sheets, and modern workflow automation tools. We specialise in transforming data management tasks into valuable business tools — for organisations of every size.",
-        "pillarBasedTitle": "United Kingdom clients",
-        "pillarBasedBody": "We work with UK organisations remotely, with one project manager as your point of contact and 20+ years of experience. You deal directly with the people doing the work.",
+        "intro": "We are a UK data automation consultancy with expertise in Excel, VBA, Google Sheets, and modern workflow automation tools. We specialize in transforming data management tasks into valuable business tools — for businesses of every size.",
+        "pillarBasedTitle": "Global Client Services",
+        "pillarBasedBody": "Our team works with you, wherever you are. One project manager as point of contact with 20+ years of experience.",
         "pillarSmeBody": "We work with solo operators, engineers, construction firms, retailers, and corporates alike. Every client gets the same quality of attention.",
         "brandLabel": "Excel Experts UK"
       },

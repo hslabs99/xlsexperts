@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -42,14 +43,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  { q: 'What does a best practice financial model look like?', a: 'A best practice financial model has clearly separated inputs, calculations and outputs. Assumptions are in one place and clearly labelled. Formulas are consistent across rows. There are no hard-coded numbers in calculation cells. The model can be understood and updated by someone who did not build it.' },
-  { q: 'Can you build a three-statement model for our business?', a: 'Yes. Three-statement models — linked P&L, balance sheet and cash flow — are a core part of our financial modelling work. We build them to professional standards suitable for board reporting, lender due diligence and investor review.' },
-  { q: 'How long does a financial model take to build?', a: 'A straightforward budget or forecast model typically takes one to two weeks. A full three-statement model with scenario analysis and investment-ready formatting is typically two to four weeks depending on complexity.' },
-  { q: 'Can you review and fix a financial model we already have?', a: 'Yes. Model reviews and audits are a common engagement. We assess the model for structural issues, formula errors, circular references and missing logic, and either fix what is there or recommend a rebuild.' },
-  { q: 'Do you build models for fundraising and due diligence?', a: 'Yes. We have built models used in fundraising rounds, acquisitions, due diligence processes and banking relationships. We understand what investors and lenders look for and build models that hold up to scrutiny.' },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: '/excel-financial-modelling',
@@ -59,20 +52,17 @@ async function buildServiceSchema() {
 }
 
 
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-}
-
 export default async function ExcelFinancialModellingPage() {
   const seo = await getPageSeo('/excel-financial-modelling')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-financial-modelling')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -148,7 +138,7 @@ export default async function ExcelFinancialModellingPage() {
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">Frequently asked questions</h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>

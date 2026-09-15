@@ -27,6 +27,12 @@ import {
   type HomeCaseStudiesInitialCount,
   type HomeCaseStudiesMorePageSize,
 } from '@/lib/case-studies-shared'
+import {
+  caseStudyRegionCopyHoverTitle,
+  caseStudyRegionCopyReport,
+  type CaseStudyRegionCopyReport,
+} from '@/lib/blog-region-copy'
+import { marketLabel, marketShortLabel } from '@/lib/market'
 import { prepareCaseStudyImageUpload } from '@/lib/case-studies-storage'
 import { AdminDialog } from '@/components/admin-dialog'
 import {
@@ -41,9 +47,9 @@ import { solutionPages } from '@/lib/solutions'
 
 type EditorMode = 'list' | 'edit' | 'preview' | 'ai'
 
-type SortKey = 'client' | 'sector' | 'home' | 'order' | 'published'
+type SortKey = 'client' | 'sector' | 'copy' | 'home' | 'order' | 'published'
 type SortDir = 'asc' | 'desc'
-type PublishFilter = 'all' | 'published' | 'draft'
+type PublishFilter = 'all' | 'published' | 'draft' | 'regional'
 
 function SortIcon({
   active,
@@ -214,12 +220,27 @@ export function AdminCaseStudiesPanel() {
     return () => URL.revokeObjectURL(url)
   }, [pendingImageFile])
 
+  const copyReportsBySlug = useMemo(() => {
+    const map = new Map<string, CaseStudyRegionCopyReport>()
+    for (const r of rows) map.set(r.slug, caseStudyRegionCopyReport(r))
+    return map
+  }, [rows])
+
+  const formCopyReport = useMemo(
+    () => caseStudyRegionCopyReport(form),
+    [form]
+  )
+
   const filteredSorted = useMemo(() => {
     let list = rows
     if (publishFilter === 'published') {
       list = list.filter((r) => r.published)
     } else if (publishFilter === 'draft') {
       list = list.filter((r) => !r.published)
+    } else if (publishFilter === 'regional') {
+      list = list.filter(
+        (r) => (copyReportsBySlug.get(r.slug)?.detected.length ?? 0) > 0
+      )
     }
     const q = search.trim().toLowerCase()
     if (q) {
@@ -242,6 +263,16 @@ export function AdminCaseStudiesPanel() {
         case 'sector':
           cmp = a.sector.localeCompare(b.sector)
           break
+        case 'copy': {
+          const ac =
+            copyReportsBySlug.get(a.slug) ?? caseStudyRegionCopyReport(a)
+          const bc =
+            copyReportsBySlug.get(b.slug) ?? caseStudyRegionCopyReport(b)
+          cmp =
+            Number(bc.detected.length > 0) - Number(ac.detected.length > 0)
+          if (cmp === 0) cmp = ac.label.localeCompare(bc.label, 'en')
+          break
+        }
         case 'home':
           cmp =
             Number(a.showOnHome) - Number(b.showOnHome) ||
@@ -256,7 +287,7 @@ export function AdminCaseStudiesPanel() {
       }
       return cmp * dir
     })
-  }, [rows, search, publishFilter, sortKey, sortDir])
+  }, [rows, search, publishFilter, sortKey, sortDir, copyReportsBySlug])
 
   const selectedInView = useMemo(
     () =>
@@ -267,12 +298,16 @@ export function AdminCaseStudiesPanel() {
   const counts = useMemo(() => {
     let published = 0
     let draft = 0
+    let regional = 0
     for (const r of rows) {
       if (r.published) published += 1
       else draft += 1
+      if ((copyReportsBySlug.get(r.slug)?.detected.length ?? 0) > 0) {
+        regional += 1
+      }
     }
-    return { published, draft, total: rows.length }
-  }, [rows])
+    return { published, draft, regional, total: rows.length }
+  }, [rows, copyReportsBySlug])
 
   const allFilteredSelected =
     filteredSorted.length > 0 &&
@@ -1101,6 +1136,10 @@ export function AdminCaseStudiesPanel() {
                   label: `Published (${counts.published})`,
                 },
                 { id: 'draft', label: `Drafts (${counts.draft})` },
+                {
+                  id: 'regional',
+                  label: `Regional copy (${counts.regional})`,
+                },
               ] as const
             ).map((opt) => (
               <button
@@ -1110,8 +1149,12 @@ export function AdminCaseStudiesPanel() {
                 onClick={() => setPublishFilter(opt.id)}
                 className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold ${
                   publishFilter === opt.id
-                    ? 'border-brand bg-brand-light text-brand-dark'
-                    : 'border-border bg-white text-ink-muted hover:bg-surface-raised'
+                    ? opt.id === 'regional'
+                      ? 'border-amber-500 bg-amber-100 text-amber-950'
+                      : 'border-brand bg-brand-light text-brand-dark'
+                    : opt.id === 'regional' && counts.regional > 0
+                      ? 'border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100'
+                      : 'border-border bg-white text-ink-muted hover:bg-surface-raised'
                 }`}
               >
                 {opt.label}
@@ -1159,6 +1202,9 @@ export function AdminCaseStudiesPanel() {
             {rows.length === 1 ? 'case study' : 'case studies'}
             {selectedInView.length > 0
               ? ` · ${selectedInView.length} selected`
+              : ''}
+            {counts.regional > 0
+              ? ` · ${counts.regional} with NZ / UK / US wording in hidden fields`
               : ''}
             . Click column headers to sort. Click Services / Solutions tags to
             link or unlink pages.
@@ -1215,6 +1261,16 @@ export function AdminCaseStudiesPanel() {
                     <th className="py-2 pr-3">
                       <button
                         type="button"
+                        onClick={() => toggleSort('copy')}
+                        className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                      >
+                        Copy
+                        <SortIcon active={sortKey === 'copy'} dir={sortDir} />
+                      </button>
+                    </th>
+                    <th className="py-2 pr-3">
+                      <button
+                        type="button"
                         onClick={() => toggleSort('home')}
                         className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
                       >
@@ -1252,9 +1308,15 @@ export function AdminCaseStudiesPanel() {
                   {filteredSorted.map((row) => {
                     const serviceSet = new Set(row.serviceSlugs ?? [])
                     const solutionSet = new Set(row.solutionSlugs ?? [])
-                    const rowTone = row.published
-                      ? 'bg-emerald-50/80'
-                      : 'opacity-60'
+                    const copyReport =
+                      copyReportsBySlug.get(row.slug) ??
+                      caseStudyRegionCopyReport(row)
+                    const hasRegional = copyReport.detected.length > 0
+                    const rowTone = hasRegional
+                      ? 'bg-amber-50'
+                      : row.published
+                        ? 'bg-emerald-50/80'
+                        : 'opacity-60'
                     return (
                       <Fragment key={row.slug}>
                         <tr
@@ -1282,6 +1344,20 @@ export function AdminCaseStudiesPanel() {
                             onClick={() => startEdit(row)}
                           >
                             {row.sector}
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <span
+                              className={`inline-block max-w-[11rem] rounded px-2 py-0.5 text-xs font-semibold ${
+                                hasRegional
+                                  ? copyReport.mixed
+                                    ? 'bg-amber-200 text-amber-950'
+                                    : 'bg-amber-100 text-amber-950'
+                                  : 'bg-surface-raised text-ink-muted'
+                              }`}
+                              title={caseStudyRegionCopyHoverTitle(copyReport)}
+                            >
+                              {copyReport.label}
+                            </span>
                           </td>
                           <td className="py-2.5 pr-3">
                             <label
@@ -1347,7 +1423,7 @@ export function AdminCaseStudiesPanel() {
                         <tr
                           className={`border-b border-border/60 ${rowTone}`}
                         >
-                          <td colSpan={7} className="px-2 pb-3 pt-0">
+                          <td colSpan={8} className="px-2 pb-3 pt-0">
                             <div className="ml-6 space-y-2 rounded-md border border-border/70 bg-white/70 px-3 py-2">
                               <div className="flex flex-wrap items-start gap-x-2 gap-y-1.5">
                                 <span className="mt-0.5 w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
@@ -1470,6 +1546,32 @@ export function AdminCaseStudiesPanel() {
               </button>
             </div>
           </div>
+
+          {formCopyReport.detected.length > 0 ? (
+            <div
+              role="status"
+              className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950"
+            >
+              <p className="font-semibold">
+                {formCopyReport.mixed
+                  ? `Copy mentions ${formCopyReport.detected.map(marketLabel).join(' and ')}.`
+                  : `Copy looks ${marketLabel(formCopyReport.detected[0]!)}-specific.`}
+              </p>
+              <p className="mt-1 text-amber-900">
+                Case studies appear on all three sites. Rewrite NZ / UK / US
+                wording so the same record can stay region-neutral.
+              </p>
+              {formCopyReport.detected.map((market) => {
+                const samples = formCopyReport.samples[market] ?? []
+                if (samples.length === 0) return null
+                return (
+                  <p key={market} className="mt-2 text-xs text-amber-900">
+                    {marketShortLabel(market)}: &ldquo;{samples[0]}&rdquo;
+                  </p>
+                )
+              })}
+            </div>
+          ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm sm:col-span-2">

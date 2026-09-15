@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
+import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -42,14 +43,6 @@ const steps = [
   },
 ]
 
-const faqs = [
-  { q: 'How long does a custom spreadsheet take to build?', a: 'Most projects take one to three weeks depending on complexity. A simple tracker might be two or three days. A full reporting pack with multiple data sources and automated outputs is typically two to four weeks.' },
-  { q: 'Can you improve an existing spreadsheet rather than build from scratch?', a: 'Yes. We regularly take over existing spreadsheets, restructure them for stability and performance, and add missing functionality. We will always advise whether a rebuild or enhancement is the better investment.' },
-  { q: 'Will the spreadsheet work on our version of Excel?', a: 'We build to match your environment. If you are on Excel 2016, Microsoft 365 or a mixed environment, we test and confirm compatibility before delivery.' },
-  { q: 'Do you work with businesses outside Auckland?', a: 'Yes. We work with businesses across New Zealand including Wellington, Christchurch, Hamilton and Tauranga. Most spreadsheet development is delivered remotely with video calls for discovery and review.' },
-  { q: 'What happens if we need changes after delivery?', a: 'We provide a short support period after every project. For ongoing changes and enhancements, we offer a support retainer or quote individual change requests.' },
-]
-
 async function buildServiceSchema() {
   return marketServiceSchema({
     path: '/excel-spreadsheet-development',
@@ -58,21 +51,17 @@ async function buildServiceSchema() {
   })
 }
 
-
-const faqSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-}
-
 export default async function ExcelSpreadsheetDevelopmentPage() {
   const seo = await getPageSeo('/excel-spreadsheet-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-spreadsheet-development')
+  const faqSchema = faqPageJsonLd(seo.faqs)
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {faqSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      )}
       <Navbar />
 
       <main className="pt-16">
@@ -154,7 +143,7 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
           <div className="mx-auto max-w-3xl px-6">
             <h2 className="font-display mb-12 text-center text-3xl font-bold text-gray-900">Frequently asked questions</h2>
             <div className="space-y-6">
-              {faqs.map((faq) => (
+              {seo.faqs.map((faq) => (
                 <div key={faq.q} className="rounded-xl border border-gray-200 p-6">
                   <h3 className="font-display mb-2 font-bold text-gray-900">{faq.q}</h3>
                   <p className="text-sm leading-relaxed text-gray-600">{faq.a}</p>
