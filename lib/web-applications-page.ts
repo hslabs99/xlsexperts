@@ -1,3 +1,5 @@
+import { DEFAULT_MARKET, type MarketId } from '@/lib/market'
+
 export type WebAppNavItem = {
   id: string
   label: string
@@ -72,14 +74,49 @@ export const webAppNavItems: WebAppNavItem[] = [
   { id: 'consultation', label: 'Consultation' },
 ]
 
-export const webAppCapabilities = [
-  'Business-process-led development',
-  'Modern cloud architecture',
-  'Multi-user by design',
-  'New Zealand-based',
-  'Excel integration where useful',
-  'From prototype to production',
-] as const
+export function webAppCapabilitiesFor(market: MarketId = DEFAULT_MARKET) {
+  const presence =
+    market === 'uk'
+      ? 'UK-facing'
+      : market === 'intl'
+        ? 'Delivered worldwide'
+        : 'New Zealand-based'
+  return [
+    'Business-process-led development',
+    'Modern cloud architecture',
+    'Multi-user by design',
+    presence,
+    'Excel integration where useful',
+    'From prototype to production',
+  ]
+}
+
+export const webAppCapabilities = webAppCapabilitiesFor('nz')
+
+export function webAppCoverageFor(market: MarketId = DEFAULT_MARKET): {
+  heading: string
+  intro: string
+} {
+  if (market === 'uk') {
+    return {
+      heading: 'Web applications for UK businesses',
+      intro:
+        'XLS Experts works with organisations throughout the United Kingdom. This page is written for UK teams evaluating a practical delivery partner for custom web application development.',
+    }
+  }
+  if (market === 'intl') {
+    return {
+      heading: 'Web applications for global businesses',
+      intro:
+        'XLS Experts works with organisations worldwide. This page is written for teams evaluating a practical delivery partner for custom web application development, wherever they are based.',
+    }
+  }
+  return {
+    heading: 'Web applications for New Zealand businesses',
+    intro:
+      'XLS Experts works with organisations throughout Auckland, Wellington, Christchurch, Hamilton, Tauranga and other regions of New Zealand. This page is written for New Zealand teams evaluating a practical delivery partner for custom web application development.',
+  }
+}
 
 export const webAppBenefits: WebAppBenefit[] = [
   {

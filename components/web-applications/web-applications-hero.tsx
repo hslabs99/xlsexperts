@@ -1,9 +1,16 @@
 import Link from 'next/link'
 import { ArrowRight, Cloud, Monitor, Smartphone, Tablet } from 'lucide-react'
 import { Breadcrumbs } from '@/components/solutions/breadcrumbs'
-import { webAppCapabilities } from '@/lib/web-applications-page'
+import { type MarketId } from '@/lib/market'
+import { webAppCapabilitiesFor } from '@/lib/web-applications-page'
 
-function DeviceComposition() {
+function exampleAppHost(market: MarketId): string {
+  if (market === 'uk') return 'app.yourbusiness.co.uk'
+  if (market === 'intl') return 'app.yourbusiness.com'
+  return 'app.yourbusiness.co.nz'
+}
+
+function DeviceComposition({ market }: { market: MarketId }) {
   return (
     <div
       className="relative mx-auto mt-12 max-w-lg lg:mt-0 lg:max-w-none"
@@ -17,7 +24,7 @@ function DeviceComposition() {
             <span className="h-2 w-2 rounded-full bg-white/30" />
             <span className="h-2 w-2 rounded-full bg-white/30" />
             <span className="ml-3 flex-1 rounded-md bg-white/10 px-2 py-1 text-[10px] text-white/50">
-              app.yourbusiness.co.nz
+              {exampleAppHost(market)}
             </span>
           </div>
           <div className="grid gap-3 p-4 sm:grid-cols-3">
@@ -75,9 +82,11 @@ function DeviceComposition() {
 export function WebApplicationsHero({
   h1 = 'Web Applications',
   heroIntro,
+  market,
 }: {
   h1?: string
   heroIntro?: string
+  market: MarketId
 }) {
   const intro =
     heroIntro?.trim() ||
@@ -136,19 +145,19 @@ export function WebApplicationsHero({
               </a>
             </div>
           </div>
-          <DeviceComposition />
+          <DeviceComposition market={market} />
         </div>
       </div>
     </section>
   )
 }
 
-export function CapabilityStrip() {
+export function CapabilityStrip({ market }: { market: MarketId }) {
   return (
     <section className="border-b border-gray-200 bg-white py-8" aria-label="Capabilities">
       <div className="mx-auto max-w-5xl px-6">
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {webAppCapabilities.map((item) => (
+          {webAppCapabilitiesFor(market).map((item) => (
             <li
               key={item}
               className="flex items-center gap-3 text-sm font-medium text-gray-800"

@@ -1,5 +1,7 @@
+import type { MarketId } from '@/lib/market'
 import {
   webAppCostFactors,
+  webAppCoverageFor,
   webAppProcessSteps,
   webAppStagedBuild,
 } from '@/lib/web-applications-page'
@@ -96,17 +98,12 @@ export function CostFactorsSection() {
   )
 }
 
-export function NZCoverageSection() {
+export function CoverageSection({ market }: { market: MarketId }) {
+  const coverage = webAppCoverageFor(market)
   return (
     <SectionShell>
-      <SectionHeading>Web applications for New Zealand businesses</SectionHeading>
-      <Intro>
-        XLS Experts works with organisations throughout Auckland, Wellington, Christchurch,
-        Hamilton, Tauranga and other regions of New Zealand. This page is currently intended
-        primarily for the New Zealand market—supporting strong local relevance for custom web
-        application development NZ searches while remaining useful to any visitor evaluating a
-        practical delivery partner.
-      </Intro>
+      <SectionHeading>{coverage.heading}</SectionHeading>
+      <Intro>{coverage.intro}</Intro>
       <Body>
         Projects are commonly delivered through a combination of remote workshops, screen sharing,
         regular demonstrations, online testing and structured review sessions, with onsite work

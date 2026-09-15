@@ -3,17 +3,22 @@ import { ArrowRight } from 'lucide-react'
 import { webAppFaqs, webAppRelatedLinks } from '@/lib/web-applications-page'
 import { SectionHeading, SectionShell } from './shared'
 
-export function WebApplicationFAQ() {
+export function WebApplicationFAQ({
+  faqs,
+}: {
+  faqs?: { question: string; answer: string }[]
+}) {
+  const items = faqs && faqs.length > 0 ? faqs : webAppFaqs
   return (
     <SectionShell id="faqs" alt>
       <div className="mx-auto max-w-3xl">
         <SectionHeading center>Frequently asked questions</SectionHeading>
         <p className="mb-10 text-center text-base leading-relaxed text-gray-600">
-          Concise answers to the commercial and technical questions New Zealand businesses commonly
+          Concise answers to the commercial and technical questions businesses commonly
           ask about custom web application development.
         </p>
         <div className="space-y-4">
-          {webAppFaqs.map((faq) => (
+          {items.map((faq) => (
             <details
               key={faq.question}
               className="group rounded-xl border border-gray-200 bg-white p-6 open:shadow-sm"

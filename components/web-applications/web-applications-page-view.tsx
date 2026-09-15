@@ -1,4 +1,5 @@
 import { PageContact } from '@/components/page-contact'
+import { type MarketId } from '@/lib/market'
 import { WebApplicationsHero, CapabilityStrip } from './web-applications-hero'
 import { PageSectionNav } from './page-section-nav'
 import {
@@ -20,7 +21,7 @@ import {
 import {
   CostFactorsSection,
   DevelopmentProcess,
-  NZCoverageSection,
+  CoverageSection,
   StartSmallSection,
 } from './delivery'
 import {
@@ -32,19 +33,23 @@ import {
 export function WebApplicationsPageView({
   h1,
   heroIntro,
+  faqs,
+  market,
 }: {
   h1?: string
   heroIntro?: string
+  faqs?: { question: string; answer: string }[]
+  market: MarketId
 }) {
   return (
     <main className="pt-16">
-      <WebApplicationsHero h1={h1} heroIntro={heroIntro} />
-      <CapabilityStrip />
+      <WebApplicationsHero h1={h1} heroIntro={heroIntro} market={market} />
+      <CapabilityStrip market={market} />
       <PageSectionNav />
       <AccessibleSoftwareSection />
       <WhatIsWebApplication />
       <WebApplicationBenefits />
-      <ApplicationOpportunityGrid />
+      <ApplicationOpportunityGrid market={market} />
       <ApplicationTypeCards />
       <SpreadsheetToWebSection />
       <HybridExcelWebSection />
@@ -57,8 +62,8 @@ export function WebApplicationsPageView({
       <DevelopmentProcess />
       <StartSmallSection />
       <CostFactorsSection />
-      <NZCoverageSection />
-      <WebApplicationFAQ />
+      <CoverageSection market={market} />
+      <WebApplicationFAQ faqs={faqs} />
       <RelatedLinksSection />
       <WebApplicationCTA />
       <PageContact topicHref="/web-applications" />

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { marketBusinessesPhrase, type MarketId } from '@/lib/market'
 import {
   webAppBenefits,
   webAppOpportunityCategories,
@@ -46,7 +47,7 @@ export function AccessibleSoftwareSection() {
         SaaS product, a customer-service concept, a mobile or field requirement, an operational
         bottleneck, a spreadsheet-based system that has reached its limit, or a mix of spreadsheets,
         email, shared drives, paper forms and disconnected software. Custom web application
-        development NZ engagements often begin by clarifying which of these pathways is actually in
+        development engagements often begin by clarifying which of these pathways is actually in
         front of the business—and which parts of the process should stay in Excel for modelling and
         analysis.
       </Body>
@@ -141,14 +142,18 @@ export function WebApplicationBenefits() {
   )
 }
 
-export function ApplicationOpportunityGrid() {
+export function ApplicationOpportunityGrid({
+  market,
+}: {
+  market: MarketId
+}) {
   return (
     <SectionShell id="what-we-build" alt>
       <SectionHeading center>What could your business turn into a web application?</SectionHeading>
       <p className="mx-auto mb-10 max-w-2xl text-center text-base leading-relaxed text-gray-600">
-        Custom web application development for New Zealand businesses often starts with a familiar
-        operational pattern: a process that has outgrown email, paper, shared drives or disconnected
-        spreadsheets—or a new idea that needs a secure multi-user home.
+        Custom web application development for {marketBusinessesPhrase(market)} often starts with a
+        familiar operational pattern: a process that has outgrown email, paper, shared drives or
+        disconnected spreadsheets—or a new idea that needs a secure multi-user home.
       </p>
       <div className="grid gap-6 sm:grid-cols-2">
         {webAppOpportunityCategories.map((category) => (

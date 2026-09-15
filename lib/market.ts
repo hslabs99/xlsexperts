@@ -76,6 +76,13 @@ export function marketLabel(market: MarketId): string {
   return 'New Zealand'
 }
 
+/** On-page “for X businesses” phrasing for the three public sites. */
+export function marketBusinessesPhrase(market: MarketId): string {
+  if (market === 'uk') return 'UK businesses'
+  if (market === 'intl') return 'global businesses'
+  return 'New Zealand businesses'
+}
+
 export function marketShortLabel(market: MarketId): string {
   if (market === 'uk') return 'UK'
   if (market === 'intl') return 'Intl'
