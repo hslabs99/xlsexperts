@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -52,6 +53,8 @@ async function buildServiceSchema() {
 
 
 export default async function PowerQueryConsultingPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/power-query-consulting')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/power-query-consulting')
@@ -99,7 +102,7 @@ export default async function PowerQueryConsultingPage() {
 
         <ServicePageExamples
           heading="Power Query projects we have delivered"
-          subheading="Data pipeline and transformation work for New Zealand organisations."
+          subheading={say('Data pipeline and transformation work for New Zealand organisations.')}
           tiles={exampleTiles}
         />
 
@@ -128,8 +131,8 @@ export default async function PowerQueryConsultingPage() {
 
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">Power Query consulting across New Zealand</h2>
-            <p className="text-gray-600 leading-relaxed">We provide Power Query consulting to businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and beyond. Power Query work is delivered entirely remotely. We work with businesses across finance, retail, logistics, manufacturing, healthcare and professional services who use Excel or Power BI for reporting and analysis.</p>
+            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">{say('Power Query consulting across New Zealand')}</h2>
+            <p className="text-gray-600 leading-relaxed">{say('We provide Power Query consulting to businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and beyond. Power Query work is delivered entirely remotely. We work with businesses across finance, retail, logistics, manufacturing, healthcare and professional services who use Excel or Power BI for reporting and analysis.')}</p>
           </div>
         </section>
 

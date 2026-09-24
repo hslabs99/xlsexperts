@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -53,6 +54,8 @@ async function buildServiceSchema() {
 
 
 export default async function ExcelFinancialModellingPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/excel-financial-modelling')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-financial-modelling')
@@ -86,7 +89,7 @@ export default async function ExcelFinancialModellingPage() {
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Financial modelling problems we solve</h2>
-            <p className="mb-12 text-center text-gray-500">Common issues with financial models across New Zealand businesses.</p>
+            <p className="mb-12 text-center text-gray-500">{say('Common issues with financial models across New Zealand businesses.')}</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {problems.map((p) => (
                 <div key={p} className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-5">
@@ -100,7 +103,7 @@ export default async function ExcelFinancialModellingPage() {
 
         <ServicePageExamples
           heading="Financial modelling projects we have delivered"
-          subheading="A selection of models built for New Zealand businesses and investors."
+          subheading={say('A selection of models built for New Zealand businesses and investors.')}
           tiles={exampleTiles}
         />
 
@@ -129,8 +132,8 @@ export default async function ExcelFinancialModellingPage() {
 
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">Financial modelling services across New Zealand</h2>
-            <p className="text-gray-600 leading-relaxed">We provide financial modelling services to businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton and beyond. Whether you are a founder preparing for a raise, a CFO building the annual budget or an M&A team working through an acquisition, we build models that are fit for purpose and hold up to scrutiny. Most engagements are delivered remotely.</p>
+            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">{say('Financial modelling services across New Zealand')}</h2>
+            <p className="text-gray-600 leading-relaxed">{say('We provide financial modelling services to businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton and beyond. Whether you are a founder preparing for a raise, a CFO building the annual budget or an M&A team working through an acquisition, we build models that are fit for purpose and hold up to scrutiny. Most engagements are delivered remotely.')}</p>
           </div>
         </section>
 

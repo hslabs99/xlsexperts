@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next'
+import { getMarketCopy } from '@/lib/market-server'
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const copy = await getMarketCopy()
   return {
-    name: 'XLS Experts — Excel & Spreadsheet Consulting NZ',
+    name: copy.site.defaultTitle,
     short_name: 'XLS Experts',
-    description:
-      "New Zealand's leading Excel and spreadsheet consultants. VBA automation, dashboards, financial modelling.",
+    description: copy.site.defaultDescription,
     start_url: '/',
     display: 'browser',
     background_color: '#ffffff',

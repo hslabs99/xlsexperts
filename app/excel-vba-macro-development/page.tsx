@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -68,6 +69,8 @@ async function buildServiceSchema() {
 }
 
 export default async function ExcelVbaMacroDevelopmentPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/excel-vba-macro-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles(PAGE_HREF)
@@ -145,8 +148,8 @@ export default async function ExcelVbaMacroDevelopmentPage() {
         </section>
 
         <ServicePageExamples
-          heading="VBA and macro projects we have delivered in NZ"
-          subheading="A sample of real automation work across New Zealand industries."
+          heading={say('VBA and macro projects we have delivered in NZ')}
+          subheading={say('A sample of real automation work across New Zealand industries.')}
           tiles={exampleTiles}
         />
 
@@ -195,15 +198,12 @@ export default async function ExcelVbaMacroDevelopmentPage() {
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
             <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">
-              Excel VBA and macro development across New Zealand
+              {say('Excel VBA and macro development across New Zealand')}
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              We work with businesses across New Zealand — from large
-              enterprises in Auckland and Wellington to growing SMEs in
-              Christchurch, Hamilton, Tauranga and regional centres. Most
-              projects are scoped and delivered remotely. Our macros and VBA
-              solutions are used across finance, insurance, energy,
-              construction, logistics, government, retail and healthcare.
+              {say(
+                'We work with businesses across New Zealand — from large enterprises in Auckland and Wellington to growing SMEs in Christchurch, Hamilton, Tauranga and regional centres. Most projects are scoped and delivered remotely. Our macros and VBA solutions are used across finance, insurance, energy, construction, logistics, government, retail and healthcare.'
+              )}
             </p>
           </div>
         </section>

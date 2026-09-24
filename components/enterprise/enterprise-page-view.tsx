@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { ArrowRight, CheckCircle } from 'lucide-react'
 import { Breadcrumbs } from '@/components/solutions/breadcrumbs'
 import { PageContact } from '@/components/page-contact'
+import { getMarket } from '@/lib/market-server'
+import { regionalizePublicCopy } from '@/lib/page-seo-faqs'
 import {
   enterpriseCaseStudies,
   enterpriseDeliverySteps,
@@ -84,7 +86,9 @@ function Highlight({ children }: { children: ReactNode }) {
   )
 }
 
-export function EnterprisePageView() {
+export async function EnterprisePageView() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   return (
     <main className="pt-16">
       {/* Hero */}
@@ -328,8 +332,9 @@ export function EnterprisePageView() {
       <SectionShell id="use-cases" alt>
         <SectionHeading center>Typical enterprise use cases</SectionHeading>
         <p className="mx-auto mb-10 max-w-2xl text-center text-base leading-relaxed text-gray-600">
-          Governed Excel operational applications commonly support these business-critical processes
-          across large New Zealand organisations.
+          {say(
+            'Governed Excel operational applications commonly support these business-critical processes across large New Zealand organisations.'
+          )}
         </p>
         <div className="grid gap-5 sm:grid-cols-2">
           {enterpriseUseCases.map((uc) => (

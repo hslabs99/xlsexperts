@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -52,6 +53,8 @@ async function buildServiceSchema() {
 
 
 export default async function SpreadsheetAuditingPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/spreadsheet-auditing')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/spreadsheet-auditing')
@@ -85,7 +88,7 @@ export default async function SpreadsheetAuditingPage() {
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Situations that call for a spreadsheet audit</h2>
-            <p className="mb-12 text-center text-gray-500">Common spreadsheet risk scenarios across New Zealand organisations.</p>
+            <p className="mb-12 text-center text-gray-500">{say('Common spreadsheet risk scenarios across New Zealand organisations.')}</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {problems.map((p) => (
                 <div key={p} className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-5">
@@ -128,8 +131,8 @@ export default async function SpreadsheetAuditingPage() {
 
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">Spreadsheet auditing across New Zealand</h2>
-            <p className="text-gray-600 leading-relaxed">We provide independent spreadsheet auditing to businesses and organisations throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and beyond. Audit engagements are conducted remotely under NDA. We have audited spreadsheets used in finance, insurance, property, regulatory compliance and executive decision-making across New Zealand.</p>
+            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">{say('Spreadsheet auditing across New Zealand')}</h2>
+            <p className="text-gray-600 leading-relaxed">{say('We provide independent spreadsheet auditing to businesses and organisations throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and beyond. Audit engagements are conducted remotely under NDA. We have audited spreadsheets used in finance, insurance, property, regulatory compliance and executive decision-making across New Zealand.')}</p>
           </div>
         </section>
 

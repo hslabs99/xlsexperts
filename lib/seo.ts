@@ -10,6 +10,7 @@ import {
   normalizePathname,
   serpTokensForMarket,
 } from '@/lib/regions'
+import { regionalizePublicCopy } from '@/lib/page-seo-faqs'
 import { resolveSerpCopy } from '@/lib/serp-copy'
 import { SITE_ICONS } from '@/lib/site-icons'
 
@@ -156,7 +157,8 @@ export async function marketServiceSchema({
   const market = await getMarket()
   const href = path.startsWith('/') ? path : `/${path}`
   const serp = resolveSerpCopy(href, market)
-  const schemaDescription = serp?.description ?? description
+  const schemaDescription =
+    serp?.description ?? regionalizePublicCopy(description, market)
   const url = absoluteOnOrigin(copy.site.origin, href)
   const local = localBusinessForMarket(market)
   const currency = serpTokensForMarket(market).currency

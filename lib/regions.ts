@@ -111,7 +111,10 @@ export function localBusinessForMarket(market: MarketId): RegionLocalBusiness {
     return { addressCountry: 'GB', areaServedName: 'United Kingdom' }
   }
   if (market === 'intl') {
-    return { addressCountry: 'US', areaServedName: 'United States' }
+    return {
+      addressCountry: 'US',
+      areaServedName: 'United States and international',
+    }
   }
   return {
     addressCountry: 'NZ',

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
@@ -136,6 +137,8 @@ const severityLabel: Record<string, string> = {
 }
 
 export default async function VBAToOfficeScriptsMigrationPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/vba-to-office-scripts-migration')
   const serviceSchema = await buildServiceSchema()
   const faqSchema = faqPageJsonLd(seo.faqs)
@@ -381,9 +384,9 @@ export default async function VBAToOfficeScriptsMigrationPage() {
         <section className="bg-white py-12">
           <div className="mx-auto max-w-3xl px-6 text-center">
             <p className="text-sm text-gray-500">
-              XLS Experts provides VBA to Office Scripts migration services to organisations across
-              New Zealand, including Auckland, Wellington, Christchurch, Hamilton, and Tauranga.
-              Most migration work is delivered remotely via Microsoft 365.
+              {say(
+                'XLS Experts provides VBA to Office Scripts migration services to organisations across New Zealand, including Auckland, Wellington, Christchurch, Hamilton, and Tauranga. Most migration work is delivered remotely via Microsoft 365.'
+              )}
             </p>
           </div>
         </section>

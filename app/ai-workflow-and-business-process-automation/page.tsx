@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getMarket } from '@/lib/market-server'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
 import { serpTokensForMarket } from '@/lib/regions'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
@@ -98,8 +98,9 @@ async function buildServiceSchema() {
 }
 
 export default async function AIWorkflowAndBusinessProcessAutomationPage() {
-  const seo = await getPageSeo('/ai-workflow-and-business-process-automation')
   const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
+  const seo = await getPageSeo('/ai-workflow-and-business-process-automation')
   const { region } = serpTokensForMarket(market)
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles(PAGE_HREF)
@@ -191,7 +192,7 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
 
         <ServicePageExamples
           heading="Automation examples"
-          subheading="A.I. workflow and business process automation projects for New Zealand organisations."
+          subheading={say('A.I. workflow and business process automation projects for New Zealand organisations.')}
           tiles={exampleTiles}
         />
 
@@ -295,15 +296,12 @@ export default async function AIWorkflowAndBusinessProcessAutomationPage() {
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
             <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">
-              Automation across New Zealand
+              {say('Automation across New Zealand')}
             </h2>
             <p className="text-gray-600 leading-relaxed">
-              We deliver A.I. workflow and business process automation throughout
-              New Zealand — Auckland, Wellington, Christchurch, Hamilton,
-              Tauranga and regional areas. Our work spans SMEs and enterprise
-              across finance, insurance, healthcare, construction, logistics,
-              retail and professional services. Most projects are delivered
-              remotely.
+              {say(
+                'We deliver A.I. workflow and business process automation throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and regional areas. Our work spans SMEs and enterprise across finance, insurance, healthcare, construction, logistics, retail and professional services. Most projects are delivered remotely.'
+              )}
             </p>
           </div>
         </section>

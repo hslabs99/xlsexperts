@@ -349,15 +349,47 @@ function tidyFaqText(value: string): string {
     .trim()
 }
 
-function rewriteFaqText(text: string, market: MarketId): string {
-  if (market === 'nz') return text
+/**
+ * Rewrite NZ-authored public copy for the host market.
+ * .com is US and international, not a US-only site and not New Zealand.
+ */
+export function regionalizePublicCopy(text: string, market: MarketId): string {
+  if (market === 'nz' || !text) return text
   let out = text
+  out = out.replace(
+    /\s*—\s*Auckland, Wellington, Christchurch, Hamilton(?:, Tauranga)?(?:,)?(?: and (?:beyond|regional centres|regional areas|other regions))?/gi,
+    ''
+  )
+  out = out.replace(
+    /,?\s*including Auckland, Wellington, Christchurch, Hamilton,? and Tauranga,?/gi,
+    ''
+  )
   if (market === 'uk') {
     out = out.replace(/New Zealand GST/gi, 'UK VAT')
     out = out.replace(/\bGST\b/g, 'VAT')
     out = out.replace(/New Zealand lenders/gi, 'UK lenders')
+    out = out.replace(
+      /across New Zealand — from large enterprises in Auckland and Wellington to growing SMEs in Christchurch, Hamilton, Tauranga and regional centres/gi,
+      'across the United Kingdom, with organisations of every size'
+    )
+    out = out.replace(
+      /from large enterprises in Auckland and Wellington to growing SMEs in Christchurch, Hamilton, Tauranga and regional centres/gi,
+      'with UK organisations of every size'
+    )
+    out = out.replace(/across New Zealand businesses/gi, 'across UK businesses')
+    out = out.replace(/across New Zealand organisations/gi, 'across UK organisations')
+    out = out.replace(/across New Zealand organizations/gi, 'across UK organisations')
+    out = out.replace(/across New Zealand teams/gi, 'across UK teams')
+    out = out.replace(/across New Zealand industries/gi, 'across UK industries')
+    out = out.replace(/New Zealand businesses/gi, 'UK businesses')
+    out = out.replace(/New Zealand organisations/gi, 'UK organisations')
+    out = out.replace(/New Zealand organizations/gi, 'UK organisations')
+    out = out.replace(/New Zealand teams/gi, 'UK teams')
     out = out.replace(/\bNew Zealand\b/gi, 'the United Kingdom')
     out = out.replace(/\bNZ businesses\b/g, 'UK businesses')
+    out = out.replace(/\bNZ organisations\b/g, 'UK organisations')
+    out = out.replace(/\bNZ organizations\b/g, 'UK organisations')
+    out = out.replace(/\bNZ teams\b/g, 'UK teams')
     out = out.replace(/\bNZD\b/g, 'GBP')
     out = out.replace(/\$1,000/g, '£1,000')
     out = out.replace(/\$2,000/g, '£2,000')
@@ -372,25 +404,101 @@ function rewriteFaqText(text: string, market: MarketId): string {
       /Wellington, Christchurch, Hamilton, Tauranga/gi,
       'major UK cities'
     )
+    out = out.replace(
+      /Based in Auckland and working with clients nationwide/gi,
+      'Working with clients across the United Kingdom'
+    )
+    out = out.replace(
+      /, with on-site visits available for Auckland-based clients/gi,
+      ''
+    )
     out = out.replace(/\bAuckland-based\b/gi, 'UK-facing')
     out = out.replace(/\bAuckland\b/g, '')
   } else {
     out = out.replace(/New Zealand GST/gi, 'local tax')
     out = out.replace(/\bGST\b/g, 'local tax')
     out = out.replace(/New Zealand lenders/gi, 'local lenders')
-    out = out.replace(/\bNew Zealand\b/gi, '')
-    out = out.replace(/\bNZ businesses\b/g, 'businesses')
+    out = out.replace(
+      /across New Zealand — from large enterprises in Auckland and Wellington to growing SMEs in Christchurch, Hamilton, Tauranga and regional centres/gi,
+      'across the US and internationally, with organisations of every size'
+    )
+    out = out.replace(
+      /from large enterprises in Auckland and Wellington to growing SMEs in Christchurch, Hamilton, Tauranga and regional centres/gi,
+      'with US and international organisations of every size'
+    )
+    out = out.replace(/across New Zealand businesses/gi, 'for US and international businesses')
+    out = out.replace(/across New Zealand organisations/gi, 'for US and international organisations')
+    out = out.replace(/across New Zealand organizations/gi, 'for US and international organizations')
+    out = out.replace(/across New Zealand teams/gi, 'for US and international teams')
+    out = out.replace(/across New Zealand industries/gi, 'for US and international clients')
+    out = out.replace(/New Zealand businesses/gi, 'US and international businesses')
+    out = out.replace(/New Zealand organisations/gi, 'US and international organisations')
+    out = out.replace(/New Zealand organizations/gi, 'US and international organizations')
+    out = out.replace(/New Zealand teams/gi, 'US and international teams')
+    out = out.replace(/across New Zealand/gi, 'across the US and internationally')
+    out = out.replace(/throughout New Zealand/gi, 'across the US and internationally')
+    out = out.replace(/in New Zealand/gi, 'for US and international clients')
+    out = out.replace(/\bNew Zealand\b/gi, 'US and international')
+    out = out.replace(/\bNZ businesses\b/g, 'US and international businesses')
+    out = out.replace(/\bNZ organisations\b/g, 'US and international organisations')
+    out = out.replace(/\bNZ organizations\b/g, 'US and international organizations')
+    out = out.replace(/\bNZ teams\b/g, 'US and international teams')
     out = out.replace(/\bNZD\b/g, 'USD')
-    out = out.replace(/\bNZ\b/g, '')
+    out = out.replace(/\bNZ\b/g, 'US and international')
     out = out.replace(
       /including Wellington, Christchurch, Hamilton and Tauranga/gi,
       ''
     )
     out = out.replace(/Wellington, Christchurch, Hamilton, Tauranga/gi, '')
-    out = out.replace(/\bAuckland-based\b/gi, 'US-facing')
+    out = out.replace(
+      /Based in Auckland and working with clients nationwide/gi,
+      'Working with US and international clients'
+    )
+    out = out.replace(
+      /, with on-site visits available for Auckland-based clients/gi,
+      ''
+    )
+    out = out.replace(/\bAuckland-based\b/gi, 'serving US and international clients')
     out = out.replace(/\bAuckland\b/g, '')
   }
   return tidyFaqText(out)
+}
+
+function rewriteFaqText(text: string, market: MarketId): string {
+  return regionalizePublicCopy(text, market)
+}
+
+const REGIONALIZE_SKIP_KEYS = new Set([
+  'href',
+  'slug',
+  'id',
+  'path',
+  'icon',
+  'image',
+  'src',
+  'url',
+  'logo',
+])
+
+/** Rewrite NZ place names inside CMS-less body objects (solutions, etc.). */
+export function regionalizeValue<T>(value: T, market: MarketId): T {
+  if (market === 'nz' || value == null) return value
+  if (typeof value === 'string') {
+    return regionalizePublicCopy(value, market) as T
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => regionalizeValue(item, market)) as T
+  }
+  if (typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = REGIONALIZE_SKIP_KEYS.has(key)
+        ? child
+        : regionalizeValue(child, market)
+    }
+    return out as T
+  }
+  return value
 }
 
 function specializeFaq(faq: PageSeoFaq, market: MarketId): PageSeoFaq {

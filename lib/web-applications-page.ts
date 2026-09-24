@@ -106,9 +106,9 @@ export function webAppCoverageFor(market: MarketId = DEFAULT_MARKET): {
   }
   if (market === 'intl') {
     return {
-      heading: 'Web applications for global businesses',
+      heading: 'Web applications for US and international businesses',
       intro:
-        'XLS Experts works with organisations worldwide. This page is written for teams evaluating a practical delivery partner for custom web application development, wherever they are based.',
+        'XLS Experts works with organisations across the US and internationally. This page is written for teams evaluating a practical delivery partner for custom web application development, wherever they are based.',
     }
   }
   return {

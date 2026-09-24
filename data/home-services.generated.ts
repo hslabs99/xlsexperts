@@ -3,7 +3,7 @@
  * Edit drafts in Admin → CMS → Home services, then click Publish to regenerate this file.
  * `content` is NZ / International / UK copy. Each host only serves its own market.
  *
- * Generated at 2026-09-13T12:17:20.405Z
+ * Generated at 2026-09-24T10:42:56.980Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -11,7 +11,7 @@ import type { PublishedHomeServicesFile } from '@/lib/home-services'
 
 const published = {
   "version": 2,
-  "publishedAt": "2026-09-13T12:17:20.405Z",
+  "publishedAt": "2026-09-24T10:42:56.980Z",
   "content": {
     "nz": {
       "eyebrow": "What we do",
@@ -166,7 +166,7 @@ const published = {
         {
           "href": "/web-applications",
           "title": "Web Applications",
-          "description": "Custom web application development for businesses worldwide—secure multi-user cloud apps, customer portals, field systems, hybrid Excel solutions and SaaS platforms.",
+          "description": "Custom web application development for US and international businesses—secure multi-user cloud apps, customer portals, field systems, hybrid Excel solutions and SaaS platforms.",
           "tags": [
             "Next.js",
             "Cloud",

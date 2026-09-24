@@ -1,10 +1,14 @@
 import type { SolutionCaseStudyRef } from '@/lib/solutions'
+import { getMarket } from '@/lib/market-server'
+import { regionalizePublicCopy } from '@/lib/page-seo-faqs'
 
 type RelatedCaseStudiesProps = {
   studies: SolutionCaseStudyRef[]
 }
 
-export function RelatedCaseStudies({ studies }: RelatedCaseStudiesProps) {
+export async function RelatedCaseStudies({ studies }: RelatedCaseStudiesProps) {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const published = studies.filter((s) => s.published)
   if (published.length === 0) return null
 
@@ -15,7 +19,7 @@ export function RelatedCaseStudies({ studies }: RelatedCaseStudiesProps) {
           Related work
         </h2>
         <p className="mb-10 text-center text-gray-500">
-          Examples of similar systems we have delivered for New Zealand organisations.
+          {say('Examples of similar systems we have delivered for New Zealand organisations.')}
         </p>
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {published.map((study) => (

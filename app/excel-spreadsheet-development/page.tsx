@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -52,6 +53,8 @@ async function buildServiceSchema() {
 }
 
 export default async function ExcelSpreadsheetDevelopmentPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/excel-spreadsheet-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-spreadsheet-development')
@@ -87,7 +90,7 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Common spreadsheet problems we fix</h2>
-            <p className="mb-12 text-center text-gray-500">Sound familiar? These are the issues NZ businesses bring to us most often.</p>
+            <p className="mb-12 text-center text-gray-500">{say('Sound familiar? These are the issues NZ businesses bring to us most often.')}</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {problems.map((p) => (
                 <div key={p} className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-5">
@@ -101,8 +104,8 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
 
         {/* Examples */}
         <ServicePageExamples
-          heading="What we build for NZ businesses"
-          subheading="Real examples of spreadsheet development projects delivered across New Zealand."
+          heading={say('What we build for NZ businesses')}
+          subheading={say('Real examples of spreadsheet development projects delivered across New Zealand.')}
           tiles={exampleTiles}
         />
 
@@ -133,8 +136,8 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
         {/* Location */}
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">Excel spreadsheet development across New Zealand</h2>
-            <p className="text-gray-600 leading-relaxed">We work with businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and beyond. Most projects are delivered remotely, with on-site visits available for Auckland-based clients. Whether you need a simple tracker or a complex multi-sheet reporting system, we scope and deliver to your timeline and budget.</p>
+            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">{say('Excel spreadsheet development across New Zealand')}</h2>
+            <p className="text-gray-600 leading-relaxed">{say('We work with businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and beyond. Most projects are delivered remotely, with on-site visits available for Auckland-based clients. Whether you need a simple tracker or a complex multi-sheet reporting system, we scope and deliver to your timeline and budget.')}</p>
           </div>
         </section>
 

@@ -5,6 +5,8 @@ import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { serviceIcons } from '@/components/service-icons'
 import { servicePages } from '@/lib/service-pages'
+import { getMarket } from '@/lib/market-server'
+import { regionalizePublicCopy } from '@/lib/page-seo-faqs'
 
 export async function generateMetadata(): Promise<Metadata> {
   return marketPageMetadata({
@@ -15,7 +17,9 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export default function AllServicesPage() {
+export default async function AllServicesPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   return (
     <main>
       <Navbar />
@@ -62,7 +66,7 @@ export default function AllServicesPage() {
                       {service.label}
                     </h2>
                     <p className="text-sm leading-relaxed text-gray-500">
-                      {service.description}
+                      {say(service.description)}
                     </p>
                   </div>
                   <div className="mt-auto flex flex-wrap gap-1.5 pt-2">

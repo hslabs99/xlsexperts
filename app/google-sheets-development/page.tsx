@@ -7,6 +7,8 @@ import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
 import { CheckCircle, ArrowRight } from 'lucide-react'
+import { getMarket } from '@/lib/market-server'
+import { regionalizePublicCopy } from '@/lib/page-seo-faqs'
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageSeoMetadata('/google-sheets-development')
@@ -52,6 +54,8 @@ async function buildServiceSchema() {
 
 
 export default async function GoogleSheetsDevelopmentPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/google-sheets-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/google-sheets-development')
@@ -85,7 +89,7 @@ export default async function GoogleSheetsDevelopmentPage() {
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Google Sheets problems we solve</h2>
-            <p className="mb-12 text-center text-gray-500">Common issues with Google Sheets across New Zealand teams.</p>
+            <p className="mb-12 text-center text-gray-500">{say('Common issues with Google Sheets across New Zealand teams.')}</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {problems.map((p) => (
                 <div key={p} className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-5">
@@ -99,7 +103,7 @@ export default async function GoogleSheetsDevelopmentPage() {
 
         <ServicePageExamples
           heading="Google Sheets projects we have built"
-          subheading="Custom solutions for New Zealand businesses on Google Workspace."
+          subheading={say('Custom solutions for New Zealand businesses on Google Workspace.')}
           tiles={exampleTiles}
         />
 
@@ -128,8 +132,8 @@ export default async function GoogleSheetsDevelopmentPage() {
 
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">Google Sheets developers across New Zealand</h2>
-            <p className="text-gray-600 leading-relaxed">We build custom Google Sheets solutions for businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and regional centres. Because Google Sheets is cloud-based, all our work is delivered remotely. We work with organisations on Google Workspace across education, not-for-profit, professional services, retail and technology sectors.</p>
+            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">{say('Google Sheets developers across New Zealand')}</h2>
+            <p className="text-gray-600 leading-relaxed">{say('We build custom Google Sheets solutions for businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and regional centres. Because Google Sheets is cloud-based, all our work is delivered remotely. We work with organisations on Google Workspace across education, not-for-profit, professional services, retail and technology sectors.')}</p>
           </div>
         </section>
 

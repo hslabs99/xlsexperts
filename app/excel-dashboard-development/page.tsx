@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -53,6 +54,8 @@ async function buildServiceSchema() {
 
 
 export default async function ExcelDashboardDevelopmentPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/excel-dashboard-development')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-dashboard-development')
@@ -86,7 +89,7 @@ export default async function ExcelDashboardDevelopmentPage() {
         <section className="bg-white py-20">
           <div className="mx-auto max-w-5xl px-6">
             <h2 className="font-display mb-3 text-center text-3xl font-bold text-gray-900">Dashboard problems we solve</h2>
-            <p className="mb-12 text-center text-gray-500">Reporting pain points common across New Zealand businesses.</p>
+            <p className="mb-12 text-center text-gray-500">{say('Reporting pain points common across New Zealand businesses.')}</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {problems.map((p) => (
                 <div key={p} className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-5">
@@ -100,7 +103,7 @@ export default async function ExcelDashboardDevelopmentPage() {
 
         <ServicePageExamples
           heading="Dashboard examples"
-          subheading="Real dashboards built for New Zealand businesses and leadership teams."
+          subheading={say('Real dashboards built for New Zealand businesses and leadership teams.')}
           tiles={exampleTiles}
         />
 
@@ -129,8 +132,8 @@ export default async function ExcelDashboardDevelopmentPage() {
 
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
-            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">Excel dashboard development across New Zealand</h2>
-            <p className="text-gray-600 leading-relaxed">We build Excel dashboards for businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and regional areas. Dashboards are delivered remotely and designed to work with your existing data infrastructure, whether that is SQL, cloud systems, CSV exports or manual data entry. We have built reporting tools for finance, insurance, energy, retail, logistics and government sectors.</p>
+            <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">{say('Excel dashboard development across New Zealand')}</h2>
+            <p className="text-gray-600 leading-relaxed">{say('We build Excel dashboards for businesses throughout New Zealand — Auckland, Wellington, Christchurch, Hamilton, Tauranga and regional areas. Dashboards are delivered remotely and designed to work with your existing data infrastructure, whether that is SQL, cloud systems, CSV exports or manual data entry. We have built reporting tools for finance, insurance, energy, retail, logistics and government sectors.')}</p>
           </div>
         </section>
 

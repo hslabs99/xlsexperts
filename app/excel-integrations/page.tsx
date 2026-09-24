@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
-import { faqPageJsonLd } from '@/lib/page-seo-faqs'
+import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
+import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
@@ -111,6 +112,8 @@ async function buildServiceSchema() {
 
 
 export default async function ExcelIntegrationsPage() {
+  const market = await getMarket()
+  const say = (text: string) => regionalizePublicCopy(text, market)
   const seo = await getPageSeo('/excel-integrations')
   const serviceSchema = await buildServiceSchema()
   const exampleTiles = await getServicePageTiles('/excel-integrations')
@@ -225,7 +228,7 @@ export default async function ExcelIntegrationsPage() {
 
         <ServicePageExamples
           heading="SQL, API and platform integration examples"
-          subheading="Live database connections and integration patterns we build most often for New Zealand businesses."
+          subheading={say('Live database connections and integration patterns we build most often for New Zealand businesses.')}
           tiles={exampleTiles}
         />
 
@@ -256,17 +259,12 @@ export default async function ExcelIntegrationsPage() {
         <section className="bg-white py-16">
           <div className="mx-auto max-w-3xl px-6 text-center">
             <h2 className="font-display mb-4 text-2xl font-bold text-gray-900">
-              Excel integration consulting across New Zealand
+              {say('Excel integration consulting across New Zealand')}
             </h2>
             <p className="text-base leading-relaxed text-gray-500">
-              We work with New Zealand businesses in construction, field
-              services, manufacturing, retail, finance, logistics, insurance and
-              government — industries where SQL databases and third-party
-              platforms hold critical data but lack the flexibility to report and
-              analyse it properly. Based in Auckland and working with clients
-              nationwide, we connect Excel to on-premise and cloud SQL
-              environments and coordinate with your IT team on access, firewall
-              and ODBC configuration.
+              {say(
+                'We work with New Zealand businesses in construction, field services, manufacturing, retail, finance, logistics, insurance and government — industries where SQL databases and third-party platforms hold critical data but lack the flexibility to report and analyse it properly. Based in Auckland and working with clients nationwide, we connect Excel to on-premise and cloud SQL environments and coordinate with your IT team on access, firewall and ODBC configuration.'
+              )}
             </p>
           </div>
         </section>
