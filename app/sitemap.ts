@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getPublishedBlogRecords } from '@/lib/blog'
 import { visibleMarketsForBlog } from '@/lib/blog-shared'
+import { buildBlogAlternates, effectivePrimaryRegion } from '@/lib/blog-routing'
 import { fetchCrawlDocs } from '@/lib/crawl-docs-db'
 import { MARKET_IDS, type MarketId } from '@/lib/market'
 import { getMarket, getSiteOrigin } from '@/lib/market-server'
@@ -8,7 +9,9 @@ import {
   absoluteOnOrigin,
   sitemapLanguageAlternates,
 } from '@/lib/regions'
+import { getCaseStudyCatalogue } from '@/lib/case-studies-pages'
 import { servicePageHrefs, ALL_SERVICES_HREF } from '@/lib/service-pages'
+import { industryHrefs } from '@/lib/industries'
 import { ALL_SOLUTIONS_HREF, solutionPageHrefs } from '@/lib/solutions'
 
 function withHreflang(
@@ -69,22 +72,47 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.85,
     })),
+    ...industryHrefs().map((href) => ({
+      url: absoluteOnOrigin(base, href),
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: href === '/industries' ? 0.9 : 0.85,
+    })),
     {
       url: absoluteOnOrigin(base, '/blog'),
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
     },
+    {
+      url: absoluteOnOrigin(base, '/case-studies'),
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    ...getCaseStudyCatalogue().items.map((study) => ({
+      url: absoluteOnOrigin(base, `/case-studies/${study.slug}`),
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
   ]
 
   const records = await getPublishedBlogRecords()
-  const blogPages: MetadataRoute.Sitemap = records.map((post) => ({
-    url: absoluteOnOrigin(base, `/blog/${post.slug}`),
-    lastModified: new Date(post.date),
-    changeFrequency: 'monthly' as const,
-    priority: 0.7,
-  }))
-  const blogMarkets = records.map((post) => visibleMarketsForBlog(post))
+  const blogPages: MetadataRoute.Sitemap = records.map((post) => {
+    const entry: MetadataRoute.Sitemap[number] = {
+      url: absoluteOnOrigin(base, `/blog/${post.slug}`),
+      lastModified: new Date(post.date),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    }
+    const languages = buildBlogAlternates(
+      `/blog/${post.slug}`,
+      visibleMarketsForBlog(post),
+      effectivePrimaryRegion(post)
+    )
+    return languages ? { ...entry, alternates: { languages } } : entry
+  })
 
   let extraPages: MetadataRoute.Sitemap = []
   try {
@@ -117,7 +145,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages.map((entry) => withHreflang(entry, MARKET_IDS)),
-    ...blogPages.map((entry, i) => withHreflang(entry, blogMarkets[i] ?? [])),
+    ...blogPages,
     // Crawl extras are market-local; unknown on the other hosts → no hreflang.
     ...extraPages.map((entry) => withHreflang(entry, [market])),
   ]

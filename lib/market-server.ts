@@ -112,10 +112,12 @@ export async function getHeroBackgroundHoldSeconds(): Promise<number> {
   return pickHeroBackgroundHoldSeconds(PUBLISHED_MARKET_COPY)
 }
 
-/** Published copy for the current request market. */
+/** Published copy for the current request market, with region word aliases applied. */
 export async function getMarketCopy(): Promise<MarketCopy> {
   const market = await getMarket()
-  return pickMarketCopy(await liveMarketCopyBundle(), market)
+  const copy = pickMarketCopy(await liveMarketCopyBundle(), market)
+  const { aliasServedValue } = await import('@/lib/region-aliases-server')
+  return aliasServedValue(copy, market)
 }
 
 export function getMarketCopyFor(market: MarketId): MarketCopy {

@@ -1,119 +1,12 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import Image from 'next/image'
+import Link from 'next/link'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import type { CaseStudy } from '@/lib/types'
 import { MORE_CASE_STUDIES_PAGE_SIZE } from '@/lib/case-studies-shared'
 import { useMarketCopy } from '@/components/market-provider'
-
-const overlays = [
-  'rgba(18, 77, 43, 0.35)',
-  'rgba(15, 60, 75, 0.35)',
-  'rgba(45, 40, 30, 0.35)',
-  'rgba(30, 55, 35, 0.35)',
-]
-
-const textBackings = [
-  'rgba(18, 77, 43, 0.72)',
-  'rgba(15, 60, 75, 0.72)',
-  'rgba(45, 40, 30, 0.72)',
-  'rgba(30, 55, 35, 0.72)',
-]
-
-function CaseStudyCard({
-  cs,
-  index,
-}: {
-  cs: CaseStudy
-  index: number
-}) {
-  return (
-    <article className="flex flex-col border border-gray-200 bg-white">
-      <div className="relative flex min-h-[140px] flex-col overflow-hidden px-7 py-5">
-        {cs.image ? (
-          <Image
-            src={cs.image}
-            alt=""
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover object-center opacity-90"
-            loading={index < 2 ? 'eager' : 'lazy'}
-            aria-hidden="true"
-          />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: '#1a6b3c' }}
-            aria-hidden="true"
-          />
-        )}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: overlays[index % overlays.length] }}
-          aria-hidden="true"
-        />
-        <div
-          className="relative inline-flex flex-col gap-2 rounded px-4 py-3"
-          style={{ backgroundColor: textBackings[index % textBackings.length] }}
-        >
-          <p
-            className="text-xs font-semibold uppercase tracking-widest"
-            style={{ color: '#86efac' }}
-          >
-            {cs.sector}
-          </p>
-          <h3 className="text-base font-bold text-white">{cs.title}</h3>
-          <span className="self-start rounded border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
-            {cs.client}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-5 px-7 py-6">
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
-            Problem
-          </span>
-          <p className="text-sm leading-relaxed text-gray-800">{cs.problem}</p>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
-            Solution
-          </span>
-          <p className="text-sm leading-relaxed text-gray-800">{cs.solution}</p>
-        </div>
-
-        <div className="flex flex-col gap-1.5 rounded bg-gray-50 px-4 py-3">
-          <span
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: '#1a6b3c' }}
-          >
-            Outcome
-          </span>
-          <p className="text-sm leading-relaxed text-gray-800">{cs.outcome}</p>
-        </div>
-
-        <div className="mt-auto flex flex-col gap-2 pt-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
-            Technologies
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {cs.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </article>
-  )
-}
+import { CaseStudySummaryCard } from '@/components/case-study-summary-card'
 
 type CaseStudiesProps = {
   /** First paint from the published homepage snapshot — SSR, no client wait */
@@ -191,7 +84,11 @@ export function CaseStudies({
 
         <div className="mt-14 grid gap-8 lg:grid-cols-2">
           {items.map((cs, index) => (
-            <CaseStudyCard key={cs.slug || cs.title} cs={cs} index={index} />
+            <CaseStudySummaryCard
+              key={cs.slug || cs.title}
+              cs={cs}
+              index={index}
+            />
           ))}
         </div>
 
@@ -220,6 +117,17 @@ export function CaseStudies({
             </button>
           </div>
         )}
+
+        <div className="mt-10 flex justify-center">
+          <Link
+            href="/case-studies"
+            className="inline-flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-75"
+            style={{ color: '#1a6b3c' }}
+          >
+            All case studies
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
 
         <div className="mt-12 flex flex-col items-center gap-3 text-center">
           <p className="text-sm text-gray-500">

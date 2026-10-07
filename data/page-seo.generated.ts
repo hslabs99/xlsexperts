@@ -2,7 +2,7 @@
  * PUBLISHED page SEO (H1 + meta) by market — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → H1 (NZ / International / UK mode), then click Publish to regenerate this file.
  *
- * Generated at 2026-09-24T10:17:44.633Z
+ * Generated at 2026-10-01T09:19:56.962Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedPageSeoFile } from '@/lib/page-seo'
 
 const published = {
   "version": 2,
-  "publishedAt": "2026-09-24T10:17:44.633Z",
+  "publishedAt": "2026-10-01T09:19:56.962Z",
   "markets": {
     "nz": {
       "/ai-workflow-and-business-process-automation": {

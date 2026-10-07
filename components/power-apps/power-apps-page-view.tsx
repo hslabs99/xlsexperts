@@ -1,3 +1,4 @@
+import { MatchingCaseStudies } from '@/components/matching-case-studies'
 import { PageContact } from '@/components/page-contact'
 import { powerAppsNavItems } from '@/lib/power-apps-page'
 import { PageSectionNav } from '@/components/web-applications/page-section-nav'
@@ -45,6 +46,7 @@ export function PowerAppsPageView({
       <PowerAppsFaqSection faqs={faqs} />
       <PowerAppsRelatedLinks />
       <PowerAppsCta />
+      <MatchingCaseStudies href="/power-apps-dataverse-development" />
       <PageContact topicHref="/power-apps-dataverse-development" />
     </main>
   )

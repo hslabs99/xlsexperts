@@ -280,7 +280,7 @@ export default async function SolutionsIndexPage() {
           body="Describe what is not working today, who uses it, and what a better system would achieve. We will recommend a practical next step."
           href="#contact"
         />
-        <PageContact topicHref="/excel-spreadsheet-development" />
+        <PageContact topicHref="/excel-spreadsheet-development" showIndustryLinks={false} />
       </main>
     </>
   )

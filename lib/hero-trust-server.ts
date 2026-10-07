@@ -4,7 +4,7 @@ import { readFile } from 'fs/promises'
 import path from 'path'
 import { PUBLISHED_HERO_CLIENTS } from '@/data/hero-clients.generated'
 import { PUBLISHED_HERO_PROJECTS } from '@/data/hero-projects.generated'
-import { getIsLocalDev } from '@/lib/market-server'
+import { getIsLocalDev, getMarket } from '@/lib/market-server'
 import { parseGeneratedPublishedJson } from '@/lib/write-generated-file'
 import { withTimeout } from '@/lib/with-timeout'
 import {
@@ -18,6 +18,7 @@ import {
   normalizeHeroProjectsIntro,
   type HeroTrustContent,
 } from '@/lib/hero-trust'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 
 const HERO_CLIENTS_FILE = path.join('data', 'hero-clients.generated.ts')
 
@@ -75,7 +76,7 @@ export async function getHeroTrustContent(): Promise<HeroTrustContent> {
         withTimeout(fetchHeroClientsDraft(), 15_000, 'fetchHeroClientsDraft'),
         withTimeout(fetchHeroProjectsDraft(), 15_000, 'fetchHeroProjectsDraft'),
       ])
-      return {
+      return aliasHeroTrust({
         clients:
           clientsDraft.clients.length > published.clients.length
             ? clientsDraft.clients
@@ -93,7 +94,7 @@ export async function getHeroTrustContent(): Promise<HeroTrustContent> {
           projectsDraft.intro ||
           published.projectsIntro ||
           DEFAULT_HERO_PROJECTS_INTRO,
-      }
+      })
     } catch (error) {
       console.error(
         '[hero-trust] localhost CMS draft unavailable, using published copy',
@@ -101,5 +102,11 @@ export async function getHeroTrustContent(): Promise<HeroTrustContent> {
       )
     }
   }
-  return published
+  return aliasHeroTrust(published)
+}
+
+async function aliasHeroTrust(
+  content: HeroTrustContent
+): Promise<HeroTrustContent> {
+  return aliasServedValue(content, await getMarket())
 }

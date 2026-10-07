@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { usePathname } from 'next/navigation'
 import { ChevronDown, Menu, X } from 'lucide-react'
+import { ALL_INDUSTRIES_HREF, industryPages } from '@/lib/industries'
 import { pageHasContactSection, servicePages } from '@/lib/service-pages'
 import { ALL_SOLUTIONS_HREF, solutionPages } from '@/lib/solutions'
 
@@ -10,7 +11,8 @@ const navLinks = [
   { label: 'How We Work', href: '#how-we-work' },
   { label: 'Services', href: '#services', dropdown: 'services' as const },
   { label: 'Solutions', href: ALL_SOLUTIONS_HREF, dropdown: 'solutions' as const },
-  { label: 'Case Studies', href: '#case-studies' },
+  { label: 'Industries', href: ALL_INDUSTRIES_HREF, dropdown: 'industries' as const },
+  { label: 'Case Studies', href: '/case-studies' },
   { label: 'Enterprise', href: '/enterprise' },
   { label: 'About', href: '#about' },
   { label: 'Blog', href: '/blog' },
@@ -19,6 +21,7 @@ const navLinks = [
 const DROPDOWN_SUMMARIES = {
   services: 'We supply the following technical services.',
   solutions: 'We have knowledge of, and experience in delivering the following solutions.',
+  industries: 'Problems we solve most often in each industry, and the systems we build.',
 } as const
 
 /**
@@ -36,7 +39,7 @@ function resolveNavHref(href: string, pathname: string | null): string {
   return `/${href}`
 }
 
-type OpenMenu = 'services' | 'solutions' | null
+type OpenMenu = 'services' | 'solutions' | 'industries' | null
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -44,6 +47,7 @@ export function Navbar() {
   const [mobileOpenMenu, setMobileOpenMenu] = useState<OpenMenu>(null)
   const servicesRef = useRef<HTMLDivElement>(null)
   const solutionsRef = useRef<HTMLDivElement>(null)
+  const industriesRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
 
   const links = navLinks.map((link) => ({
@@ -62,7 +66,9 @@ export function Navbar() {
         servicesRef.current && servicesRef.current.contains(target)
       const inSolutions =
         solutionsRef.current && solutionsRef.current.contains(target)
-      if (!inServices && !inSolutions) setDesktopOpen(null)
+      const inIndustries =
+        industriesRef.current && industriesRef.current.contains(target)
+      if (!inServices && !inSolutions && !inIndustries) setDesktopOpen(null)
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -84,7 +90,7 @@ export function Navbar() {
   }, [pathname])
 
   function renderDesktopDropdown(
-    kind: 'services' | 'solutions',
+    kind: 'services' | 'solutions' | 'industries',
     buttonLabel: string,
     overviewHref: string,
     overviewLabel: string,
@@ -111,9 +117,9 @@ export function Navbar() {
         {open ? (
           <div
             className={`absolute top-full z-50 mt-3 rounded-lg border border-gray-200 bg-white py-2 shadow-lg ${
-              kind === 'solutions'
-                ? 'left-0 w-80'
-                : 'left-1/2 w-72 -translate-x-1/2'
+              kind === 'services'
+                ? 'left-1/2 w-72 -translate-x-1/2'
+                : 'left-0 w-80'
             }`}
             role="menu"
             aria-label={buttonLabel}
@@ -160,7 +166,7 @@ export function Navbar() {
   }
 
   function renderMobileDropdown(
-    kind: 'services' | 'solutions',
+    kind: 'services' | 'solutions' | 'industries',
     buttonLabel: string,
     overviewHref: string,
     overviewLabel: string,
@@ -217,6 +223,10 @@ export function Navbar() {
     href: s.href,
     label: s.navLabel,
   }))
+  const industryItems = industryPages.map((page) => ({
+    href: page.href,
+    label: page.navLabel,
+  }))
   const serviceItems = servicePages.map((s) => ({
     href: s.href,
     label: s.label,
@@ -248,7 +258,7 @@ export function Navbar() {
           </span>
         </a>
 
-        <nav aria-label="Main navigation" className="hidden items-center gap-6 lg:flex">
+        <nav aria-label="Main navigation" className="hidden items-center gap-4 lg:flex">
           {links.map((link) => {
             if (link.dropdown === 'services') {
               return renderDesktopDropdown(
@@ -268,6 +278,16 @@ export function Navbar() {
                 'All Solutions',
                 solutionItems,
                 solutionsRef,
+              )
+            }
+            if (link.dropdown === 'industries') {
+              return renderDesktopDropdown(
+                'industries',
+                'Industries',
+                ALL_INDUSTRIES_HREF,
+                'All industries',
+                industryItems,
+                industriesRef,
               )
             }
             return (
@@ -322,6 +342,15 @@ export function Navbar() {
                   ALL_SOLUTIONS_HREF,
                   'All Solutions',
                   solutionItems,
+                )
+              }
+              if (link.dropdown === 'industries') {
+                return renderMobileDropdown(
+                  'industries',
+                  'Industries',
+                  ALL_INDUSTRIES_HREF,
+                  'All industries',
+                  industryItems,
                 )
               }
               return (

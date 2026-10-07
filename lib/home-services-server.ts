@@ -9,6 +9,7 @@ import {
   pickHomeServices,
   type HomeServicesContent,
 } from '@/lib/home-services'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 
 /**
  * Public homepage services for this request's market.
@@ -39,5 +40,5 @@ export async function getHomeServicesContent(): Promise<HomeServicesContent> {
       )
     }
   }
-  return pickHomeServices(bundle, market)
+  return aliasServedValue(pickHomeServices(bundle, market), market)
 }

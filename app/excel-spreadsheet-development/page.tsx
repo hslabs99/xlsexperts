@@ -4,6 +4,7 @@ import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
 import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
+import { MatchingCaseStudies } from '@/components/matching-case-studies'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
@@ -176,6 +177,7 @@ export default async function ExcelSpreadsheetDevelopmentPage() {
           </div>
         </section>
 
+        <MatchingCaseStudies href="/excel-spreadsheet-development" />
         <PageContact topicHref="/excel-spreadsheet-development" />
       </main>
     </>

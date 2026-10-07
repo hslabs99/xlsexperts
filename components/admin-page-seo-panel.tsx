@@ -443,13 +443,18 @@ export function AdminPageSeoPanel() {
             {([
               { id: 'service' as const, label: 'Services' },
               { id: 'solution' as const, label: 'Solutions' },
+              { id: 'industry' as const, label: 'Industries' },
             ] as const).map((opt) => {
               const active = kind === opt.id
               return (
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => setKind(opt.id)}
+                  onClick={() => {
+                    setKind(opt.id)
+                    setSelectedPath(pagesForKind(opt.id)[0]?.path ?? '')
+                    setMessage(null)
+                  }}
                   className={
                     active
                       ? 'rounded-md bg-brand px-4 py-2 text-left text-sm font-semibold text-white'
@@ -464,7 +469,9 @@ export function AdminPageSeoPanel() {
 
           <nav
             className="max-h-[60vh] space-y-1 overflow-y-auto rounded-md border border-border bg-white p-2"
-            aria-label={`${kind === 'service' ? 'Services' : 'Solutions'} pages`}
+            aria-label={`${
+              kind === 'service' ? 'Services' : kind === 'solution' ? 'Solutions' : 'Industries'
+            } pages`}
           >
             {list.map((item, index) => {
               const active = item.path === selected?.path

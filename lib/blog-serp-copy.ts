@@ -125,9 +125,93 @@ export const BLOG_SERP_BY_SLUG: Record<string, SerpTemplate> = {
   },
 }
 
+export type BlogMarketSerp = {
+  title: string
+  description: string
+}
+
+/** Finished Google copy for one domain. Not a `{region}` template. */
+export type BlogSerpByMarket = Partial<Record<MarketId, BlogMarketSerp>>
+
 export type BlogSerpSource = {
   serpTitle?: string
   serpDescription?: string
+  serpByMarket?: BlogSerpByMarket
+}
+
+export function emptyBlogSerpByMarket(): Record<MarketId, BlogMarketSerp> {
+  return {
+    nz: { title: '', description: '' },
+    intl: { title: '', description: '' },
+    uk: { title: '', description: '' },
+  }
+}
+
+function readMarketSerp(
+  source: BlogSerpByMarket | null | undefined,
+  market: MarketId
+): BlogMarketSerp {
+  const row = source?.[market]
+  return {
+    title: row?.title?.trim() ?? '',
+    description: row?.description?.trim() ?? '',
+  }
+}
+
+/** Length error for copy that already names its market (NZ, US, or UK). */
+export function blogMarketSerpError(
+  market: MarketId,
+  title: string,
+  description: string
+): string | null {
+  const trimmedTitle = title.trim()
+  const trimmedDescription = description.trim()
+  const label = market === 'intl' ? 'US' : market === 'uk' ? 'UK' : 'NZ'
+  if (!trimmedTitle) return `${label} Google title is required.`
+  if (!trimmedDescription) return `${label} Google description is required.`
+  const region = serpTokensForMarket(market).region
+  if (!containsRegionWord(trimmedTitle, region)) {
+    return `${label} Google title must include ${region}.`
+  }
+  if (!containsRegionWord(trimmedDescription, region)) {
+    return `${label} Google description must include ${region}.`
+  }
+  const titleLen = renderedTitleLength(trimmedTitle)
+  if (titleLen > TITLE_MAX) {
+    return `${label} Google title is ${titleLen} characters (max ${TITLE_MAX} including “ | XLS Experts”).`
+  }
+  const descLen = trimmedDescription.length
+  if (descLen < DESC_MIN || descLen > DESC_MAX) {
+    return `${label} Google description is ${descLen} characters (need ${DESC_MIN}–${DESC_MAX}).`
+  }
+  return null
+}
+
+export function blogSerpByMarketError(
+  source: BlogSerpByMarket | null | undefined
+): string | null {
+  for (const market of MARKET_IDS) {
+    const row = readMarketSerp(source, market)
+    const error = blogMarketSerpError(market, row.title, row.description)
+    if (error) return error
+  }
+  return null
+}
+
+/** True when any domain is still missing a valid saved Google listing. */
+export function blogNeedsMetaAttention(
+  source: BlogSerpByMarket | null | undefined
+): boolean {
+  return blogSerpByMarketError(source) !== null
+}
+
+export function blogSerpByMarketIsEmpty(
+  source: BlogSerpByMarket | null | undefined
+): boolean {
+  return MARKET_IDS.every((market) => {
+    const row = readMarketSerp(source, market)
+    return !row.title && !row.description
+  })
 }
 
 function templateForSlug(
@@ -198,6 +282,8 @@ export function blogSerpForPost(
   market: MarketId,
   source?: (BlogSerpSource & { title?: string; excerpt?: string }) | null
 ): SerpTemplate {
+  const stored = readMarketSerp(source?.serpByMarket, market)
+  if (stored.title && stored.description) return stored
   const template = templateForSlug(slug, source) ?? {
     title: source?.title?.trim() || 'XLS Experts',
     description: source?.excerpt?.trim() || source?.serpDescription?.trim() || '',

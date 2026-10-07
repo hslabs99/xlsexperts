@@ -8,6 +8,7 @@ import {
   EmailValidationError,
   type SendGridErrorItem,
 } from '@/lib/email/errors'
+import { isXlsexpertsSenderEmail } from '@/lib/email-templates'
 import type {
   SendEmailAttachment,
   SendEmailInput,
@@ -245,25 +246,42 @@ function extractSendGridErrorDetails(error: unknown): {
   }
 }
 
+function resolveFrom(
+  input: SendEmailInput,
+  env: SendGridEnv
+): { email: string; name: string } {
+  const requested = input.from?.email?.trim() || ''
+  const allowed =
+    requested &&
+    (requested.toLowerCase() === env.fromEmail.toLowerCase() ||
+      isXlsexpertsSenderEmail(requested))
+  return {
+    email: allowed ? requested : env.fromEmail,
+    name: input.from?.name?.trim() || env.fromName,
+  }
+}
+
 /**
  * Send a transactional email via the SendGrid v3 Mail Send API.
  *
- * Sender address always comes from server env — never from the caller.
- * A successful result means SendGrid accepted the request, not inbox delivery.
+ * From is the env sender, or a regional @xlsexperts.co.nz / .com / .co.uk
+ * address supplied by the enquiry mailer. A successful result means SendGrid
+ * accepted the request, not inbox delivery.
  *
  * Structured for a future queue/outbox wrapper around this boundary.
  */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const env = readEnv()
   const { to, cc, bcc, replyTo } = validateInput(input)
+  const from = resolveFrom(input, env)
 
   ensureClient(env.apiKey)
 
   const msg: MailDataRequired = {
     to,
     from: {
-      email: env.fromEmail,
-      name: env.fromName,
+      email: from.email,
+      name: from.name,
     },
     subject: input.subject.trim(),
     text: input.text,

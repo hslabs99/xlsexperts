@@ -16,6 +16,14 @@ export type SendEmailInput = {
   subject: string
   text: string
   html?: string
+  /**
+   * Regional From address. Must be the env sender or an @xlsexperts.co.nz /
+   * .com / .co.uk address. Omitted → SENDGRID_FROM_EMAIL.
+   */
+  from?: {
+    email: string
+    name?: string
+  }
   replyTo?: string
   cc?: string | string[]
   bcc?: string | string[]

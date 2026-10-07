@@ -1,9 +1,10 @@
 import { MARKET_IDS, type MarketId } from '@/lib/market'
+import { industryHrefs } from '@/lib/industries'
 import { servicePageHrefs } from '@/lib/service-pages'
 import { ALL_SOLUTIONS_HREF, solutionPageHrefs } from '@/lib/solutions'
 
 /**
- * Paths that 200 on every public hostname (home, services, solutions, blog index).
+ * Paths that 200 on every public hostname (home, services, solutions, industries, blog index).
  * Blog posts are NOT in this list — they follow showNz / showUsa / showUk.
  */
 export const SHARED_INDEXABLE_PATHS: readonly string[] = [
@@ -15,6 +16,7 @@ export const SHARED_INDEXABLE_PATHS: readonly string[] = [
   ALL_SOLUTIONS_HREF,
   ...servicePageHrefs,
   ...solutionPageHrefs,
+  ...industryHrefs(),
 ]
 
 const SHARED_SET = new Set(SHARED_INDEXABLE_PATHS)

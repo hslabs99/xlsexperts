@@ -16,6 +16,7 @@ import {
   type PageSeoFields,
   type PageSeoMarkets,
 } from '@/lib/page-seo'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 import { marketPageMetadata } from '@/lib/seo'
 
 /** Published NZ + International + UK page SEO (static import — zero DB). */
@@ -63,7 +64,7 @@ async function livePageSeoMarkets(): Promise<PageSeoMarkets> {
 export async function getPageSeo(path: string): Promise<PageSeoFields> {
   const market = await getMarket()
   const bundle = pickPageSeoBundle(await livePageSeoMarkets(), market)
-  return resolvePageSeo(path, bundle, market)
+  return aliasServedValue(resolvePageSeo(path, bundle, market), market)
 }
 
 /** Effective SEO for an explicit market (admin preview / tools). */

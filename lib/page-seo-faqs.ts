@@ -4,8 +4,14 @@
  * per NZ / International / UK.
  */
 
+import { PUBLISHED_REGION_ALIASES } from '@/data/region-aliases.generated'
 import { DEFAULT_MARKET, type MarketId } from '@/lib/market'
 import { powerAppsFaqs } from '@/lib/power-apps-page'
+import {
+  aliasesFromPublished,
+  applyRegionAliases,
+} from '@/lib/region-aliases'
+import { industryFaqs } from '@/lib/industries'
 import { solutionPages } from '@/lib/solutions'
 import { webAppFaqs } from '@/lib/web-applications-page'
 
@@ -355,7 +361,11 @@ function tidyFaqText(value: string): string {
  */
 export function regionalizePublicCopy(text: string, market: MarketId): string {
   if (market === 'nz' || !text) return text
-  let out = text
+  let out = applyRegionAliases(
+    text,
+    market,
+    aliasesFromPublished(PUBLISHED_REGION_ALIASES)
+  )
   out = out.replace(
     /\s*—\s*Auckland, Wellington, Christchurch, Hamilton(?:, Tauranga)?(?:,)?(?: and (?:beyond|regional centres|regional areas|other regions))?/gi,
     ''
@@ -365,8 +375,6 @@ export function regionalizePublicCopy(text: string, market: MarketId): string {
     ''
   )
   if (market === 'uk') {
-    out = out.replace(/New Zealand GST/gi, 'UK VAT')
-    out = out.replace(/\bGST\b/g, 'VAT')
     out = out.replace(/New Zealand lenders/gi, 'UK lenders')
     out = out.replace(
       /across New Zealand — from large enterprises in Auckland and Wellington to growing SMEs in Christchurch, Hamilton, Tauranga and regional centres/gi,
@@ -415,8 +423,6 @@ export function regionalizePublicCopy(text: string, market: MarketId): string {
     out = out.replace(/\bAuckland-based\b/gi, 'UK-facing')
     out = out.replace(/\bAuckland\b/g, '')
   } else {
-    out = out.replace(/New Zealand GST/gi, 'local tax')
-    out = out.replace(/\bGST\b/g, 'local tax')
     out = out.replace(/New Zealand lenders/gi, 'local lenders')
     out = out.replace(
       /across New Zealand — from large enterprises in Auckland and Wellington to growing SMEs in Christchurch, Hamilton, Tauranga and regional centres/gi,
@@ -558,7 +564,7 @@ export function faqsForMarket(
   path: string,
   market: MarketId = DEFAULT_MARKET
 ): PageSeoFaq[] {
-  const source = PAGE_FAQ_DEFAULTS[path] ?? []
+  const source = PAGE_FAQ_DEFAULTS[path] ?? industryFaqs(path)
   return rewriteFaqsForMarket(source, market)
 }
 

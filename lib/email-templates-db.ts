@@ -11,10 +11,12 @@ import {
   EMAIL_TEMPLATE_KINDS,
   hasEmailAttachment,
   normalizeEmailFontSize,
+  normalizeEmailTemplateRegions,
   normalizeRecipients,
   type EmailTemplate,
   type EmailTemplateInput,
   type EmailTemplateKind,
+  type EmailTemplateRegions,
 } from '@/lib/email-templates'
 import { discoveryPresentationAsTemplateInput } from '@/lib/email-presentation-templates'
 
@@ -30,6 +32,11 @@ function mapTemplate(id: string, data: Record<string, unknown>): EmailTemplate {
     subject: String(data.subject ?? ''),
     htmlBody: String(data.htmlBody ?? ''),
     textBody: String(data.textBody ?? ''),
+    regions: normalizeEmailTemplateRegions(data.regions, {
+      subject: String(data.subject ?? ''),
+      htmlBody: String(data.htmlBody ?? ''),
+      textBody: String(data.textBody ?? ''),
+    }),
     recipients: normalizeRecipients(data.recipients, kind),
     bodyFontFamily: String(
       data.bodyFontFamily ?? DEFAULT_EMAIL_BODY_FONT_FAMILY
@@ -99,6 +106,16 @@ export async function fetchActiveEmailTemplate(
   return withFile[0] ?? pool[0] ?? null
 }
 
+function regionsForWrite(
+  input: Pick<EmailTemplateInput, 'subject' | 'htmlBody' | 'textBody' | 'regions'>
+): EmailTemplateRegions {
+  return normalizeEmailTemplateRegions(input.regions, {
+    subject: input.subject,
+    htmlBody: input.htmlBody,
+    textBody: input.textBody,
+  })
+}
+
 function timestampMs(value: unknown): number {
   if (!value || typeof value !== 'object') return 0
   const v = value as { toMillis?: () => number; seconds?: number }
@@ -113,13 +130,15 @@ export async function createEmailTemplate(
   const recipients =
     input.recipients ??
     normalizeRecipients(undefined, input.kind)
+  const regions = regionsForWrite(input)
 
   const ref = await getAdminDb().collection(EMAIL_TEMPLATES_COLLECTION).add({
     kind: input.kind,
     name: input.name.trim(),
-    subject: input.subject,
-    htmlBody: input.htmlBody,
-    textBody: input.textBody ?? '',
+    subject: regions.nz.subject || input.subject,
+    htmlBody: regions.nz.htmlBody || input.htmlBody,
+    textBody: regions.nz.textBody || input.textBody || '',
+    regions,
     recipients,
     bodyFontFamily: input.bodyFontFamily ?? DEFAULT_EMAIL_BODY_FONT_FAMILY,
     bodyFontSize: normalizeEmailFontSize(
@@ -145,9 +164,22 @@ export async function updateEmailTemplate(
   }
   if (input.kind !== undefined) payload.kind = input.kind
   if (input.name !== undefined) payload.name = input.name.trim()
-  if (input.subject !== undefined) payload.subject = input.subject
-  if (input.htmlBody !== undefined) payload.htmlBody = input.htmlBody
-  if (input.textBody !== undefined) payload.textBody = input.textBody
+  if (input.regions !== undefined) {
+    const regions = regionsForWrite({
+      subject: input.subject ?? input.regions.nz.subject,
+      htmlBody: input.htmlBody ?? input.regions.nz.htmlBody,
+      textBody: input.textBody ?? input.regions.nz.textBody,
+      regions: input.regions,
+    })
+    payload.regions = regions
+    payload.subject = regions.nz.subject
+    payload.htmlBody = regions.nz.htmlBody
+    payload.textBody = regions.nz.textBody
+  } else {
+    if (input.subject !== undefined) payload.subject = input.subject
+    if (input.htmlBody !== undefined) payload.htmlBody = input.htmlBody
+    if (input.textBody !== undefined) payload.textBody = input.textBody
+  }
   if (input.recipients !== undefined) payload.recipients = input.recipients
   if (input.bodyFontFamily !== undefined)
     payload.bodyFontFamily = input.bodyFontFamily

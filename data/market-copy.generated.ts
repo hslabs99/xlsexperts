@@ -2,7 +2,7 @@
  * PUBLISHED market copy — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → International, then click Publish to regenerate this file.
  *
- * Generated at 2026-09-24T10:42:54.072Z
+ * Generated at 2026-10-03T05:11:04.137Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,14 +10,14 @@ import type { PublishedMarketCopyFile } from '@/lib/market-copy'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-09-24T10:42:54.072Z",
+  "publishedAt": "2026-10-03T05:11:04.137Z",
   "markets": {
     "nz": {
       "site": {
         "origin": "https://www.xlsexperts.co.nz",
         "htmlLang": "en-NZ",
         "ogLocale": "en_NZ",
-        "defaultTitle": "Excel & Spreadsheet Consulting NZ | XLS Experts",
+        "defaultTitle": "NZ Excel & Spreadsheet Consulting NZ | XLS Experts",
         "defaultDescription": "XLS Experts are New Zealand's leading Excel and spreadsheet consultants. We build models, automate data, and create dashboards that transform how your business works.",
         "keywords": "Excel consultant New Zealand, Excel VBA developer NZ, spreadsheet automation New Zealand, Excel dashboard NZ, Excel financial modelling NZ, Power Query NZ, business process automation New Zealand, Excel expert Auckland",
         "ogTitle": "Excel & Spreadsheet Consulting NZ | XLS Experts",
@@ -39,7 +39,7 @@ const published = {
       },
       "home": {
         "metaTitle": "Excel Experts, Excel Data Analysis, Consulting & Solutions in New Zealand",
-        "metaDescription": "Spreadsheet experts in Auckland, New Zealand ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.",
+        "metaDescription": "Spreadsheet experts for hire in Auckland, New Zealand ready to help with Excel tables, charts, formulas, macros, VBA, data automation, and custom Excel solutions.",
         "schemaDescription": "New Zealand's leading Excel and spreadsheet consulting firm. We provide VBA automation, dashboard development, financial modelling, Power Query, and workflow automation services.",
         "schemaAreaServed": "New Zealand",
         "schemaAddressCountry": "NZ",
@@ -54,7 +54,7 @@ const published = {
         "line1": "NEW ZEALAND",
         "line2": "BUSINESS AUTOMATION SPECIALISTS",
         "badgeSpecialists": "New Zealand Microsoft Excel Specialists",
-        "badgeEnterprise": "VBA Programming",
+        "badgeEnterprise": "Hire VBA Programming Experts",
         "badgeAi": "A.I. Solutions",
         "badgeSpecialistsHref": "/excel-spreadsheet-development",
         "badgeEnterpriseHref": "/excel-vba-macro-development",
@@ -62,8 +62,8 @@ const published = {
         "trustBased": "New Zealand based",
         "statValue": "100% NZ",
         "statLabel": "Based team, local expertise",
-        "headline": "We automate your Excel and Google spreadsheets for New Zealand businesses.",
-        "subhead": "Whether you are managing a financial model, replacing manual reporting, or building a costing tool, we create practical NZD-quoted solutions that save time and scale with your business."
+        "headline": "We are Excel Experts!. We automate Excel and Google spreadsheets for New Zealand businesses.",
+        "subhead": "Excel Consultants. Whether you are upgrading a costing spreadsheet, managing a financial model, replacing manual reporting, or building a quotation tool, we create practical Excel and Data solutions that save time and scale with your business."
       },
       "about": {
         "intro": "We are an Auckland-based data automation consultancy with expertise in Excel, VBA, Google Sheets, and modern workflow automation tools. We specialise in transforming data management tasks into valuable business tools — for businesses of every size.",
@@ -73,20 +73,21 @@ const published = {
         "brandLabel": "Excel Experts NZ"
       },
       "caseStudies": {
-        "homeIntro": "Real problems, real solutions. A sample of what we have built for NZ businesses across industries."
+        "homeIntro": "Real problems, real solutions. A sample of what we have built for NZ businesses across industries.",
+        "deliveryLine": ""
       },
       "howWeWork": {
         "eyebrow": "Our process",
         "heading": "How we work",
-        "intro": "Simple, transparent, and designed around you — whether this is your first time outsourcing a spreadsheet or you are running a complex enterprise rollout.",
+        "intro": "Simple, transparent, and designed around you — whether this is your first time outsourcing a spreadsheet or you are running a complex enterprise rollout. Our Excel consultants build and enhance Excel sheets for NZ SMEs and Enterprise clients.",
         "step1Title": "Discovery call",
         "step1Description": "We start with a free 30-minute call to understand your problem, your data, and what a good outcome looks like. No jargon, no sales pitch — just a straightforward conversation about what you need.",
         "step2Title": "Scoping & quote",
-        "step2Description": "We send you a clear written scope of work and a fixed price or hourly estimate before anything starts. You know exactly what you are getting and what it will cost — no surprises.",
+        "step2Description": "We send you a clear written scope of work for your Excel project, and a fixed price or hourly estimate before anything starts. You know exactly what you are getting and what it will cost — no surprises.",
         "step3Title": "Build & review",
-        "step3Description": "We build in stages and share progress as we go. You get to review, give feedback, and request adjustments before the final delivery. Your input shapes the outcome.",
+        "step3Description": "We build in data automation solutions stages and share progress as we go. You get to review, give feedback, and request adjustments before the final delivery. Your input shapes the outcome.",
         "step4Title": "Handover & support",
-        "step4Description": "We deliver clean, well-documented work with a handover session so your team can actually use it. Ongoing support and enhancements are available whenever you need us.",
+        "step4Description": "We deliver clean, well-documented Excel/VBA/App work with a handover session so your team can actually use it. Ongoing support and enhancements are available whenever you need us.",
         "principle1": "Plain English communication — no IT jargon",
         "principle2": "You own everything we build, no lock-in",
         "principle3": "We work with your existing tools and systems",
@@ -156,7 +157,8 @@ const published = {
         "brandLabel": "Excel Experts International"
       },
       "caseStudies": {
-        "homeIntro": "Real problems, real solutions. A sample of what we have built for US and international businesses."
+        "homeIntro": "Real problems, real solutions. A sample of what we have built for US and international businesses.",
+        "deliveryLine": "Delivered remotely for an NZ operator; we support US and international teams the same way."
       },
       "howWeWork": {
         "eyebrow": "Our process",
@@ -239,7 +241,8 @@ const published = {
         "brandLabel": "Excel Experts UK"
       },
       "caseStudies": {
-        "homeIntro": "Real problems, real solutions. A sample of what we have built for businesses just like yours"
+        "homeIntro": "Real problems, real solutions. A sample of what we have built for businesses just like yours",
+        "deliveryLine": "Delivered remotely for an NZ operator; we support UK teams the same way."
       },
       "howWeWork": {
         "eyebrow": "Our process",

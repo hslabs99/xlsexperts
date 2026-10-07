@@ -97,7 +97,7 @@ export default async function AllServicesPage() {
           </div>
         </div>
       </section>
-      <PageContact topicHref="/excel-spreadsheet-development" />
+      <PageContact topicHref="/excel-spreadsheet-development" showIndustryLinks={false} />
     </main>
   )
 }

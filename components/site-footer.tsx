@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { servicePages } from '@/lib/service-pages'
+import { ALL_INDUSTRIES_HREF, industryPages } from '@/lib/industries'
 import { ALL_SOLUTIONS_HREF, solutionPages } from '@/lib/solutions'
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-gray-200 bg-white">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 xl:grid-cols-4">
         <div>
           <p className="text-sm font-bold tracking-tight text-gray-900">
             xls<span style={{ color: '#1a6b3c' }}>EXPERTS</span>
@@ -32,6 +33,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link href={ALL_INDUSTRIES_HREF} className="hover:text-gray-900">
+                All industries
+              </Link>
+            </li>
+            <li>
               <Link href="/enterprise" className="hover:text-gray-900">
                 Enterprise
               </Link>
@@ -43,7 +49,7 @@ export function SiteFooter() {
             </li>
           </ul>
         </div>
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-2 xl:col-span-1">
           <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
             Services
           </p>
@@ -63,6 +69,20 @@ export function SiteFooter() {
           </p>
           <ul className="mt-4 space-y-2 text-sm text-gray-600">
             {solutionPages.map((page) => (
+              <li key={page.href}>
+                <Link href={page.href} className="hover:text-gray-900">
+                  {page.navLabel}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+            Industries
+          </p>
+          <ul className="mt-4 space-y-2 text-sm text-gray-600">
+            {industryPages.map((page) => (
               <li key={page.href}>
                 <Link href={page.href} className="hover:text-gray-900">
                   {page.navLabel}

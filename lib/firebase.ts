@@ -97,6 +97,12 @@ export const USERS_COLLECTION = 'users'
  */
 export const BLOG_POSTS_COLLECTION = 'blogPosts'
 
+/** Manual and promoted 301s. Doc id is the encoded from-path. No deploy required. */
+export const REDIRECTS_COLLECTION = 'redirects'
+
+/** One document per 404 hit, for the admin 404 report. */
+export const NOT_FOUND_LOG_COLLECTION = 'notFoundLog'
+
 /**
  * Admin scratch queue of unstructured blog subjects / AI prompts.
  * Not published to the public site — copy/paste into the Blog editor later.
@@ -131,6 +137,12 @@ export const SERVICE_PAGE_TILES_COLLECTION = 'servicePageTiles'
 export const CASE_STUDIES_HOME_DOC_ID = 'case-studies-home'
 
 /**
+ * Site Content doc: last publish of `/case-studies/[slug]` pages.
+ * Public site reads `data/case-studies.generated.ts` after Publish.
+ */
+export const CASE_STUDIES_PAGES_DOC_ID = 'case-studies-pages'
+
+/**
  * Site Content doc: draft NZ / International / UK market copy.
  * Shape: `{ markets: { nz, intl, uk } }`. Missing `uk` is seeded from UK defaults.
  * Public site reads `data/market-copy.generated.ts` after Publish — not this doc.
@@ -142,6 +154,13 @@ export const MARKET_COPY_DOC_ID = 'market-copy'
  * Public host routing reads `data/domain-regions.generated.ts` after Publish.
  */
 export const DOMAIN_REGIONS_DOC_ID = 'domain-regions'
+
+/**
+ * Site Content doc: NZ word → UK / International replacements.
+ * Public serving reads `data/region-aliases.generated.ts` after Publish.
+ * Localhost also reads this draft when content comes from Firestore.
+ */
+export const REGION_ALIASES_DOC_ID = 'region-aliases'
 
 /**
  * Site Content doc: per-region booking calendar display options
@@ -189,6 +208,12 @@ export const FIND_OUT_ABOUT_DOC_ID = 'find-out-about'
  * Site Content doc: live chat timeout, visitor copy, and admin quick replies.
  */
 export const CHAT_SETTINGS_DOC_ID = 'chat-settings'
+
+/** Site Content doc: prompt used to generate blog Google titles and descriptions. */
+export const BLOG_SERP_PROMPT_DOC_ID = 'blog-serp-prompt'
+
+/** Site Content doc: confirmed and suggested blog-to-blog footnote links. */
+export const BLOG_LINKS_DOC_ID = 'blog-links'
 
 /** Firestore collection for live chat sessions (messages in `messages` subcollection) */
 export const CHATS_COLLECTION = 'chats'

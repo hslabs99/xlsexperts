@@ -5,14 +5,19 @@ import {
   DEFAULT_WHITEPAPER_TEMPLATE,
   defaultRecipientsForKind,
   escapeHtml,
+  fromEmailForMarket,
   hasEmailAttachment,
+  isXlsexpertsSenderEmail,
   renderEmailTemplate,
+  resolveTemplateRegion,
   type EmailTemplate,
   type EmailTemplateKind,
+  type EmailTemplateRegionCopy,
   type EmailTemplateRecipients,
   type EnquiryMergeContext,
   type RecipientParty,
 } from '@/lib/email-templates'
+import { isMarketId, type MarketId } from '@/lib/market'
 import { getDiscoveryClientPresentationTemplate } from '@/lib/email-presentation-templates'
 import {
   fetchActiveEmailTemplate,
@@ -197,7 +202,10 @@ export function buildWhitepaperMergeContext(input: {
   }
 }
 
-async function fallbackTemplate(kind: EmailTemplateKind): Promise<
+async function fallbackTemplate(
+  kind: EmailTemplateKind,
+  market: MarketId = 'nz'
+): Promise<
   Pick<
     EmailTemplate,
     | 'kind'
@@ -215,7 +223,7 @@ async function fallbackTemplate(kind: EmailTemplateKind): Promise<
   >
 > {
   if (kind === 'discovery') {
-    const discovery = await getDiscoveryClientPresentationTemplate()
+    const discovery = await getDiscoveryClientPresentationTemplate(market)
     return {
       ...discovery,
       attachmentFilename: '',
@@ -309,8 +317,39 @@ export function resolveTemplateRecipients(
   return { to, cc, bcc, replyTo }
 }
 
+/**
+ * Sender for an enquiry. The template region is the source of truth.
+ * SendGrid env From is only a fallback when that region has not been filled in yet.
+ */
+export function resolveEnquiryFromAddress(
+  market: MarketId,
+  region: Pick<EmailTemplateRegionCopy, 'fromEmail' | 'fromName'>
+): { email: string; name: string; inheritedFromTemplate: boolean } {
+  const envEmail = process.env.SENDGRID_FROM_EMAIL?.trim() || ''
+  const envName = process.env.SENDGRID_FROM_NAME?.trim() || 'XLS Experts'
+  const requested = region.fromEmail.trim()
+  const requestedName = region.fromName.trim()
+  const allowed =
+    requested &&
+    (requested.toLowerCase() === envEmail.toLowerCase() ||
+      isXlsexpertsSenderEmail(requested))
+  if (allowed && requestedName) {
+    return {
+      email: requested,
+      name: requestedName,
+      inheritedFromTemplate: true,
+    }
+  }
+  return {
+    email: envEmail ? fromEmailForMarket(envEmail, market) : '',
+    name: requestedName || envName,
+    inheritedFromTemplate: false,
+  }
+}
+
 export async function loadEnquiryTemplate(
-  kind: EmailTemplateKind
+  kind: EmailTemplateKind,
+  market: MarketId = 'nz'
 ): Promise<
   Pick<
     EmailTemplate,
@@ -329,7 +368,7 @@ export async function loadEnquiryTemplate(
 > {
   // Discovery confirmations are always the branded presentation email.
   if (kind === 'discovery') {
-    const discovery = await getDiscoveryClientPresentationTemplate()
+    const discovery = await getDiscoveryClientPresentationTemplate(market)
     return {
       ...discovery,
       attachmentFilename: '',
@@ -349,7 +388,7 @@ export async function loadEnquiryTemplate(
     )
     return null
   })
-  return stored ?? (await fallbackTemplate(kind))
+  return stored ?? (await fallbackTemplate(kind, market))
 }
 
 /**
@@ -357,7 +396,8 @@ export async function loadEnquiryTemplate(
  */
 export async function renderEnquiryNotification(
   kind: EmailTemplateKind,
-  ctx: EnquiryMergeContext
+  ctx: EnquiryMergeContext,
+  market: MarketId = 'nz'
 ): Promise<{
   subject: string
   html: string
@@ -365,8 +405,18 @@ export async function renderEnquiryNotification(
   templateName: string
   recipients: EmailTemplateRecipients
 }> {
-  const template = await loadEnquiryTemplate(kind)
-  const rendered = renderEmailTemplate(template, ctx)
+  const template = await loadEnquiryTemplate(kind, market)
+  const region = resolveTemplateRegion(template, market)
+  const from = resolveEnquiryFromAddress(market, region)
+  const rendered = renderEmailTemplate(
+    {
+      ...template,
+      subject: region.subject,
+      htmlBody: region.htmlBody,
+      textBody: region.textBody,
+    },
+    { ...ctx, from: from.name }
+  )
 
   return {
     ...rendered,
@@ -380,6 +430,8 @@ export async function sendEnquiryNotificationEmail(options: {
   ctx: EnquiryMergeContext
   category: string
   referenceId?: string
+  /** Site that received the enquiry. Chooses subject, body, and From domain. */
+  market?: MarketId
   /** When set, use this template (and its current Storage PDF) instead of kind lookup. */
   templateId?: string
 }): Promise<{ accepted: boolean; statusCode?: number; messageId?: string }> {
@@ -392,11 +444,36 @@ export async function sendEnquiryNotificationEmail(options: {
     throw new Error('Client email is required to send enquiry mail')
   }
 
+  const market = isMarketId(options.market) ? options.market : 'nz'
   const byId = options.templateId
     ? await fetchEmailTemplateById(options.templateId)
     : null
-  const template = byId ?? (await loadEnquiryTemplate(options.kind))
-  const rendered = renderEmailTemplate(template, options.ctx)
+  const template = byId ?? (await loadEnquiryTemplate(options.kind, market))
+  const region = resolveTemplateRegion(template, market)
+  // Discovery body is the presentation email. Its From name and From email
+  // still come from the discovery template for this region.
+  let fromRegion = region
+  if (options.kind === 'discovery' && !byId) {
+    const stored = await fetchActiveEmailTemplate('discovery').catch(() => null)
+    const storedFrom = stored?.regions?.[market]
+    if (storedFrom && (storedFrom.fromEmail.trim() || storedFrom.fromName.trim())) {
+      fromRegion = {
+        ...region,
+        fromEmail: storedFrom.fromEmail,
+        fromName: storedFrom.fromName,
+      }
+    }
+  }
+  const from = resolveEnquiryFromAddress(market, fromRegion)
+  const rendered = renderEmailTemplate(
+    {
+      ...template,
+      subject: region.subject,
+      htmlBody: region.htmlBody,
+      textBody: region.textBody,
+    },
+    { ...options.ctx, from: from.name }
+  )
   const resolved = resolveTemplateRecipients(
     template.recipients,
     clientEmail,
@@ -424,6 +501,7 @@ export async function sendEnquiryNotificationEmail(options: {
 
   return sendEmail({
     to: resolved.to,
+    from: from.email ? { email: from.email, name: from.name } : undefined,
     cc: resolved.cc.length > 0 ? resolved.cc : undefined,
     bcc: resolved.bcc.length > 0 ? resolved.bcc : undefined,
     subject: rendered.subject,

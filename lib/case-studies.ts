@@ -12,7 +12,8 @@ import {
   normalizeHomeCaseStudiesContent,
   type HomeCaseStudiesContent,
 } from '@/lib/case-studies-home'
-import { getIsLocalDev } from '@/lib/market-server'
+import { getIsLocalDev, getMarket } from '@/lib/market-server'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 import { withTimeout } from '@/lib/with-timeout'
 import { toPublicCaseStudy, type CaseStudyRecord } from '@/lib/case-studies-shared'
 
@@ -42,12 +43,12 @@ export async function getHomeCaseStudies(): Promise<HomeCaseStudiesContent> {
         'fetchHomeCaseStudiesDraft'
       )
       if (draft.items.length > 0) {
-        return {
+        return aliasHomeCaseStudies({
           items: draft.items,
           hasMore: draft.hasMore,
           initialCount: draft.initialCount,
           morePageSize: draft.morePageSize,
-        }
+        })
       }
     } catch (error) {
       console.error(
@@ -56,7 +57,13 @@ export async function getHomeCaseStudies(): Promise<HomeCaseStudiesContent> {
       )
     }
   }
-  return getPublishedHomeCaseStudies()
+  return aliasHomeCaseStudies(getPublishedHomeCaseStudies())
+}
+
+async function aliasHomeCaseStudies(
+  content: HomeCaseStudiesContent
+): Promise<HomeCaseStudiesContent> {
+  return aliasServedValue(content, await getMarket())
 }
 
 export function recordsToPublic(records: CaseStudyRecord[]) {

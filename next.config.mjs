@@ -13,7 +13,6 @@ const nextConfig = {
   async redirects() {
     return [
       { source: '/post', destination: '/blog', permanent: true },
-      { source: '/post/:slug*', destination: '/blog/:slug*', permanent: true },
       {
         source: '/ai-workflow-automation',
         destination: '/ai-workflow-and-business-process-automation',
@@ -52,6 +51,16 @@ const nextConfig = {
       {
         source: '/solutions/spreadsheet-process-modernisation',
         destination: '/ai-workflow-and-business-process-automation',
+        permanent: true,
+      },
+      {
+        source: '/industries/engineering-energy-utilities',
+        destination: '/industries/engineering',
+        permanent: true,
+      },
+      {
+        source: '/industries/manufacturing-fmcg',
+        destination: '/industries/manufacturing',
         permanent: true,
       },
     ]

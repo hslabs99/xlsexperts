@@ -1,3 +1,4 @@
+import { MatchingCaseStudies } from '@/components/matching-case-studies'
 import { PageContact } from '@/components/page-contact'
 import { type MarketId } from '@/lib/market'
 import { WebApplicationsHero, CapabilityStrip } from './web-applications-hero'
@@ -66,6 +67,7 @@ export function WebApplicationsPageView({
       <WebApplicationFAQ faqs={faqs} />
       <RelatedLinksSection />
       <WebApplicationCTA />
+      <MatchingCaseStudies href="/web-applications" />
       <PageContact topicHref="/web-applications" />
     </main>
   )

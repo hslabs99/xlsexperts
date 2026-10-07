@@ -94,6 +94,8 @@ export type MarketCopy = {
   }
   caseStudies: {
     homeIntro: string
+    /** One line on each case study page, different per market. */
+    deliveryLine: string
   }
   howWeWork: HowWeWorkCopy
 }
@@ -271,6 +273,14 @@ export const MARKET_COPY_FIELDS: MarketCopyFieldMeta[] = [
     group: 'Case studies',
     multiline: true,
   },
+  {
+    path: 'caseStudies.deliveryLine',
+    label: 'Case study page regional line',
+    group: 'Case studies',
+    hint: 'Leave blank for New Zealand. UK and International use this line so those pages are not copies of the NZ study.',
+    multiline: true,
+    independentPerMarket: true,
+  },
 ]
 
 export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
@@ -351,6 +361,7 @@ export const DEFAULT_NZ_MARKET_COPY: MarketCopy = {
   caseStudies: {
     homeIntro:
       'Real problems, real solutions. A sample of what we have built for NZ businesses across industries.',
+    deliveryLine: '',
   },
   howWeWork: cloneHowWeWorkCopy(DEFAULT_HOW_WE_WORK),
 }
@@ -417,6 +428,11 @@ export const DEFAULT_INTL_MARKET_COPY: MarketCopy = {
   about: {
     ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).about,
     brandLabel: 'XLS Experts International',
+  },
+  caseStudies: {
+    ...cloneMarketCopy(DEFAULT_NZ_MARKET_COPY).caseStudies,
+    deliveryLine:
+      'Delivered remotely for an NZ operator; we support US and international teams the same way.',
   },
 }
 
@@ -493,6 +509,8 @@ export const DEFAULT_UK_MARKET_COPY: MarketCopy = {
   caseStudies: {
     homeIntro:
       'Real problems, real solutions. A sample of what we have built for businesses across the United Kingdom.',
+    deliveryLine:
+      'Delivered remotely for an NZ operator; we support UK teams the same way.',
   },
 }
 
@@ -645,7 +663,9 @@ export function normalizeMarketCopy(
       ],
     }),
     about,
-    caseStudies: normalizeSection(data.caseStudies, fallback.caseStudies),
+    caseStudies: normalizeSection(data.caseStudies, fallback.caseStudies, {
+      allowEmptyKeys: ['deliveryLine'],
+    }),
     howWeWork: normalizeSection(data.howWeWork, fallback.howWeWork),
   }
 }

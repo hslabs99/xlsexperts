@@ -19,8 +19,11 @@ import {
   buildStandardMergeContext,
   getBusinessEmail,
   renderEnquiryNotification,
+  resolveEnquiryFromAddress,
   resolveTemplateRecipients,
 } from '@/lib/email/enquiry-notify'
+import { fetchEmailTemplateById } from '@/lib/email-templates-db'
+import { isMarketId, marketLabel } from '@/lib/market'
 import type { BookingPayload, ContactPayload } from '@/lib/types'
 
 type TestMode = 'smoke' | 'contact-sample' | 'discovery-sample' | 'custom'
@@ -29,6 +32,10 @@ type AdminEmailTestBody = {
   mode?: TestMode
   subject?: string
   text?: string
+  /** Email template whose From name and From email this test inherits. */
+  templateId?: string
+  /** Region on that template. */
+  market?: string
 }
 
 type DebugStep = {
@@ -109,6 +116,79 @@ export async function POST(request: Request) {
 
   const mode: TestMode = body.mode ?? 'smoke'
   const referenceId = `admin-${mode}-${Date.now()}`
+  const templateId = body.templateId?.trim() || ''
+  const market = isMarketId(body.market) ? body.market : null
+  if (!templateId || !market) {
+    push(
+      steps,
+      'template.required',
+      'fail',
+      'Select a template and region. From name and From email are inherited from the template, not from SendGrid settings.'
+    )
+    return NextResponse.json(
+      {
+        ok: false,
+        startedAt,
+        finishedAt: now(),
+        steps,
+        config,
+        error: {
+          kind: 'validation',
+          message:
+            'Select a template and region. From name and From email come from that template.',
+        },
+      },
+      { status: 400 }
+    )
+  }
+
+  const template = await fetchEmailTemplateById(templateId)
+  if (!template) {
+    push(steps, 'template.load', 'fail', `No template ${templateId}`)
+    return NextResponse.json(
+      {
+        ok: false,
+        startedAt,
+        finishedAt: now(),
+        steps,
+        config,
+        error: { kind: 'validation', message: 'That email template was not found.' },
+      },
+      { status: 400 }
+    )
+  }
+
+  const regionCopy = template.regions[market]
+  if (!regionCopy.fromName.trim() || !regionCopy.fromEmail.trim()) {
+    push(
+      steps,
+      'template.from',
+      'fail',
+      `${template.name} / ${marketLabel(market)} has no From name or From email.`
+    )
+    return NextResponse.json(
+      {
+        ok: false,
+        startedAt,
+        finishedAt: now(),
+        steps,
+        config,
+        error: {
+          kind: 'validation',
+          message: `Set From name and From email on “${template.name}” for ${marketLabel(market)}. They are not taken from SendGrid settings.`,
+        },
+      },
+      { status: 400 }
+    )
+  }
+
+  const from = resolveEnquiryFromAddress(market, regionCopy)
+  push(
+    steps,
+    'template.from',
+    'ok',
+    `Inherited from “${template.name}” (${marketLabel(market)}): ${from.name} <${from.email}>`
+  )
 
   let to = config.resolvedTestRecipient as string
   let cc: string[] | undefined
@@ -172,7 +252,8 @@ export async function POST(request: Request) {
 
     const rendered = await renderEnquiryNotification(
       'standard',
-      buildStandardMergeContext(sample)
+      buildStandardMergeContext(sample),
+      market
     )
     const resolved = resolveTemplateRecipients(
       rendered.recipients,
@@ -235,7 +316,8 @@ export async function POST(request: Request) {
 
     const rendered = await renderEnquiryNotification(
       'discovery',
-      buildDiscoveryMergeContext(sample)
+      buildDiscoveryMergeContext(sample),
+      market
     )
 
     // Always land the polished sample in the configured test inbox
@@ -268,8 +350,11 @@ export async function POST(request: Request) {
     cc: cc ?? [],
     bcc: bcc ?? [],
     from: {
-      email: config.fromEmail,
-      name: config.fromName,
+      email: from.email,
+      name: from.name,
+      inheritedFromTemplate: from.inheritedFromTemplate,
+      templateName: template.name,
+      market,
     },
     replyTo: replyTo ?? null,
     subject,
@@ -285,12 +370,13 @@ export async function POST(request: Request) {
     steps,
     'sendgrid.prepare',
     'info',
-    `POST Mail Send — to=${to}; cc=${(cc ?? []).join(',') || 'none'}; from=${config.fromEmail}; category=${category}`
+    `POST Mail Send — to=${to}; cc=${(cc ?? []).join(',') || 'none'}; from=${from.name} <${from.email}> (template “${template.name}”); category=${category}`
   )
 
   try {
     const result = await sendEmail({
       to,
+      from: { email: from.email, name: from.name },
       cc,
       bcc,
       subject,

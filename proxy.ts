@@ -3,12 +3,16 @@ import {
   DEFAULT_MARKET,
   MARKET_COOKIE,
   MARKET_HEADER,
+  isIntlProductionHost,
   isLocalHost,
+  isNzProductionHost,
+  isUkProductionHost,
   marketFromHost,
   parseMarketId,
   stripLocalMarketPrefix,
   type MarketId,
 } from '@/lib/market'
+import { shouldConsultRouting, shouldRewriteMissing } from '@/lib/blog-routing'
 import { APEX_TO_WWW } from '@/lib/regions'
 import { hostnameOnly } from '@/lib/domain-regions'
 
@@ -41,7 +45,32 @@ function apexWwwRedirect(request: NextRequest): NextResponse | null {
   return NextResponse.redirect(url, 301)
 }
 
-export function proxy(request: NextRequest) {
+function goneResponse(): NextResponse {
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Page removed | XLS Experts</title>
+</head>
+<body>
+<main>
+<h1>This page has been removed</h1>
+<p><a href="/blog">Browse the blog</a></p>
+</main>
+</body>
+</html>`
+  return new NextResponse(html, {
+    status: 410,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'X-Robots-Tag': 'noindex',
+      'Cache-Control': 'private, no-store',
+    },
+  })
+}
+
+export async function proxy(request: NextRequest) {
   const apexRedirect = apexWwwRedirect(request)
   if (apexRedirect) return apexRedirect
 
@@ -51,38 +80,76 @@ export function proxy(request: NextRequest) {
     ''
   const { pathname } = request.nextUrl
   const local = isLocalHost(host)
-
-  // Local: /nz, /usa, or /uk stay in the address bar (rewrite, not redirect)
-  // so each region has its own URL and cannot share a cached homepage.
-  if (local) {
-    const stripped = stripLocalMarketPrefix(pathname)
-    if (stripped) {
-      const url = request.nextUrl.clone()
-      url.pathname = stripped.pathname
-      const requestHeaders = new Headers(request.headers)
-      requestHeaders.set(MARKET_HEADER, stripped.market)
-      const response = NextResponse.rewrite(url, {
-        request: { headers: requestHeaders },
-      })
-      response.headers.set('Cache-Control', 'private, no-store')
-      response.headers.set('Vary', 'Cookie, Host')
-      return applyMarketHeaders(response, stripped.market)
-    }
-  }
+  const stripped = local ? stripLocalMarketPrefix(pathname) : null
+  const logicalPath = stripped?.pathname ?? pathname
 
   let market: MarketId = DEFAULT_MARKET
-
   if (local) {
-    // Persist the last /nz, /usa, or /uk choice for the rest of the local session.
-    const fromCookie = parseMarketId(request.cookies.get(MARKET_COOKIE)?.value)
-    market = fromCookie ?? DEFAULT_MARKET
+    market =
+      stripped?.market ??
+      parseMarketId(request.cookies.get(MARKET_COOKIE)?.value) ??
+      DEFAULT_MARKET
   } else {
-    // Production: only recognizable domains flip the dictionary; else NZ.
     market = marketFromHost(host)
+  }
+
+  const production =
+    !local &&
+    (isNzProductionHost(host) ||
+      isUkProductionHost(host) ||
+      isIntlProductionHost(host))
+
+  let markMissing = false
+
+  if (shouldConsultRouting(logicalPath)) {
+    try {
+      const { resolveIncomingPath } = await import('@/lib/blog-incoming')
+      const decision = await resolveIncomingPath({
+        path: logicalPath,
+        market,
+        local,
+        production,
+        requestOrigin: request.nextUrl.origin,
+      })
+      if (decision.type === 'redirect') {
+        return NextResponse.redirect(decision.url, 301)
+      }
+      if (decision.type === 'gone') return goneResponse()
+      markMissing = decision.missing
+      if (markMissing && shouldRewriteMissing(logicalPath)) {
+        const requestHeaders = new Headers(request.headers)
+        requestHeaders.set(MARKET_HEADER, market)
+        requestHeaders.set('x-xls-path', logicalPath)
+        requestHeaders.set('x-xls-missing', '1')
+        const url = request.nextUrl.clone()
+        url.pathname = '/site-missing'
+        const response = NextResponse.rewrite(url, {
+          request: { headers: requestHeaders },
+        })
+        response.headers.set('Cache-Control', 'private, no-store')
+        response.headers.set('Vary', 'Cookie, Host')
+        return applyMarketHeaders(response, market)
+      }
+    } catch (error) {
+      console.error('Blog routing skipped', error)
+    }
   }
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(MARKET_HEADER, market)
+  requestHeaders.set('x-xls-path', logicalPath)
+  if (markMissing) requestHeaders.set('x-xls-missing', '1')
+
+  if (local && stripped) {
+    const url = request.nextUrl.clone()
+    url.pathname = stripped.pathname
+    const response = NextResponse.rewrite(url, {
+      request: { headers: requestHeaders },
+    })
+    response.headers.set('Cache-Control', 'private, no-store')
+    response.headers.set('Vary', 'Cookie, Host')
+    return applyMarketHeaders(response, market)
+  }
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
@@ -95,10 +162,12 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all paths except static assets and Next internals.
+     * Match all paths except API routes, static assets, and Next internals.
+     * API routes must not pass through proxy: in next dev that was returning
+     * the HTML 404 page for /api/admin/login.
      * Include robots.txt / sitemap.xml / llms.txt so market is resolved
      * from the arrival host for separate SEO properties.
      */
-    '/((?!_next/static|_next/image|favicon.ico|favicon-32x32.png|icon.svg|icon-32.png|icon-48.png|icon-192.png|apple-icon.png|images/).*)',
+    '/((?!api(?:/|$)|_next/static|_next/image|favicon.ico|favicon-32x32.png|icon.svg|icon-32.png|icon-48.png|icon-192.png|apple-icon.png|images/).*)',
   ],
 }

@@ -218,7 +218,10 @@ export async function SolutionPageView({ solution }: SolutionPageViewProps) {
             )}
           </>
         )}
-        <RelatedCaseStudies studies={caseStudies} />
+        <RelatedCaseStudies
+          studies={caseStudies}
+          solutionHref={solution.href}
+        />
         <div id="related-solutions">
           <RelatedSolutions
             solutions={related}

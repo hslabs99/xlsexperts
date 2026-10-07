@@ -1,8 +1,13 @@
 /**
- * Page-level CMS content (H1, hero intro, meta, FAQs) for service and solution landings.
+ * Page-level CMS content (H1, hero intro, meta, FAQs) for service, solution and industry landings.
  * Admin → CMS: edit drafts in Firebase, Publish writes data/page-seo.generated.ts.
  */
 
+import {
+  ALL_INDUSTRIES_HREF,
+  industryPages,
+  industrySeoPartial,
+} from '@/lib/industries'
 import { servicePages } from '@/lib/service-pages'
 import { solutionPages } from '@/lib/solutions'
 import { DEFAULT_MARKET, isMarketId, type MarketId } from '@/lib/market'
@@ -16,7 +21,7 @@ import {
 
 export type { PageSeoFaq }
 
-export type PageSeoKind = 'service' | 'solution'
+export type PageSeoKind = 'service' | 'solution' | 'industry'
 
 /** Editable CMS fields for one landing page. */
 export type PageSeoFields = {
@@ -309,6 +314,16 @@ export const PAGE_SEO_CATALOG: readonly PageSeoCatalogItem[] = [
     kind: 'solution' as const,
     label: p.shortTitle || p.title,
   })),
+  {
+    path: ALL_INDUSTRIES_HREF,
+    kind: 'industry' as const,
+    label: 'All industries',
+  },
+  ...industryPages.map((p) => ({
+    path: p.href,
+    kind: 'industry' as const,
+    label: p.navLabel,
+  })),
 ]
 
 export function catalogItemForPath(
@@ -338,6 +353,18 @@ export function defaultPageSeoForPath(path: string): PageSeoFields {
   const normalized = normalizePath(path)
   const item = catalogItemForPath(normalized)
   if (!item) return emptyFields()
+
+  if (item.kind === 'industry') {
+    return withNzFaqs(
+      normalized,
+      fieldsFromPartial(
+        industrySeoPartial(normalized, 'nz') ?? {
+          h1: item.label,
+          metaTitle: item.label,
+        },
+      ),
+    )
+  }
 
   if (item.kind === 'service') {
     return withNzFaqs(
@@ -418,6 +445,13 @@ export function globalizePageSeoFields(fields: PageSeoFields): PageSeoFields {
 function defaultBundleForMarket(market: Exclude<MarketId, 'nz'>): PageSeoBundle {
   const pages: PageSeoBundle = {}
   for (const item of PAGE_SEO_CATALOG) {
+    if (item.kind === 'industry') {
+      pages[item.path] = fieldsFromPartial({
+        ...industrySeoPartial(item.path, market),
+        faqs: faqsForMarket(item.path, market),
+      })
+      continue
+    }
     pages[item.path] = {
       ...globalizePageSeoFields(defaultPageSeoForPath(item.path)),
       faqs: faqsForMarket(item.path, market),

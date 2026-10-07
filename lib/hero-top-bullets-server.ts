@@ -10,6 +10,7 @@ import {
   pickHeroTopBullets,
   type HeroTopBulletsBundle,
 } from '@/lib/hero-top-bullets'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 
 /** Published homepage top bullets (static import — zero DB). */
 export function getPublishedHeroTopBulletsBundle(): HeroTopBulletsBundle {
@@ -46,5 +47,8 @@ export async function getHeroTopBulletTexts(): Promise<string[]> {
       )
     }
   }
-  return heroTopBulletTexts(pickHeroTopBullets(bundle, market))
+  return aliasServedValue(
+    heroTopBulletTexts(pickHeroTopBullets(bundle, market)),
+    market
+  )
 }

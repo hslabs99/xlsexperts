@@ -9,9 +9,10 @@ const PAGE_SIZE = 10
 
 type Props = {
   posts: BlogListItem[]
+  initialQuery?: string
 }
 
-export function BlogIndexClient({ posts }: Props) {
+export function BlogIndexClient({ posts, initialQuery = '' }: Props) {
   const tags = useMemo(() => {
     const set = new Set<string>()
     for (const post of posts) {
@@ -22,14 +23,25 @@ export function BlogIndexClient({ posts }: Props) {
   }, [posts])
 
   const [activeTag, setActiveTag] = useState<string | null>(null)
+  const [query, setQuery] = useState(initialQuery)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const filtered = useMemo(() => {
-    if (!activeTag) return posts
-    return posts.filter(
-      (p) => p.category.trim().toLowerCase() === activeTag.toLowerCase()
-    )
-  }, [posts, activeTag])
+    const needle = query.trim().toLowerCase()
+    return posts.filter((post) => {
+      if (
+        activeTag &&
+        post.category.trim().toLowerCase() !== activeTag.toLowerCase()
+      ) {
+        return false
+      }
+      if (!needle) return true
+      return [post.title, post.excerpt, post.category, post.slug]
+        .join(' ')
+        .toLowerCase()
+        .includes(needle)
+    })
+  }, [posts, activeTag, query])
 
   const visible = filtered.slice(0, visibleCount)
   const hasMore = visibleCount < filtered.length
@@ -52,6 +64,19 @@ export function BlogIndexClient({ posts }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
       <div className="mb-10">
+        <label className="mb-6 block text-sm font-semibold text-gray-900" htmlFor="blog-search">
+          Search
+          <input
+            id="blog-search"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setVisibleCount(PAGE_SIZE)
+            }}
+            className="mt-2 w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal"
+            placeholder="Title, topic, or keyword"
+          />
+        </label>
         <p
           className="text-xs font-semibold uppercase tracking-widest"
           style={{ color: '#1a6b3c' }}

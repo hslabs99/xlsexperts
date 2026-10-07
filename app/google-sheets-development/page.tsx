@@ -3,6 +3,7 @@ import { marketServiceSchema } from '@/lib/seo'
 import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { faqPageJsonLd } from '@/lib/page-seo-faqs'
 import { Navbar } from '@/components/navbar'
+import { MatchingCaseStudies } from '@/components/matching-case-studies'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
@@ -161,6 +162,7 @@ export default async function GoogleSheetsDevelopmentPage() {
           </div>
         </section>
 
+        <MatchingCaseStudies href="/google-sheets-development" />
         <PageContact topicHref="/google-sheets-development" />
       </main>
     </>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Plus, Trash2, Upload, Eye, Sparkles, ArrowUp, ArrowDown, ArrowUpDown, Loader2, ImageOff, ImagePlus, Download } from 'lucide-react'
-import type { BlogPostRecord } from '@/lib/blog-shared'
+import { visibleMarketsForBlog, type BlogPostRecord } from '@/lib/blog-shared'
 import {
   blogExportFilename,
   blogExportJson,
@@ -16,6 +16,7 @@ import {
   type BlogPreviewKind,
 } from '@/components/admin-blog-preview'
 import { AdminBlogAiAssist } from '@/components/admin-blog-ai-assist'
+import { AdminBlogSerpPrompt } from '@/components/admin-blog-serp-prompt'
 import { BlogImageSizeAdvice } from '@/components/blog-image-size-advice'
 import { AdminBlogTextField } from '@/components/admin-blog-text-field'
 import { otherBlogLinkTargets } from '@/lib/blog-link-catalog'
@@ -26,7 +27,17 @@ import {
   blogRegionCopyTickTitle,
   type BlogRegionCopyReport,
 } from '@/lib/blog-region-copy'
-import { blogSerpTemplateError, stampMarketOnBlogSerp } from '@/lib/blog-serp-copy'
+import { blogRoutingDecisions, type RegionPatch } from '@/lib/blog-decisions'
+import { effectivePrimaryRegion } from '@/lib/blog-routing'
+import { AdminBlogRegionDecisions } from '@/components/admin-blog-region-decisions'
+import {
+  blogMarketSerpError,
+  blogNeedsMetaAttention,
+  blogSerpByMarketError,
+  blogSerpByMarketIsEmpty,
+  blogSerpTemplateError,
+  emptyBlogSerpByMarket,
+} from '@/lib/blog-serp-copy'
 import {
   BRAND_TITLE_SUFFIX,
   DESC_MAX,
@@ -67,6 +78,8 @@ type SortKey =
   | 'uk'
   | 'featured'
   | 'copy'
+  | 'created'
+  | 'tags'
 type SortDir = 'asc' | 'desc'
 type MarketFilter =
   | 'all'
@@ -76,6 +89,7 @@ type MarketFilter =
   | 'uk-only'
   | 'hidden'
   | 'conflicts'
+  | 'decisions'
 type FlagField = 'showNz' | 'showUsa' | 'showUk' | 'featured'
 
 function flagSaveKey(slug: string, field: FlagField) {
@@ -196,6 +210,7 @@ function emptyPost(): BlogPostRecord {
     excerpt: '',
     serpTitle: '',
     serpDescription: '',
+    serpByMarket: emptyBlogSerpByMarket(),
     image: '',
     category: 'Guides',
     sections: [{ type: 'p', text: '' }],
@@ -204,10 +219,44 @@ function emptyPost(): BlogPostRecord {
     showNz: true,
     showUsa: true,
     showUk: true,
+    primaryRegion: 'nz',
     sortOrder: 9999,
     createdAt: null,
     updatedAt: null,
   }
+}
+
+function createdAtMillis(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value).getTime()
+    if (!Number.isNaN(parsed)) return parsed
+  }
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.getTime()
+  }
+  return 0
+}
+
+function formatCreatedAt(value: unknown): string {
+  const ms = createdAtMillis(value)
+  if (!ms) return '—'
+  return new Date(ms).toLocaleDateString('en-NZ', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function articlePlainText(sections: BlogSection[]): string {
+  return sections
+    .map((section) =>
+      [section.heading, section.text, ...(section.items ?? [])]
+        .filter(Boolean)
+        .join('\n')
+    )
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 function slugify(value: string): string {
@@ -216,24 +265,6 @@ function slugify(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-}
-
-function serpLivePreview(title: string, description: string) {
-  const sourceTitle = title.trim()
-  const sourceDesc = description.trim()
-  const byMarket = Object.fromEntries(
-    MARKET_IDS.map((market) => [
-      market,
-      stampMarketOnBlogSerp(sourceTitle, sourceDesc, market),
-    ])
-  ) as Record<MarketId, { title: string; description: string }>
-  const nz = byMarket.nz
-  return {
-    byMarket,
-    titleLen: renderedTitleLength(nz.title),
-    descLen: nz.description.length,
-    error: sourceTitle && sourceDesc ? blogSerpTemplateError(sourceTitle, sourceDesc) : 'SERP title and description are required on new posts.',
-  }
 }
 
 export function AdminBlogPanel() {
@@ -249,11 +280,8 @@ export function AdminBlogPanel() {
   const [aiIntent, setAiIntent] = useState<'full' | 'image'>('full')
   const [aiSessionTick, setAiSessionTick] = useState(0)
   const [form, setForm] = useState<BlogPostRecord>(emptyPost())
-  const serpPreview = serpLivePreview(
-    form.serpTitle?.trim() || form.title,
-    form.serpDescription?.trim() || form.excerpt
-  )
-  const serpFieldsMissing = !(form.serpTitle ?? '').trim() || !(form.serpDescription ?? '').trim()
+  const [serpPrompt, setSerpPrompt] = useState('')
+  const serpFieldsMissing = blogNeedsMetaAttention(form.serpByMarket)
   const regionCopy = blogRegionCopyReport(form)
   const regionCopyHeadline = regionCopy.mixed
     ? `Copy mentions ${regionCopy.detected.map(marketLabel).join(' and ')}.`
@@ -314,6 +342,12 @@ export function AdminBlogPanel() {
           showNz: item.showNz !== false,
           showUsa: item.showUsa !== false,
           showUk: item.showUk !== false,
+          primaryRegion:
+            item.primaryRegion === 'nz' ||
+            item.primaryRegion === 'uk' ||
+            item.primaryRegion === 'intl'
+              ? item.primaryRegion
+              : null,
         }))
       )
     } catch (err) {
@@ -359,6 +393,8 @@ export function AdminBlogPanel() {
       list = list.filter(
         (r) => (copyReportsBySlug.get(r.slug)?.conflicts.length ?? 0) > 0
       )
+    } else if (marketFilter === 'decisions') {
+      list = list.filter((r) => blogRoutingDecisions(r).length > 0)
     }
     const q = search.trim().toLowerCase()
     if (q) {
@@ -409,6 +445,14 @@ export function AdminBlogPanel() {
           if (cmp === 0) cmp = ac.label.localeCompare(bc.label, 'en')
           break
         }
+        case 'created':
+          cmp = createdAtMillis(a.createdAt) - createdAtMillis(b.createdAt)
+          break
+        case 'tags':
+          cmp =
+            Number(blogNeedsMetaAttention(a.serpByMarket)) -
+            Number(blogNeedsMetaAttention(b.serpByMarket))
+          break
         default:
           cmp = a.sortOrder - b.sortOrder
       }
@@ -439,6 +483,7 @@ export function AdminBlogPanel() {
     let ukOnly = 0
     let hidden = 0
     let conflicts = 0
+    let decisions = 0
     for (const r of rows) {
       if (r.published) published += 1
       else draft += 1
@@ -450,6 +495,7 @@ export function AdminBlogPanel() {
       if ((copyReportsBySlug.get(r.slug)?.conflicts.length ?? 0) > 0) {
         conflicts += 1
       }
+      if (blogRoutingDecisions(r).length > 0) decisions += 1
     }
     return {
       published,
@@ -461,6 +507,7 @@ export function AdminBlogPanel() {
       ukOnly,
       hidden,
       conflicts,
+      decisions,
     }
   }, [rows, copyReportsBySlug])
 
@@ -469,7 +516,7 @@ export function AdminBlogPanel() {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortKey(key)
-      setSortDir('asc')
+      setSortDir(key === 'created' || key === 'tags' ? 'desc' : 'asc')
     }
   }
 
@@ -626,6 +673,55 @@ export function AdminBlogPanel() {
     }
   }
 
+  async function applyRegionPatch(slug: string, patch: RegionPatch) {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    const previous = rows.find((row) => row.slug === slug)
+    setRows((prev) =>
+      prev.map((row) => (row.slug === slug ? { ...row, ...patch } : row))
+    )
+    try {
+      const res = await fetch('/api/admin/blogs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, ...patch }),
+      })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to update regions')
+      }
+      setMessage('Region choice saved. The next request follows it — no deploy.')
+    } catch (err) {
+      if (previous) {
+        setRows((prev) =>
+          prev.map((row) => (row.slug === slug ? previous : row))
+        )
+      }
+      setError(err instanceof Error ? err.message : 'Failed to update regions')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function setRegionFlag(
+    field: 'showNz' | 'showUsa' | 'showUk',
+    checked: boolean
+  ) {
+    setForm((current) => {
+      const next = { ...current, [field]: checked }
+      const visible = visibleMarketsForBlog(next)
+      if (visible.length === 1) next.primaryRegion = visible[0]
+      else if (
+        next.primaryRegion &&
+        !visible.includes(next.primaryRegion)
+      ) {
+        next.primaryRegion = null
+      }
+      return next
+    })
+  }
+
   function startNew() {
     setIsNew(true)
     setForm(emptyPost())
@@ -758,6 +854,47 @@ export function AdminBlogPanel() {
     }
   }
 
+  async function generateGoogleListing() {
+    if (!form.title.trim()) {
+      setError('Add a title before generating the Google listing.')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/blogs/ai-serp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          excerpt: form.excerpt,
+          category: form.category,
+          body: articlePlainText(form.sections),
+          prompt: serpPrompt,
+        }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        error?: string
+        listings?: BlogPostRecord['serpByMarket']
+      }
+      if (!res.ok || !data.ok || !data.listings) {
+        throw new Error(data.error || 'Failed to generate Google listing')
+      }
+      setForm((p) => ({ ...p, serpByMarket: data.listings }))
+      setMessage(
+        'Google listings generated for NZ, US and UK. Edit any of them, then save.'
+      )
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to generate Google listing'
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handleSave(e?: React.FormEvent) {
     e?.preventDefault()
     setBusy(true)
@@ -770,11 +907,19 @@ export function AdminBlogPanel() {
       if (!form.excerpt.trim()) throw new Error('Excerpt is required.')
       const serpTitle = (form.serpTitle ?? '').trim()
       const serpDescription = (form.serpDescription ?? '').trim()
-      if (isNew || serpTitle || serpDescription) {
+      if (!blogSerpByMarketIsEmpty(form.serpByMarket)) {
+        const marketError = blogSerpByMarketError(form.serpByMarket)
+        if (marketError) throw new Error(marketError)
+      } else if (isNew || serpTitle || serpDescription) {
         const serpError = blogSerpTemplateError(serpTitle, serpDescription)
         if (serpError) throw new Error(serpError)
       }
 
+      const visible = visibleMarketsForBlog(form)
+      const primaryRegion =
+        form.primaryRegion && visible.includes(form.primaryRegion)
+          ? form.primaryRegion
+          : effectivePrimaryRegion(form)
       const res = await fetch('/api/admin/blogs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -782,6 +927,7 @@ export function AdminBlogPanel() {
           ...form,
           slug,
           sections: form.sections,
+          primaryRegion,
         }),
       })
       const data = (await res.json()) as { ok?: boolean; error?: string }
@@ -789,7 +935,7 @@ export function AdminBlogPanel() {
         throw new Error(data.error || 'Save failed')
       }
       setIsNew(false)
-      setForm((p) => ({ ...p, slug }))
+      setForm((p) => ({ ...p, slug, primaryRegion }))
 
       const queuedImage = pendingImageFile
       if (queuedImage) {
@@ -1137,82 +1283,122 @@ export function AdminBlogPanel() {
                 Google listing (NZ, US and UK)
               </p>
               <p className="mt-1 text-xs text-ink-muted">
-                Required when creating a post. Write region-neutral copy. Each
-                live domain adds NZ, US or UK to the title and snippet. Do not
-                put “New Zealand” in a post that will also run on .com / .co.uk.
-                Optional {'{region}'} in the text is filled from the host.
+                One AI call writes a separate title and description for NZ, US
+                and UK. Edit any of the three before you save. Each listing
+                must name its own region and stay inside the character limits.
               </p>
               {!isNew && serpFieldsMissing ? (
-                <p className="mt-2 text-xs font-medium text-amber-800">
-                  This existing post has no Google title/description yet. Add
-                  them here so all three domains stay compliant. Saving other
-                  fields still works until you fill these.
+                <p className="mt-2 text-xs font-medium text-red-700">
+                  This post still needs Google listings. Generate them, edit
+                  the three regions if you want, then save.
                 </p>
               ) : null}
             </div>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-ink">Google title</span>
-              <input
-                required={isNew}
-                value={form.serpTitle ?? ''}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, serpTitle: e.target.value }))
-                }
-                placeholder="Excel VBA automation for reporting"
-                className="rounded-md border border-border bg-white px-3 py-2"
-              />
-              <span
-                className={`text-xs ${
-                  serpPreview.titleLen > TITLE_MAX
-                    ? 'text-red-700'
-                    : 'text-ink-muted'
-                }`}
-              >
-                {serpPreview.titleLen}/{TITLE_MAX} characters including
-                “ | XLS Experts” (NZ preview).
-              </span>
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-ink">Google description</span>
-              <textarea
-                required={isNew}
-                rows={3}
-                value={form.serpDescription ?? ''}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, serpDescription: e.target.value }))
-                }
-                placeholder="What VBA automation is, and when teams need it. Turn repetitive spreadsheet work into one-click processes."
-                className="rounded-md border border-border bg-white px-3 py-2"
-              />
-              <span
-                className={`text-xs ${
-                  serpPreview.descLen < DESC_MIN ||
-                  serpPreview.descLen > DESC_MAX
-                    ? 'text-red-700'
-                    : 'text-ink-muted'
-                }`}
-              >
-                {serpPreview.descLen} characters (need {DESC_MIN}–{DESC_MAX}).
-              </span>
-            </label>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <AdminBlogSerpPrompt onPromptChange={setSerpPrompt} />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void generateGoogleListing()}
+              className="inline-flex items-center gap-2 rounded-md border border-brand/40 bg-white px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/10 disabled:opacity-60"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              {busy ? 'Generating…' : 'Generate Google title and description'}
+            </button>
+            <div className="grid gap-3 lg:grid-cols-3">
               {MARKET_IDS.map((market) => {
-                const row = serpPreview.byMarket[market]
+                const row = form.serpByMarket?.[market] ?? {
+                  title: '',
+                  description: '',
+                }
+                const titleLen = renderedTitleLength(row.title)
+                const descLen = row.description.trim().length
+                const marketError =
+                  row.title.trim() || row.description.trim()
+                    ? blogMarketSerpError(market, row.title, row.description)
+                    : null
+                const regionWord =
+                  market === 'intl' ? 'US' : market === 'uk' ? 'UK' : 'NZ'
                 return (
                   <div
                     key={market}
-                    className="rounded-md border border-border bg-white p-3"
+                    className="space-y-2 rounded-md border border-border bg-white p-3"
                   >
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-                      {marketShortLabel(market)} Google preview
+                      {marketShortLabel(market)} ({regionWord})
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-blue-800">
-                      {row.title.endsWith(BRAND_TITLE_SUFFIX) ||
-                      row.title === 'XLS Experts'
-                        ? row.title
-                        : `${row.title}${BRAND_TITLE_SUFFIX}`}
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium text-ink">Google title</span>
+                      <input
+                        value={row.title}
+                        onChange={(e) => {
+                          const title = e.target.value
+                          setForm((p) => ({
+                            ...p,
+                            serpByMarket: {
+                              ...emptyBlogSerpByMarket(),
+                              ...p.serpByMarket,
+                              [market]: {
+                                title,
+                                description:
+                                  p.serpByMarket?.[market]?.description ?? '',
+                              },
+                            },
+                          }))
+                        }}
+                        className="rounded-md border border-border px-3 py-2"
+                      />
+                      <span
+                        className={`text-xs ${
+                          titleLen > TITLE_MAX ? 'text-red-700' : 'text-ink-muted'
+                        }`}
+                      >
+                        {titleLen}/{TITLE_MAX} including “ | XLS Experts”
+                      </span>
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium text-ink">
+                        Google description
+                      </span>
+                      <textarea
+                        rows={4}
+                        value={row.description}
+                        onChange={(e) => {
+                          const description = e.target.value
+                          setForm((p) => ({
+                            ...p,
+                            serpByMarket: {
+                              ...emptyBlogSerpByMarket(),
+                              ...p.serpByMarket,
+                              [market]: {
+                                title: p.serpByMarket?.[market]?.title ?? '',
+                                description,
+                              },
+                            },
+                          }))
+                        }}
+                        className="rounded-md border border-border px-3 py-2"
+                      />
+                      <span
+                        className={`text-xs ${
+                          descLen > 0 &&
+                          (descLen < DESC_MIN || descLen > DESC_MAX)
+                            ? 'text-red-700'
+                            : 'text-ink-muted'
+                        }`}
+                      >
+                        {descLen} characters (need {DESC_MIN}–{DESC_MAX})
+                      </span>
+                    </label>
+                    {marketError ? (
+                      <p className="text-xs text-red-700">{marketError}</p>
+                    ) : null}
+                    <p className="text-sm font-semibold text-blue-800">
+                      {row.title.trim()
+                        ? row.title.endsWith(BRAND_TITLE_SUFFIX)
+                          ? row.title
+                          : `${row.title}${BRAND_TITLE_SUFFIX}`
+                        : '—'}
                     </p>
-                    <p className="mt-1 text-xs text-ink-muted">{row.description}</p>
                   </div>
                 )
               })}
@@ -1387,9 +1573,9 @@ export function AdminBlogPanel() {
         <div className="space-y-3 rounded-lg border border-border bg-surface p-4 lg:col-span-2">
           <p className="text-sm font-semibold text-ink">Publish to domains</p>
           <p className="text-xs text-ink-muted">
-            Tick every domain this article should appear on. The same body is
-            served everywhere you tick. Google title and snippet change per
-            domain from the Google listing box above.
+            Tick every domain this article should appear on. Unticking a domain
+            301s that URL to the primary region. One domain only means no
+            hreflang tags. x-default uses the primary region.
           </p>
           {regionCopy.detected.length > 0 ? (
             <div
@@ -1438,9 +1624,7 @@ export function AdminBlogPanel() {
               <input
                 type="checkbox"
                 checked={form.showNz}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, showNz: e.target.checked }))
-                }
+                onChange={(e) => setRegionFlag('showNz', e.target.checked)}
               />
               Show on NZ site (.co.nz)
             </label>
@@ -1454,9 +1638,7 @@ export function AdminBlogPanel() {
               <input
                 type="checkbox"
                 checked={form.showUsa}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, showUsa: e.target.checked }))
-                }
+                onChange={(e) => setRegionFlag('showUsa', e.target.checked)}
               />
               Show on International site (.com)
             </label>
@@ -1470,13 +1652,62 @@ export function AdminBlogPanel() {
               <input
                 type="checkbox"
                 checked={form.showUk}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, showUk: e.target.checked }))
-                }
+                onChange={(e) => setRegionFlag('showUk', e.target.checked)}
               />
               Show on UK site (.co.uk)
             </label>
           </div>
+          {visibleMarketsForBlog(form).length === 0 ? (
+            <p className="text-xs text-amber-800">
+              No domain is ticked, so this article is hidden and its URLs 404.
+            </p>
+          ) : (
+            <label className="block text-sm text-ink">
+              <span className="font-semibold">Primary region</span>
+              <select
+                className="mt-1 block rounded-md border border-border bg-white px-2 py-1.5 text-sm"
+                value={
+                  form.primaryRegion ??
+                  effectivePrimaryRegion(form) ??
+                  ''
+                }
+                disabled={visibleMarketsForBlog(form).length <= 1}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    primaryRegion: e.target.value as 'nz' | 'intl' | 'uk',
+                  }))
+                }
+              >
+                {visibleMarketsForBlog(form).map((market) => (
+                  <option key={market} value={market}>
+                    {market === 'nz'
+                      ? 'NZ (.co.nz)'
+                      : market === 'uk'
+                        ? 'UK (.co.uk)'
+                        : 'US (.com)'}
+                  </option>
+                ))}
+              </select>
+              {form.primaryRegion == null &&
+              visibleMarketsForBlog(form).length > 1 ? (
+                <span className="mt-1 block text-xs text-amber-800">
+                  Not saved yet. Saving the post stores{' '}
+                  {effectivePrimaryRegion(form) === 'intl'
+                    ? 'US'
+                    : effectivePrimaryRegion(form) === 'uk'
+                      ? 'UK'
+                      : 'NZ'}{' '}
+                  as the primary and takes this article off the confirmation list.
+                </span>
+              ) : (
+                <span className="mt-1 block text-xs text-ink-muted">
+                  hreflang x-default and cross-domain redirects use this domain.
+                  It has to be one of the ticked domains.
+                </span>
+              )}
+            </label>
+          )}
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-5 lg:col-span-2">
@@ -1843,6 +2074,10 @@ export function AdminBlogPanel() {
                   id: 'conflicts',
                   label: `Copy conflicts (${counts.conflicts})`,
                 },
+                {
+                  id: 'decisions',
+                  label: `Needs a decision (${counts.decisions})`,
+                },
               ] as const
             ).map((opt) => (
               <button
@@ -1852,10 +2087,11 @@ export function AdminBlogPanel() {
                 onClick={() => setMarketFilter(opt.id)}
                 className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold ${
                   marketFilter === opt.id
-                    ? opt.id === 'conflicts'
+                    ? opt.id === 'conflicts' || opt.id === 'decisions'
                       ? 'border-amber-500 bg-amber-100 text-amber-950'
                       : 'border-brand bg-brand-light text-brand-dark'
-                    : opt.id === 'conflicts' && counts.conflicts > 0
+                    : (opt.id === 'conflicts' && counts.conflicts > 0) ||
+                        (opt.id === 'decisions' && counts.decisions > 0)
                       ? 'border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100'
                       : 'border-border bg-white text-ink-muted hover:bg-surface-raised'
                 }`}
@@ -1923,8 +2159,16 @@ export function AdminBlogPanel() {
           {selected.size > 0 ? ` · ${selected.size} selected` : ''}
         </p>
 
+        <AdminBlogRegionDecisions
+          rows={rows}
+          busy={busy}
+          onApply={(slug, patch) => void applyRegionPatch(slug, patch)}
+          onEdit={startEdit}
+          onShowAll={() => setMarketFilter('decisions')}
+        />
+
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[1280px] text-left text-sm">
+          <table className="w-full min-w-[1480px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-ink-muted">
                 <th className="py-2 pr-2 w-8">
@@ -1982,6 +2226,26 @@ export function AdminBlogPanel() {
                   >
                     Title
                     <SortIcon active={sortKey === 'title'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('created')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    Created
+                    <SortIcon active={sortKey === 'created'} dir={sortDir} />
+                  </button>
+                </th>
+                <th className="py-2 pr-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('tags')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-red-700 hover:text-red-900"
+                  >
+                    Tags
+                    <SortIcon active={sortKey === 'tags'} dir={sortDir} />
                   </button>
                 </th>
                 <th className="py-2 pr-3">
@@ -2070,13 +2334,13 @@ export function AdminBlogPanel() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={13} className="py-6 text-ink-muted">
+                  <td colSpan={15} className="py-6 text-ink-muted">
                     Loading from Firebase…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="py-6 text-ink-muted">
+                  <td colSpan={15} className="py-6 text-ink-muted">
                     {rows.length === 0
                       ? 'No posts in Firebase yet. Add a new post to get started.'
                       : 'No posts match this filter.'}
@@ -2088,6 +2352,7 @@ export function AdminBlogPanel() {
                     copyReportsBySlug.get(post.slug) ??
                     blogRegionCopyReport(post)
                   const hasConflict = copyReport.conflicts.length > 0
+                  const needsMeta = blogNeedsMetaAttention(post.serpByMarket)
                   return (
                     <tr
                       key={post.slug}
@@ -2121,6 +2386,27 @@ export function AdminBlogPanel() {
                       <div className="font-mono text-[11px] text-ink-muted">
                         {post.slug}
                       </div>
+                      {blogRoutingDecisions(post).some((item) => item.tone === 'action') ? (
+                        <div className="mt-1 text-[11px] font-semibold text-amber-800">
+                          Needs a decision
+                        </div>
+                      ) : blogRoutingDecisions(post).length > 0 ? (
+                        <div className="mt-1 text-[11px] font-semibold text-sky-800">
+                          Confirm primary region
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="py-2.5 pr-3 whitespace-nowrap text-xs text-ink-muted">
+                      {formatCreatedAt(post.createdAt)}
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      {needsMeta ? (
+                        <span className="inline-block rounded bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
+                          Meta
+                        </span>
+                      ) : (
+                        <span className="text-xs text-ink-muted">—</span>
+                      )}
                     </td>
                     <td className="py-2.5 pr-3">{post.category}</td>
                     <td className="py-2.5 pr-3">{post.author}</td>

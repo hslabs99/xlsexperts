@@ -3,6 +3,12 @@
  * Safe for client + server (no secrets).
  */
 
+import {
+  isMarketId,
+  marketHostHint,
+  type MarketId,
+} from '@/lib/market'
+
 export const EMAIL_TEMPLATE_KINDS = [
   'standard',
   'discovery',
@@ -108,15 +114,156 @@ export function normalizeEmailFontSize(raw: string | undefined | null): string {
   return value
 }
 
+/** Subject, body, and sender for one site region. */
+export type EmailTemplateRegionCopy = {
+  subject: string
+  htmlBody: string
+  textBody: string
+  /** Blank → same mailbox name as SENDGRID_FROM_EMAIL, on this region's domain. */
+  fromEmail: string
+  /** Blank → SENDGRID_FROM_NAME. Used as the {{from}} merge tag. */
+  fromName: string
+}
+
+export type EmailTemplateRegions = Record<MarketId, EmailTemplateRegionCopy>
+
+const SENDER_DOMAINS = [
+  'xlsexperts.co.nz',
+  'xlsexperts.com',
+  'xlsexperts.co.uk',
+] as const
+
+export function marketSenderDomain(market: MarketId): string {
+  const host = marketHostHint(market).replace(/^www\./i, '').trim().toLowerCase()
+  if ((SENDER_DOMAINS as readonly string[]).includes(host)) return host
+  if (market === 'uk') return 'xlsexperts.co.uk'
+  if (market === 'intl') return 'xlsexperts.com'
+  return 'xlsexperts.co.nz'
+}
+
+export function marketSiteOrigin(market: MarketId): string {
+  return `https://www.${marketSenderDomain(market)}`
+}
+
+export function marketSiteLabel(market: MarketId): string {
+  return `www.${marketSenderDomain(market)}`
+}
+
+/** Same local-part as the configured From address, on the region's domain. */
+export function fromEmailForMarket(baseEmail: string, market: MarketId): string {
+  const email = baseEmail.trim()
+  const at = email.lastIndexOf('@')
+  if (at < 1) return email
+  return `${email.slice(0, at)}@${marketSenderDomain(market)}`
+}
+
+export function isXlsexpertsSenderEmail(email: string): boolean {
+  const domain = email.trim().toLowerCase().split('@')[1] || ''
+  return (SENDER_DOMAINS as readonly string[]).includes(domain)
+}
+
+export function emptyRegionCopy(
+  partial?: Partial<EmailTemplateRegionCopy>
+): EmailTemplateRegionCopy {
+  return {
+    subject: partial?.subject ?? '',
+    htmlBody: partial?.htmlBody ?? '',
+    textBody: partial?.textBody ?? '',
+    fromEmail: partial?.fromEmail?.trim() ?? '',
+    fromName: partial?.fromName?.trim() ?? '',
+  }
+}
+
+export function defaultRegionsFromLegacy(legacy: {
+  subject: string
+  htmlBody: string
+  textBody?: string
+}): EmailTemplateRegions {
+  const copy = emptyRegionCopy({
+    subject: legacy.subject,
+    htmlBody: legacy.htmlBody,
+    textBody: legacy.textBody ?? '',
+  })
+  return {
+    nz: { ...copy },
+    intl: { ...copy },
+    uk: { ...copy },
+  }
+}
+
+export function normalizeEmailTemplateRegions(
+  raw: unknown,
+  legacy: { subject: string; htmlBody: string; textBody?: string }
+): EmailTemplateRegions {
+  const regions = defaultRegionsFromLegacy(legacy)
+  if (!raw || typeof raw !== 'object') return regions
+  const data = raw as Record<string, unknown>
+  for (const id of ['nz', 'intl', 'uk'] as const) {
+    const row = data[id]
+    if (!row || typeof row !== 'object') continue
+    const record = row as Record<string, unknown>
+    regions[id] = emptyRegionCopy({
+      subject:
+        typeof record.subject === 'string' ? record.subject : regions[id].subject,
+      htmlBody:
+        typeof record.htmlBody === 'string'
+          ? record.htmlBody
+          : regions[id].htmlBody,
+      textBody:
+        typeof record.textBody === 'string' ? record.textBody : regions[id].textBody,
+      fromEmail: typeof record.fromEmail === 'string' ? record.fromEmail : '',
+      fromName: typeof record.fromName === 'string' ? record.fromName : '',
+    })
+  }
+  return regions
+}
+
+function regionHasCopy(copy: EmailTemplateRegionCopy): boolean {
+  return Boolean(copy.subject.trim() && copy.htmlBody.trim())
+}
+
+/**
+ * Copy to send for the site that received the enquiry.
+ * A region with no subject or body falls back to New Zealand, then the legacy fields.
+ */
+export function resolveTemplateRegion(
+  template: {
+    subject: string
+    htmlBody: string
+    textBody?: string
+    regions?: EmailTemplateRegions | null
+  },
+  market: MarketId | string | null | undefined
+): EmailTemplateRegionCopy {
+  const regions =
+    template.regions ??
+    defaultRegionsFromLegacy({
+      subject: template.subject,
+      htmlBody: template.htmlBody,
+      textBody: template.textBody,
+    })
+  const id: MarketId = isMarketId(market) ? market : 'nz'
+  if (regionHasCopy(regions[id])) return regions[id]
+  if (regionHasCopy(regions.nz)) return regions.nz
+  return emptyRegionCopy({
+    subject: template.subject,
+    htmlBody: template.htmlBody,
+    textBody: template.textBody,
+  })
+}
+
 export type EmailTemplate = {
   id: string
   kind: EmailTemplateKind
   name: string
+  /** New Zealand copy. Kept in sync so older readers still have a subject and body. */
   subject: string
   /** HTML body with merge tags like <name>, <concerns>, <Enquiry Type> */
   htmlBody: string
   /** Optional plain-text override; if empty, derived from HTML */
   textBody: string
+  /** Per-site subject, body, and from address. */
+  regions: EmailTemplateRegions
   recipients: EmailTemplateRecipients
   /** Default font applied as a wrapper around the HTML body */
   bodyFontFamily: string
@@ -145,6 +292,7 @@ export type EmailTemplateInput = {
   attachmentStoragePath?: string
   attachmentUrl?: string
   attachmentContentType?: string
+  regions?: EmailTemplateRegions
 }
 
 export function hasEmailAttachment(

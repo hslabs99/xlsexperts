@@ -8,7 +8,23 @@ import {
 import type { BlogAiDraft } from '@/lib/blog-ai-types'
 import { buildBlogAiImagePrompt } from '@/lib/blog-ai-image-styles'
 
+import {
+  blogMarketSerpError,
+  type BlogSerpByMarket,
+} from '@/lib/blog-serp-copy'
+import { fillBlogSerpPrompt } from '@/lib/blog-serp-prompt'
+import { MARKET_IDS } from '@/lib/market'
+
 export type { BlogAiDraft } from '@/lib/blog-ai-types'
+
+export type BlogSerpAiInput = {
+  title: string
+  excerpt?: string
+  category?: string
+  body?: string
+  /** Stored settings prompt. Placeholders are filled from this post. */
+  prompt: string
+}
 
 export type BlogAiDraftInput = {
   title: string
@@ -118,6 +134,98 @@ ${RESPONSE_SHAPE}`
     markdown,
     sections,
     imagePrompt: String(parsed.imagePrompt ?? '').trim(),
+  }
+}
+
+function parseSerpListings(raw: string): BlogSerpByMarket {
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    throw new Error('OpenAI returned invalid JSON for the Google listing')
+  }
+
+  const listings = {} as BlogSerpByMarket
+  for (const market of MARKET_IDS) {
+    const row = parsed[market]
+    const record =
+      row && typeof row === 'object' ? (row as Record<string, unknown>) : {}
+    const nextTitle = String(record.title ?? '').trim()
+    const nextDescription = String(record.description ?? '').trim()
+    if (!nextTitle || !nextDescription) {
+      throw new Error(`OpenAI did not return a ${market} Google listing`)
+    }
+    listings[market] = { title: nextTitle, description: nextDescription }
+  }
+  return listings
+}
+
+function serpLengthProblems(listings: BlogSerpByMarket): string[] {
+  const problems: string[] = []
+  for (const market of MARKET_IDS) {
+    const row = listings[market]
+    if (!row) continue
+    const error = blogMarketSerpError(market, row.title, row.description)
+    if (error) problems.push(error)
+  }
+  return problems
+}
+
+/** One call writes three finished Google listings, one per live domain. */
+export async function generateBlogSerpListings(
+  input: BlogSerpAiInput
+): Promise<Record<'nz' | 'intl' | 'uk', { title: string; description: string }>> {
+  const title = input.title.trim()
+  if (!title) throw new Error('Title is required')
+  const prompt = input.prompt.trim()
+  if (!prompt) throw new Error('Google listing prompt is required')
+
+  const openai = requireOpenAIClient()
+  const user = fillBlogSerpPrompt(prompt, {
+    title,
+    category: input.category,
+    excerpt: input.excerpt,
+    body: input.body,
+  })
+
+  async function complete(messages: { role: 'user' | 'assistant'; content: string }[]) {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Follow the length rules exactly. Count characters before you answer. Return only the JSON object.',
+        },
+        ...messages,
+      ],
+    })
+    const raw = completion.choices[0]?.message?.content
+    if (!raw) throw new Error('OpenAI returned an empty Google listing')
+    return raw
+  }
+
+  const first = await complete([{ role: 'user', content: user }])
+  let listings = parseSerpListings(first)
+  const problems = serpLengthProblems(listings)
+  if (problems.length > 0) {
+    const repair = await complete([
+      { role: 'user', content: user },
+      { role: 'assistant', content: first },
+      {
+        role: 'user',
+        content: `These listings failed the length rules:\n${problems.join('\n')}\nRewrite the full JSON. Every description must be 148 to 155 characters. Every title must be 40 to 46 characters and must still contain its region word (NZ, US, or UK). Count the characters, then return only the corrected JSON.`,
+      },
+    ])
+    listings = parseSerpListings(repair)
+  }
+
+  return {
+    nz: listings.nz!,
+    intl: listings.intl!,
+    uk: listings.uk!,
   }
 }
 

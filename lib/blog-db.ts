@@ -1,7 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { BLOG_POSTS_COLLECTION } from '@/lib/firebase'
-import type { MarketId } from '@/lib/market'
+import { MARKET_IDS, isMarketId, type MarketId } from '@/lib/market'
 import type { BlogListItem, BlogPost, BlogSection } from '@/lib/types'
 import {
   blogShowNz,
@@ -11,7 +11,13 @@ import {
   type BlogPostInput,
   type BlogPostRecord,
 } from '@/lib/blog-shared'
-import { blogSerpTemplateError } from '@/lib/blog-serp-copy'
+import { primaryToStore } from '@/lib/blog-routing'
+import {
+  blogSerpByMarketError,
+  blogSerpByMarketIsEmpty,
+  blogSerpTemplateError,
+  type BlogSerpByMarket,
+} from '@/lib/blog-serp-copy'
 
 export type { BlogPostInput, BlogPostRecord } from '@/lib/blog-shared'
 
@@ -48,6 +54,22 @@ function mapSections(raw: unknown): BlogSection[] {
   })
 }
 
+function mapSerpByMarket(raw: unknown): BlogSerpByMarket | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const source = raw as Record<string, unknown>
+  const next: BlogSerpByMarket = {}
+  for (const market of MARKET_IDS) {
+    const row = source[market]
+    if (!row || typeof row !== 'object') continue
+    const record = row as Record<string, unknown>
+    next[market] = {
+      title: String(record.title ?? ''),
+      description: String(record.description ?? ''),
+    }
+  }
+  return next
+}
+
 function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
   return {
     slug: String(data.slug ?? id),
@@ -58,6 +80,7 @@ function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
     excerpt: String(data.excerpt ?? ''),
     serpTitle: String(data.serpTitle ?? ''),
     serpDescription: String(data.serpDescription ?? ''),
+    serpByMarket: mapSerpByMarket(data.serpByMarket),
     image: String(data.image ?? ''),
     category: String(data.category ?? ''),
     sections: mapSections(data.sections),
@@ -66,6 +89,7 @@ function mapPost(id: string, data: Record<string, unknown>): BlogPostRecord {
     showNz: blogShowNz(data.showNz),
     showUsa: blogShowUsa(data.showUsa),
     showUk: blogShowUk(data.showUk, data.showUsa),
+    primaryRegion: isMarketId(data.primaryRegion) ? data.primaryRegion : null,
     sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 9999,
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
@@ -88,6 +112,7 @@ export function toPublicBlogPost(record: BlogPostRecord): BlogPost {
     excerpt: record.excerpt,
     serpTitle: record.serpTitle ?? '',
     serpDescription: record.serpDescription ?? '',
+    serpByMarket: record.serpByMarket,
     image: record.image,
     category: record.category,
     sections: record.sections,
@@ -191,7 +216,11 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
   const existing = await ref.get()
   const serpTitle = (input.serpTitle ?? '').trim()
   const serpDescription = (input.serpDescription ?? '').trim()
-  if (!existing.exists || serpTitle || serpDescription) {
+  const serpByMarket = input.serpByMarket
+  if (serpByMarket && !blogSerpByMarketIsEmpty(serpByMarket)) {
+    const marketError = blogSerpByMarketError(serpByMarket)
+    if (marketError) throw new Error(marketError)
+  } else if (!existing.exists || serpTitle || serpDescription) {
     const serpError = blogSerpTemplateError(serpTitle, serpDescription)
     if (serpError) throw new Error(serpError)
   }
@@ -205,6 +234,7 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
     excerpt: input.excerpt.trim(),
     serpTitle,
     serpDescription,
+    serpByMarket: serpByMarket ?? {},
     image: input.image.trim(),
     category: input.category.trim(),
     sections: input.sections,
@@ -213,6 +243,14 @@ export async function saveBlogPost(input: BlogPostInput): Promise<void> {
     showNz: blogShowNz(input.showNz),
     showUsa: blogShowUsa(input.showUsa),
     showUk: blogShowUk(input.showUk, input.showUsa ?? input.showUk),
+    primaryRegion: primaryToStore(
+      {
+        showNz: blogShowNz(input.showNz),
+        showUsa: blogShowUsa(input.showUsa),
+        showUk: blogShowUk(input.showUk, input.showUsa ?? input.showUk),
+      },
+      input.primaryRegion
+    ),
     sortOrder:
       typeof input.sortOrder === 'number'
         ? input.sortOrder
@@ -275,9 +313,36 @@ export async function updateBlogPostFields(
   if (patch.sections !== undefined) payload.sections = patch.sections
   if (patch.published !== undefined) payload.published = patch.published
   if (patch.featured !== undefined) payload.featured = patch.featured
-  if (patch.showNz !== undefined) payload.showNz = Boolean(patch.showNz)
-  if (patch.showUsa !== undefined) payload.showUsa = Boolean(patch.showUsa)
-  if (patch.showUk !== undefined) payload.showUk = Boolean(patch.showUk)
+  const regionTouch =
+    patch.showNz !== undefined ||
+    patch.showUsa !== undefined ||
+    patch.showUk !== undefined ||
+    'primaryRegion' in patch
+  if (regionTouch) {
+    const existing = await getAdminDb()
+      .collection(BLOG_POSTS_COLLECTION)
+      .doc(slug)
+      .get()
+    const data = (existing.data() ?? {}) as Record<string, unknown>
+    const showNz =
+      patch.showNz !== undefined ? Boolean(patch.showNz) : blogShowNz(data.showNz)
+    const showUsa =
+      patch.showUsa !== undefined
+        ? Boolean(patch.showUsa)
+        : blogShowUsa(data.showUsa)
+    const showUk =
+      patch.showUk !== undefined
+        ? Boolean(patch.showUk)
+        : blogShowUk(data.showUk, showUsa)
+    const requested = 'primaryRegion' in patch ? patch.primaryRegion : data.primaryRegion
+    payload.showNz = showNz
+    payload.showUsa = showUsa
+    payload.showUk = showUk
+    payload.primaryRegion = primaryToStore(
+      { showNz, showUsa, showUk },
+      requested
+    )
+  }
   if (patch.sortOrder !== undefined) payload.sortOrder = patch.sortOrder
 
   await getAdminDb().collection(BLOG_POSTS_COLLECTION).doc(slug).update(payload)

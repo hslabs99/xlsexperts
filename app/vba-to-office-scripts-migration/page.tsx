@@ -4,6 +4,7 @@ import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
 import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
+import { MatchingCaseStudies } from '@/components/matching-case-studies'
 import { PageContact } from '@/components/page-contact'
 import { SolutionCrossLinks } from '@/components/solutions/solution-cross-links'
 import { CheckCircle, AlertTriangle, ArrowRight, XCircle } from 'lucide-react'
@@ -425,6 +426,7 @@ export default async function VBAToOfficeScriptsMigrationPage() {
           </div>
         </section>
 
+        <MatchingCaseStudies href="/vba-to-office-scripts-migration" />
         <PageContact topicHref="/vba-to-office-scripts-migration" />
       </main>
     </>

@@ -14,17 +14,28 @@ import {
   simpleDownloadLabel,
   withLabeledDownloadLink,
   defaultRecipientsForKind,
+  defaultRegionsFromLegacy,
   emailTemplateKindLabel,
   hasEmailAttachment,
+  isXlsexpertsSenderEmail,
   normalizeEmailFontSize,
   normalizeEmailHtml,
+  normalizeEmailTemplateRegions,
   type EmailTemplate,
   type EmailTemplateInput,
   type EmailTemplateKind,
+  type EmailTemplateRegionCopy,
+  type EmailTemplateRegions,
   type EmailTemplateRecipients,
   type EnquiryMergeContext,
   type RecipientParty,
 } from '@/lib/email-templates'
+import {
+  MARKET_IDS,
+  marketHostHint,
+  marketLabel,
+  type MarketId,
+} from '@/lib/market'
 import {
   EMAIL_INSERT_BLOCKS,
   type EmailInsertBlock,
@@ -76,6 +87,7 @@ const SAMPLE_WHITEPAPER_CTX: EnquiryMergeContext = {
 
 type TemplateForm = EmailTemplateInput & {
   textBody: string
+  regions: EmailTemplateRegions
   recipients: EmailTemplateRecipients
   bodyFontFamily: string
   bodyFontSize: string
@@ -84,6 +96,14 @@ type TemplateForm = EmailTemplateInput & {
   attachmentStoragePath: string
   attachmentUrl: string
   attachmentContentType: string
+}
+
+function regionsForDraft(draft: {
+  subject: string
+  htmlBody: string
+  textBody?: string
+}): EmailTemplateRegions {
+  return defaultRegionsFromLegacy(draft)
 }
 
 function emptyForm(kind: EmailTemplateKind = 'standard'): TemplateForm {
@@ -108,6 +128,19 @@ function emptyForm(kind: EmailTemplateKind = 'standard'): TemplateForm {
         ? '<p><strong>New discovery call</strong> from {{name}} ({{email}}).</p><p>{{when}} · {{method}}</p><p>{{about}}</p>{{concerns}}'
         : '<p>Hi {{name}},</p><p>Thanks for contacting <strong>{{from}}</strong>. We received your enquiry and will be in touch shortly.</p><p>{{about}}</p><p>Concerns:</p>{{concerns}}<p>Kind regards,<br />{{from}}</p>',
     textBody: '',
+    regions: regionsForDraft({
+      subject: whitepaper
+        ? DEFAULT_WHITEPAPER_TEMPLATE.subject
+        : discovery
+          ? 'Discovery call — {{name}} on {{when}}'
+          : 'Thanks for contacting {{from}}, {{name}}',
+      htmlBody: whitepaper
+        ? DEFAULT_WHITEPAPER_TEMPLATE.htmlBody
+        : discovery
+          ? '<p><strong>New discovery call</strong> from {{name}} ({{email}}).</p><p>{{when}} · {{method}}</p><p>{{about}}</p>{{concerns}}'
+          : '<p>Hi {{name}},</p><p>Thanks for contacting <strong>{{from}}</strong>. We received your enquiry and will be in touch shortly.</p><p>{{about}}</p><p>Concerns:</p>{{concerns}}<p>Kind regards,<br />{{from}}</p>',
+      textBody: '',
+    }),
     recipients,
     bodyFontFamily: DEFAULT_EMAIL_BODY_FONT_FAMILY,
     bodyFontSize: DEFAULT_EMAIL_BODY_FONT_SIZE,
@@ -142,6 +175,7 @@ export function AdminEmailTemplatesPanel() {
   const [message, setMessage] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | 'new' | null>(null)
   const [form, setForm] = useState<TemplateForm>(emptyForm())
+  const [emailRegion, setEmailRegion] = useState<MarketId>('nz')
   const [showHtmlSource, setShowHtmlSource] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [pdfUploading, setPdfUploading] = useState(false)
@@ -188,6 +222,7 @@ export function AdminEmailTemplatesPanel() {
 
   function startNew(kind: EmailTemplateKind = 'standard') {
     setSelectedId('new')
+    setEmailRegion('nz')
     setForm(emptyForm(kind))
     setMessage(null)
     setError(null)
@@ -195,12 +230,19 @@ export function AdminEmailTemplatesPanel() {
 
   function startEdit(t: EmailTemplate) {
     setSelectedId(t.id)
-    setForm({
-      kind: t.kind,
-      name: t.name,
+    setEmailRegion('nz')
+    const regions = normalizeEmailTemplateRegions(t.regions, {
       subject: t.subject,
       htmlBody: t.htmlBody,
       textBody: t.textBody,
+    })
+    setForm({
+      kind: t.kind,
+      name: t.name,
+      subject: regions.nz.subject,
+      htmlBody: regions.nz.htmlBody,
+      textBody: regions.nz.textBody,
+      regions,
       recipients: t.recipients,
       bodyFontFamily: t.bodyFontFamily,
       bodyFontSize: normalizeEmailFontSize(t.bodyFontSize),
@@ -220,12 +262,58 @@ export function AdminEmailTemplatesPanel() {
     setError(null)
     setMessage(null)
     try {
-      if (!form.name.trim() || !form.subject.trim() || !form.htmlBody.trim()) {
-        throw new Error('Name, subject and HTML body are required.')
+      if (!form.name.trim()) {
+        throw new Error('Name is required.')
+      }
+      const regions = normalizeEmailTemplateRegions(
+        {
+          nz: {
+            ...form.regions.nz,
+            htmlBody: normalizeEmailHtml(form.regions.nz.htmlBody),
+          },
+          intl: {
+            ...form.regions.intl,
+            htmlBody: normalizeEmailHtml(form.regions.intl.htmlBody),
+          },
+          uk: {
+            ...form.regions.uk,
+            htmlBody: normalizeEmailHtml(form.regions.uk.htmlBody),
+          },
+        },
+        {
+          subject: form.subject,
+          htmlBody: form.htmlBody,
+          textBody: form.textBody,
+        }
+      )
+      if (!regions.nz.subject.trim() || !regions.nz.htmlBody.trim()) {
+        throw new Error('New Zealand subject and HTML body are required.')
+      }
+      for (const id of MARKET_IDS) {
+        const copy = regions[id]
+        const started = Boolean(
+          copy.subject.trim() ||
+            copy.htmlBody.trim() ||
+            copy.fromEmail.trim() ||
+            copy.fromName.trim()
+        )
+        if (started && (!copy.subject.trim() || !copy.htmlBody.trim())) {
+          throw new Error(
+            `${marketLabel(id)} needs both a subject and an HTML body.`
+          )
+        }
+        if (copy.fromEmail.trim() && !isXlsexpertsSenderEmail(copy.fromEmail)) {
+          throw new Error(
+            `${marketLabel(id)} from address must be @xlsexperts.co.nz, @xlsexperts.com, or @xlsexperts.co.uk.`
+          )
+        }
       }
       const payload = {
         ...form,
-        htmlBody: normalizeEmailHtml(form.htmlBody),
+        subject: regions.nz.subject,
+        htmlBody: regions.nz.htmlBody,
+        textBody: regions.nz.textBody,
+        regions,
       }
       if (selectedId === 'new' || !selectedId) {
         const res = await fetch('/api/admin/email-templates', {
@@ -244,7 +332,13 @@ export function AdminEmailTemplatesPanel() {
         setMessage('Template created.')
         await load()
         setSelectedId(data.id)
-        setForm((p) => ({ ...p, htmlBody: payload.htmlBody }))
+        setForm((p) => ({
+          ...p,
+          subject: payload.subject,
+          htmlBody: payload.htmlBody,
+          textBody: payload.textBody,
+          regions: payload.regions,
+        }))
       } else {
         const res = await fetch('/api/admin/email-templates', {
           method: 'PATCH',
@@ -257,7 +351,13 @@ export function AdminEmailTemplatesPanel() {
         }
         setMessage('Template saved. Standard enquiries will use these settings when Active.')
         await load()
-        setForm((p) => ({ ...p, htmlBody: payload.htmlBody }))
+        setForm((p) => ({
+          ...p,
+          subject: payload.subject,
+          htmlBody: payload.htmlBody,
+          textBody: payload.textBody,
+          regions: payload.regions,
+        }))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
@@ -368,24 +468,52 @@ export function AdminEmailTemplatesPanel() {
     }
   }
 
+  function patchRegion(patch: Partial<EmailTemplateRegionCopy>) {
+    setForm((prev) => {
+      const nextRegion = { ...prev.regions[emailRegion], ...patch }
+      const regions = { ...prev.regions, [emailRegion]: nextRegion }
+      return {
+        ...prev,
+        regions,
+        subject: regions.nz.subject,
+        htmlBody: regions.nz.htmlBody,
+        textBody: regions.nz.textBody,
+      }
+    })
+  }
+
   function insertTag(tag: string) {
     const inner = tag.replace(/^<|>$/g, '')
     const token = `{{${inner}}}`
-    setForm((prev) => ({
-      ...prev,
-      htmlBody: `${prev.htmlBody}${token}`,
-    }))
+    setForm((prev) => {
+      const nextRegion = {
+        ...prev.regions[emailRegion],
+        htmlBody: `${prev.regions[emailRegion].htmlBody}${token}`,
+      }
+      const regions = { ...prev.regions, [emailRegion]: nextRegion }
+      return {
+        ...prev,
+        regions,
+        htmlBody: regions.nz.htmlBody,
+      }
+    })
   }
 
   /** Append a graphical HTML block; open source mode so TipTap won't strip tables. */
   function insertBlock(block: EmailInsertBlock) {
     setShowHtmlSource(true)
     setForm((prev) => {
-      const body = prev.htmlBody.trimEnd()
+      const body = prev.regions[emailRegion].htmlBody.trimEnd()
       const sep = body ? '\n\n' : ''
+      const nextRegion = {
+        ...prev.regions[emailRegion],
+        htmlBody: `${body}${sep}${block.html}\n`,
+      }
+      const regions = { ...prev.regions, [emailRegion]: nextRegion }
       return {
         ...prev,
-        htmlBody: `${body}${sep}${block.html}\n`,
+        regions,
+        htmlBody: regions.nz.htmlBody,
       }
     })
   }
@@ -400,10 +528,13 @@ export function AdminEmailTemplatesPanel() {
             downloadLabel: simpleDownloadLabel(form.attachmentFilename),
           }
         : SAMPLE_CTX
-  const previewSubject = applyMergeTags(form.subject, previewCtx, { html: false })
+  const regionCopy = form.regions[emailRegion]
+  const previewSubject = applyMergeTags(regionCopy.subject, previewCtx, {
+    html: false,
+  })
   const previewHtml = normalizeEmailHtml(
     withLabeledDownloadLink(
-      applyMergeTags(form.htmlBody, previewCtx, { html: true }),
+      applyMergeTags(regionCopy.htmlBody, previewCtx, { html: true }),
       previewCtx.downloadUrl,
       previewCtx.downloadLabel
     )
@@ -635,9 +766,10 @@ export function AdminEmailTemplatesPanel() {
                   <p className="mt-1 text-xs text-ink-muted">
                     <strong>Client email</strong> = address from the form.&nbsp;
                     <strong>Our email</strong> ={' '}
-                    <code className="text-[11px]">CONTACT_NOTIFY_EMAIL</code> or{' '}
-                    <code className="text-[11px]">SENDGRID_FROM_EMAIL</code>.
-                    From header always uses SendGrid From (env).
+                    <code className="text-[11px]">CONTACT_NOTIFY_EMAIL</code>.
+                    Replies still go to that inbox. From name and From email are
+                    set on the region below — they are not taken from SendGrid
+                    settings.
                   </p>
 
                   <label className="mt-4 flex flex-col gap-1 text-sm">
@@ -792,14 +924,81 @@ export function AdminEmailTemplatesPanel() {
                   </label>
                 </div>
 
+                <div className="rounded-md border border-border bg-white p-4">
+                  <h3 className="text-sm font-semibold text-ink">Region</h3>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    Subject, from address, and body are chosen from the site that
+                    received the enquiry: New Zealand, International (.com), or
+                    the UK. A region left without a subject or body uses the New
+                    Zealand copy.
+                  </p>
+                  {form.kind === 'discovery' ? (
+                    <p className="mt-2 text-xs text-ink-muted">
+                      Discovery bookings still send the presentation email above.
+                      From name and From email on that message are inherited
+                      from this template for the enquiry&apos;s region. The
+                      subject and body here are not used for bookings.
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {MARKET_IDS.map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setEmailRegion(id)}
+                        className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+                          emailRegion === id
+                            ? 'bg-brand text-white'
+                            : 'border border-border bg-white text-ink hover:bg-surface-raised'
+                        }`}
+                      >
+                        {marketLabel(id)}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-ink-muted">
+                    From name and From email for{' '}
+                    <code className="text-[11px]">{marketHostHint(emailRegion)}</code>{' '}
+                    are set here. SendGrid settings do not choose them — sends
+                    inherit this template. Use a verified sender:{' '}
+                    <code className="text-[11px]">xlsexperts.co.nz</code> and{' '}
+                    <code className="text-[11px]">xlsexperts.com</code> are ready;{' '}
+                    <code className="text-[11px]">xlsexperts.co.uk</code> is next.
+                  </p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium text-ink">From name</span>
+                      <input
+                        value={regionCopy.fromName}
+                        onChange={(e) => patchRegion({ fromName: e.target.value })}
+                        placeholder="XLS Experts"
+                        className="rounded-md border border-border px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="font-medium text-ink">From email</span>
+                      <input
+                        value={regionCopy.fromEmail}
+                        onChange={(e) =>
+                          patchRegion({ fromEmail: e.target.value })
+                        }
+                        placeholder={`name@${marketHostHint(emailRegion)}`}
+                        className="rounded-md border border-border px-3 py-2 font-mono text-xs"
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <label className="flex flex-col gap-1 text-sm">
-                  <span className="font-medium text-ink">Subject</span>
+                  <span className="font-medium text-ink">
+                    Subject ({marketLabel(emailRegion)})
+                  </span>
                   <input
-                    required
-                    value={form.subject}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, subject: e.target.value }))
-                    }
+                    required={emailRegion === 'nz'}
+                    value={regionCopy.subject}
+                    onChange={(e) => patchRegion({ subject: e.target.value })}
                     className="rounded-md border border-border px-3 py-2 font-mono text-xs"
                     placeholder="Thanks for contacting {{from}}, {{name}}"
                   />
@@ -807,7 +1006,9 @@ export function AdminEmailTemplatesPanel() {
 
                 <div>
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-ink">HTML body</span>
+                    <span className="text-sm font-medium text-ink">
+                      HTML body ({marketLabel(emailRegion)})
+                    </span>
                     <button
                       type="button"
                       className="text-xs font-semibold text-brand hover:underline"
@@ -857,32 +1058,27 @@ export function AdminEmailTemplatesPanel() {
 
                   {showHtmlSource ? (
                     <textarea
-                      value={form.htmlBody}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, htmlBody: e.target.value }))
-                      }
+                      value={regionCopy.htmlBody}
+                      onChange={(e) => patchRegion({ htmlBody: e.target.value })}
                       rows={14}
                       className="w-full rounded-md border border-border px-3 py-2 font-mono text-xs"
                     />
                   ) : (
                     <EmailHtmlEditor
-                      value={form.htmlBody}
-                      onChange={(html) =>
-                        setForm((p) => ({ ...p, htmlBody: html }))
-                      }
+                      key={`${selectedId ?? 'new'}-${emailRegion}`}
+                      value={regionCopy.htmlBody}
+                      onChange={(html) => patchRegion({ htmlBody: html })}
                     />
                   )}
                 </div>
 
                 <label className="flex flex-col gap-1 text-sm">
                   <span className="font-medium text-ink">
-                    Plain-text body (optional)
+                    Plain-text body ({marketLabel(emailRegion)}, optional)
                   </span>
                   <textarea
-                    value={form.textBody}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, textBody: e.target.value }))
-                    }
+                    value={regionCopy.textBody}
+                    onChange={(e) => patchRegion({ textBody: e.target.value })}
                     rows={4}
                     placeholder="Leave blank to auto-derive from HTML"
                     className="rounded-md border border-border px-3 py-2 font-mono text-xs"
@@ -986,7 +1182,7 @@ export function AdminEmailTemplatesPanel() {
                 <div className="rounded-md border border-border bg-surface-raised p-4">
                   <h3 className="text-sm font-semibold text-ink">Live preview</h3>
                   <p className="mt-1 text-xs text-ink-muted">
-                    Sample {form.kind} data — tags and default font applied.
+                    {marketLabel(emailRegion)} copy with sample {form.kind} data.
                   </p>
                   <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                     Subject

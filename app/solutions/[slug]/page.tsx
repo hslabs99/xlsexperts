@@ -22,7 +22,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params
   const solution = getSolutionBySlug(slug)
-  if (!solution) return {}
+  if (!solution) notFound()
   return pageSeoMetadata(solution.href)
 }
 

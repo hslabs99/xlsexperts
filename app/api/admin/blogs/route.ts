@@ -36,6 +36,7 @@ function serializeBlog(record: BlogPostRecord) {
     showNz: record.showNz,
     showUsa: record.showUsa,
     showUk: record.showUk,
+    primaryRegion: record.primaryRegion,
     sortOrder: record.sortOrder,
     createdAt: serializeTimestamp(record.createdAt),
     updatedAt: serializeTimestamp(record.updatedAt),

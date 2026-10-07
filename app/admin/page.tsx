@@ -22,7 +22,10 @@ import { AdminDomainRegionsPanel } from '@/components/admin-domain-regions-panel
 import { AdminLogin } from '@/components/admin-login'
 import { AdminUsersPanel } from '@/components/admin-users-panel'
 import { AdminBlogPanel } from '@/components/admin-blog-panel'
+import { AdminBlogSerpPrompt } from '@/components/admin-blog-serp-prompt'
 import { AdminBlogQueuePanel } from '@/components/admin-blog-queue-panel'
+import { AdminBlogLinkingPanel } from '@/components/admin-blog-linking-panel'
+import { AdminNotFoundPanel } from '@/components/admin-not-found-panel'
 import { AdminCaseStudiesPanel } from '@/components/admin-case-studies-panel'
 import { AdminServicePageTilesPanel } from '@/components/admin-service-page-tiles-panel'
 import { AdminFindOutAboutPanel } from '@/components/admin-find-out-about-panel'
@@ -41,6 +44,7 @@ import { AdminHeroClientsPanel } from '@/components/admin-hero-clients-panel'
 import { AdminHeroProjectsPanel } from '@/components/admin-hero-projects-panel'
 import { AdminHeroTopBulletsPanel } from '@/components/admin-hero-top-bullets-panel'
 import { AdminCmsPublishPanel } from '@/components/admin-cms-publish-panel'
+import { AdminRegionAliasesPanel } from '@/components/admin-region-aliases-panel'
 import { AdminMailingsPanel } from '@/components/admin-mailings-panel'
 import {
   clearAdminSession,
@@ -60,8 +64,8 @@ import { parseAdminFocusHash } from '@/lib/admin-focus'
 type AdminTab = AdminTabId
 
 type BookingSubTab = 'bookings' | 'settings'
-type BlogSubTab = 'blogs' | 'queue'
-type SettingsSubTab = 'users' | 'thank-you'
+type BlogSubTab = 'blogs' | 'queue' | 'linking' | 'not-found'
+type SettingsSubTab = 'users' | 'thank-you' | 'google-metas'
 type CmsSubTab =
   | 'site'
   | 'how-we-work'
@@ -71,6 +75,7 @@ type CmsSubTab =
   | 'client-logos'
   | 'common-projects'
   | 'logos'
+  | 'aliases'
   | 'publish'
 type MarketingSubTab = 'tags' | 'crawl' | 'domains'
 
@@ -1072,6 +1077,8 @@ export default function AdminPage() {
                 [
                   { id: 'blogs' as const, label: 'Blogs' },
                   { id: 'queue' as const, label: 'Blog queue' },
+                  { id: 'linking' as const, label: 'Blog linking' },
+                  { id: 'not-found' as const, label: '404s & redirects' },
                 ] as const
               ).map((item) => {
                 const active = blogSubTab === item.id
@@ -1096,6 +1103,8 @@ export default function AdminPage() {
 
             {blogSubTab === 'blogs' && <AdminBlogPanel />}
             {blogSubTab === 'queue' && <AdminBlogQueuePanel />}
+            {blogSubTab === 'linking' && <AdminBlogLinkingPanel />}
+            {blogSubTab === 'not-found' && <AdminNotFoundPanel />}
           </div>
         )}
 
@@ -1142,6 +1151,7 @@ export default function AdminPage() {
                   { id: 'client-logos' as const, label: 'Client Logos' },
                   { id: 'common-projects' as const, label: 'Common Projects' },
                   { id: 'logos' as const, label: 'Logo Harvest' },
+                  { id: 'aliases' as const, label: 'Aliases' },
                   { id: 'publish' as const, label: 'Publish' },
                 ] as const
               ).map((item) => {
@@ -1173,6 +1183,7 @@ export default function AdminPage() {
             {cmsSubTab === 'client-logos' && <AdminHeroClientsPanel />}
             {cmsSubTab === 'common-projects' && <AdminHeroProjectsPanel />}
             {cmsSubTab === 'logos' && <AdminLogoHarvestPanel />}
+            {cmsSubTab === 'aliases' && <AdminRegionAliasesPanel />}
             {cmsSubTab === 'publish' && <AdminCmsPublishPanel />}
           </div>
         )}
@@ -1256,6 +1267,7 @@ export default function AdminPage() {
                 [
                   { id: 'users' as const, label: 'Users' },
                   { id: 'thank-you' as const, label: 'Thank you copy' },
+                  { id: 'google-metas' as const, label: 'Google meta prompt' },
                 ] as const
               ).map((item) => {
                 const active = settingsSubTab === item.id
@@ -1284,6 +1296,20 @@ export default function AdminPage() {
 
             {settingsSubTab === 'thank-you' && (
               <AdminConfirmationContentPanel />
+            )}
+
+            {settingsSubTab === 'google-metas' && (
+              <div className="rounded-lg border border-border bg-surface p-6">
+                <h2 className="text-lg font-semibold text-ink">
+                  Google meta prompt
+                </h2>
+                <p className="mt-2 mb-4 text-sm text-ink-muted">
+                  This prompt writes the NZ, US, and UK Google title and
+                  description for a blog post. The same text is editable beside
+                  the generate button in the blog editor.
+                </p>
+                <AdminBlogSerpPrompt defaultOpen />
+              </div>
             )}
 
             <div className="rounded-lg border border-border bg-surface p-6">

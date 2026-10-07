@@ -3,7 +3,7 @@
  * Edit drafts in Admin → CMS → Home services, then click Publish to regenerate this file.
  * `content` is NZ / International / UK copy. Each host only serves its own market.
  *
- * Generated at 2026-09-24T10:42:56.980Z
+ * Generated at 2026-10-01T09:20:05.766Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -11,7 +11,7 @@ import type { PublishedHomeServicesFile } from '@/lib/home-services'
 
 const published = {
   "version": 2,
-  "publishedAt": "2026-09-24T10:42:56.980Z",
+  "publishedAt": "2026-10-01T09:20:05.766Z",
   "content": {
     "nz": {
       "eyebrow": "What we do",

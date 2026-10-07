@@ -65,8 +65,8 @@ export async function POST(request: Request) {
   }
 
   let enquiryId: string | null = null
+  const { market, host } = await getMarketStamp()
   try {
-    const { market, host } = await getMarketStamp()
     enquiryId = await withTimeout(
       createEnquiry({
         type: 'standard',
@@ -128,6 +128,7 @@ export async function POST(request: Request) {
     const result = await withTimeout(
       sendEnquiryNotificationEmail({
         kind: 'standard',
+        market,
         ctx: buildStandardMergeContext(body),
         category: 'contact-enquiry',
         referenceId: enquiryId ? `contact-${enquiryId}` : `contact-${Date.now()}`,

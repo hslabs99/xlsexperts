@@ -4,6 +4,7 @@ import { getPageSeo, pageSeoMetadata } from '@/lib/page-seo-server'
 import { faqPageJsonLd, regionalizePublicCopy } from '@/lib/page-seo-faqs'
 import { getMarket } from '@/lib/market-server'
 import { Navbar } from '@/components/navbar'
+import { MatchingCaseStudies } from '@/components/matching-case-studies'
 import { PageContact } from '@/components/page-contact'
 import { ServicePageExamples } from '@/components/service-page-examples'
 import { getServicePageTiles } from '@/lib/service-page-tiles'
@@ -286,6 +287,7 @@ export default async function ExcelIntegrationsPage() {
           </div>
         </section>
 
+        <MatchingCaseStudies href="/excel-integrations" />
         <PageContact topicHref="/excel-integrations" />
       </main>
     </>

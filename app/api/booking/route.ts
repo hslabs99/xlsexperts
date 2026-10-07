@@ -175,6 +175,7 @@ export async function POST(request: Request) {
     const result = await withTimeout(
       sendEnquiryNotificationEmail({
         kind: 'discovery',
+        market,
         ctx: buildDiscoveryMergeContext(body),
         category: 'discovery-booking',
         referenceId: enquiryId

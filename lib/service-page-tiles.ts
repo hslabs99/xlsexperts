@@ -5,6 +5,8 @@ import {
   type ServicePageTile,
 } from '@/lib/service-page-tiles-shared'
 import { SERVICE_PAGE_TILES_ARCHIVE } from '@/lib/service-page-tiles-archive'
+import { getMarket } from '@/lib/market-server'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 
 /**
  * Public tiles for one service landing page.
@@ -21,16 +23,22 @@ export async function getServicePageTiles(
     )
     const rows = await fetchAllServicePageTiles()
     const fromCms = selectTilesForServicePage(rows, href)
-    if (fromCms.length > 0) return fromCms
+    if (fromCms.length > 0) return aliasTiles(fromCms)
   } catch (err) {
     console.error('[service-page-tiles] CMS read failed, using archive', err)
   }
 
-  return selectTilesForServicePage(
-    SERVICE_PAGE_TILES_ARCHIVE.map((item) => ({
-      ...item,
-      published: true,
-    })),
-    href
+  return aliasTiles(
+    selectTilesForServicePage(
+      SERVICE_PAGE_TILES_ARCHIVE.map((item) => ({
+        ...item,
+        published: true,
+      })),
+      href
+    )
   )
+}
+
+async function aliasTiles(tiles: ServicePageTile[]): Promise<ServicePageTile[]> {
+  return aliasServedValue(tiles, await getMarket())
 }

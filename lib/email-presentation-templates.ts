@@ -10,22 +10,29 @@ import {
   DISCOVERY_GREETING_HTML,
   EMAIL_UI_FONT,
   HOW_WE_WORK_INSERT_BLOCK,
-  SITE_DISPLAY_NAME,
   SITE_URL,
   buildCaseStudiesEmailHtml,
   type EmailCaseStudyThumb,
 } from '@/lib/email-insert-blocks'
 import {
   defaultRecipientsForKind,
+  fromEmailForMarket,
+  marketSiteLabel,
+  marketSiteOrigin,
   type EmailTemplate,
   type EmailTemplateInput,
 } from '@/lib/email-templates'
+import type { MarketId } from '@/lib/market'
 
 export { SITE_URL }
 
 const FONT = EMAIL_UI_FONT
 
-export const MIKE_SIGNATURE_HTML = `
+export function mikeSignatureHtml(market: MarketId = 'nz'): string {
+  const email = fromEmailForMarket('mike@xlsexperts.co.nz', market)
+  const siteLabel = marketSiteLabel(market)
+  const siteOrigin = marketSiteOrigin(market)
+  return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px 0;border-collapse:collapse;">
   <tr>
     <td style="padding:0;font-family:${FONT};">
@@ -33,11 +40,11 @@ export const MIKE_SIGNATURE_HTML = `
       <p style="margin:0 0 2px 0;padding:0;font-size:11pt;font-weight:bold;line-height:1.4;color:#111827;font-family:${FONT};">Mike Colwill</p>
       <p style="margin:0 0 2px 0;padding:0;font-size:10pt;line-height:1.45;color:#374151;font-family:${FONT};">xlsEXPERTS &ndash; Spreadsheets | VBA | Enterprise Apps | A.I. Solutions</p>
       <p style="margin:0 0 14px 0;padding:0;font-size:10pt;line-height:1.45;font-family:${FONT};">
-        <a href="${SITE_URL}" style="color:#1a6b3c;text-decoration:none;">${SITE_DISPLAY_NAME}</a>
+        <a href="${siteOrigin}" style="color:#1a6b3c;text-decoration:none;">${siteLabel}</a>
       </p>
       <p style="margin:0 0 6px 0;padding:0;font-size:9pt;font-weight:bold;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;font-family:${FONT};">Contact details</p>
       <p style="margin:0;padding:0;font-size:10pt;line-height:1.55;color:#374151;font-family:${FONT};">
-        Email: <a href="mailto:mike@xlsExperts.co.nz" style="color:#1a6b3c;text-decoration:none;">mike@xlsExperts.co.nz</a><br />
+        Email: <a href="mailto:${email}" style="color:#1a6b3c;text-decoration:none;">${email}</a><br />
         Call: <a href="tel:+6421783967" style="color:#1a6b3c;text-decoration:none;">+64 (0)21 783967</a><br />
         WhatsApp: <a href="https://wa.me/6421783967" style="color:#1a6b3c;text-decoration:none;">+6421783967</a>
       </p>
@@ -45,6 +52,9 @@ export const MIKE_SIGNATURE_HTML = `
   </tr>
 </table>
 `.trim()
+}
+
+export const MIKE_SIGNATURE_HTML = mikeSignatureHtml('nz')
 
 export const EMAIL_DISCLAIMER_HTML = `
 <p style="margin:0;padding:0;font-size:8pt;line-height:1.45;color:#9ca3af;font-family:${FONT};">
@@ -55,19 +65,24 @@ export const EMAIL_DISCLAIMER_HTML = `
 </p>
 `.trim()
 
-export const MIKE_SIGNATURE_TEXT = [
-  'Regards,',
-  'Mike',
-  '',
-  'Mike Colwill',
-  'xlsEXPERTS – Spreadsheets | VBA | Enterprise Apps | A.I. Solutions',
-  'www.xlsExperts.co.nz',
-  '',
-  'Contact Details',
-  'Email: mike@xlsExperts.co.nz',
-  'Call: +64 (0)21 783967',
-  'WhatsApp: +6421783967',
-].join('\n')
+export function mikeSignatureText(market: MarketId = 'nz'): string {
+  const email = fromEmailForMarket('mike@xlsexperts.co.nz', market)
+  return [
+    'Regards,',
+    'Mike',
+    '',
+    'Mike Colwill',
+    'xlsEXPERTS – Spreadsheets | VBA | Enterprise Apps | A.I. Solutions',
+    marketSiteLabel(market),
+    '',
+    'Contact Details',
+    `Email: ${email}`,
+    'Call: +64 (0)21 783967',
+    'WhatsApp: +6421783967',
+  ].join('\n')
+}
+
+export const MIKE_SIGNATURE_TEXT = mikeSignatureText('nz')
 
 export const EMAIL_DISCLAIMER_TEXT = [
   'This email and any attachments are confidential, and may be subject to legal privilege, and are intended solely for the use of the individual(s) to whom they are addressed. If you have received this email in error or think you may have done so, you may not peruse, use, disseminate, distribute or copy this message. Please notify the sender immediately and delete the original email from your system.',
@@ -153,11 +168,12 @@ ${preheaderBlock}
  * Case-study thumbs must be absolute Firebase Storage HTTPS URLs.
  */
 export function buildDiscoveryClientPresentationHtml(
-  thumbs: EmailCaseStudyThumb[] = []
+  thumbs: EmailCaseStudyThumb[] = [],
+  market: MarketId = 'nz'
 ): string {
   const inner = [
     DISCOVERY_GREETING_HTML,
-    MIKE_SIGNATURE_HTML,
+    mikeSignatureHtml(market),
     DISCOVERY_CONFIRMATION_INSERT_BLOCK.html,
     HOW_WE_WORK_INSERT_BLOCK.html,
     buildCaseStudiesEmailHtml(thumbs),
@@ -173,7 +189,9 @@ export function buildDiscoveryClientPresentationHtml(
  * Template object used at send time for discovery bookings.
  * Loads case-study thumb URLs from Firestore / Storage (not local / public paths).
  */
-export async function getDiscoveryClientPresentationTemplate(): Promise<
+export async function getDiscoveryClientPresentationTemplate(
+  market: MarketId = 'nz'
+): Promise<
   Pick<
     EmailTemplate,
     | 'kind'
@@ -191,13 +209,13 @@ export async function getDiscoveryClientPresentationTemplate(): Promise<
     kind: 'discovery',
     name: 'Discovery confirmation (presentation)',
     subject: "You're booked — discovery call {{when}}",
-    htmlBody: buildDiscoveryClientPresentationHtml(thumbs),
+    htmlBody: buildDiscoveryClientPresentationHtml(thumbs, market),
     textBody: [
       'Hi {{name}},',
       '',
       'Thank you for booking a discovery call with XLS Experts. Your call slot is confirmed. I will personally contact you to discuss your project — I am your point of contact from here.',
       '',
-      MIKE_SIGNATURE_TEXT,
+      mikeSignatureText(market),
       '',
       'When: {{when}}',
       'Method: {{method}}',
@@ -224,7 +242,7 @@ export async function getDiscoveryClientPresentationTemplate(): Promise<
       '',
       'How we work: Discovery call → Scoping & quote → Build & review → Handover & support',
       '',
-      `Recent case studies: ${SITE_URL}/#case-studies`,
+      `Recent case studies: ${marketSiteOrigin(market)}/#case-studies`,
       '',
       '---',
       EMAIL_DISCLAIMER_TEXT,

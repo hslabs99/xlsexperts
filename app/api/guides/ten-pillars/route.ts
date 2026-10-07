@@ -156,6 +156,7 @@ export async function POST(request: Request) {
     const result = await withTimeout(
       sendEnquiryNotificationEmail({
         kind: 'whitepaper',
+        market,
         templateId: template.id,
         ctx: buildWhitepaperMergeContext({
           name,

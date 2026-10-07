@@ -81,11 +81,9 @@ export function getEmailConfigSnapshot(): EmailConfigSnapshot {
       'No test recipient. Set SENDGRID_TEST_RECIPIENT, CONTACT_NOTIFY_EMAIL, or SENDGRID_FROM_EMAIL.'
     )
   }
-  if (fromEmail) {
-    hints.push(
-      `From address is ${fromEmail}. It must be a verified sender or on an authenticated domain in SendGrid.`
-    )
-  }
+  hints.push(
+    'From name and From email are not set in SendGrid settings. Enquiry mail and admin tests inherit them from the email template for that region. xlsexperts.co.nz and xlsexperts.com are verified senders; xlsexperts.co.uk is next.'
+  )
   hints.push(
     'After changing .env.local, restart `pnpm dev` — Next.js does not hot-reload env vars.'
   )
@@ -106,14 +104,14 @@ export function getEmailConfigSnapshot(): EmailConfigSnapshot {
       set: Boolean(fromEmail),
       preview: previewNonSecret(fromEmail),
       required: true,
-      role: 'Verified sender address',
+      role: 'Not the enquiry sender. From email is inherited from the template.',
     },
     {
       name: 'SENDGRID_FROM_NAME',
       set: Boolean(fromName),
       preview: previewNonSecret(fromName),
       required: true,
-      role: 'Sender display name',
+      role: 'Not the enquiry sender. From name is inherited from the template.',
     },
     {
       name: 'CONTACT_NOTIFY_EMAIL',

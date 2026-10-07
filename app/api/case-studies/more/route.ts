@@ -3,6 +3,8 @@ import {
   MORE_CASE_STUDIES_PAGE_SIZE,
   fetchMoreCaseStudies,
 } from '@/lib/case-studies-db'
+import { getMarket } from '@/lib/market-server'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 import { withTimeout } from '@/lib/with-timeout'
 
 /**
@@ -28,7 +30,9 @@ export async function GET(request: Request) {
       12_000,
       'fetchMoreCaseStudies'
     )
-    return NextResponse.json({ ok: true, ...result })
+    const market = await getMarket()
+    const items = await aliasServedValue(result.items, market)
+    return NextResponse.json({ ok: true, ...result, items })
   } catch (error) {
     return NextResponse.json(
       {

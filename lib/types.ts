@@ -32,6 +32,13 @@ export interface BlogPost {
    * Empty on legacy posts — public pages then fall back to `excerpt`.
    */
   serpDescription?: string
+  /**
+   * Finished Google title and description per market. These are the strings
+   * each domain serves. Empty until the listing is written in admin.
+   */
+  serpByMarket?: Partial<
+    Record<'nz' | 'intl' | 'uk', { title: string; description: string }>
+  >
   sections: BlogSection[]
 }
 

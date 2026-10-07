@@ -18,9 +18,14 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export default async function BlogIndex() {
+export default async function BlogIndex({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>
+}) {
   const posts = await getBlogListPosts()
   const { region } = serpTokensForMarket(await getMarket())
+  const { q } = await searchParams
 
   return (
     <>
@@ -47,7 +52,7 @@ export default async function BlogIndex() {
           </div>
         </div>
 
-        <BlogIndexClient posts={posts} />
+        <BlogIndexClient posts={posts} initialQuery={q ?? ''} />
         <nav className="sr-only" aria-label="All blog posts">
           {posts.map((post) => (
             <a key={post.slug} href={`/blog/${post.slug}`}>

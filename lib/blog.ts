@@ -24,13 +24,18 @@ import {
 } from '@/lib/blog-shared'
 import { getMarket } from '@/lib/market-server'
 import { applyBlogPresentation } from '@/lib/blog-presentation'
+import { aliasServedValue } from '@/lib/region-aliases-server'
 
-export type PublicBlogPost = BlogPost & { visibleOn: MarketId[] }
+export type PublicBlogPost = BlogPost & {
+  visibleOn: MarketId[]
+  primaryRegion: MarketId | null
+}
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
   const market = await getMarket()
   const posts = await fetchPublishedBlogPosts(market)
-  return posts.map((post) => applyBlogPresentation(post, market))
+  const presented = posts.map((post) => applyBlogPresentation(post, market))
+  return aliasServedValue(presented, market)
 }
 
 export async function getPublishedBlogRecords(): Promise<BlogPostRecord[]> {
@@ -42,7 +47,8 @@ export async function getPublishedBlogRecords(): Promise<BlogPostRecord[]> {
 export async function getBlogListPosts(): Promise<BlogListItem[]> {
   const market = await getMarket()
   const posts = await fetchPublishedBlogList(market)
-  return posts.map((post) => applyBlogPresentation(post, market))
+  const presented = posts.map((post) => applyBlogPresentation(post, market))
+  return aliasServedValue(presented, market)
 }
 
 export async function getBlogPost(
@@ -53,5 +59,12 @@ export async function getBlogPost(
   if (!record || !record.published) return undefined
   if (!blogVisibleOnMarket(record, market)) return undefined
   const post = applyBlogPresentation(toPublicBlogPost(record), market)
-  return { ...post, visibleOn: visibleMarketsForBlog(record) }
+  return aliasServedValue(
+    {
+      ...post,
+      visibleOn: visibleMarketsForBlog(record),
+      primaryRegion: record.primaryRegion,
+    },
+    market
+  )
 }

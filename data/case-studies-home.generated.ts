@@ -2,7 +2,7 @@
  * PUBLISHED homepage case studies — imported by the public site (no Firestore on first paint).
  * Edit in Admin → Case Studies, then Publish homepage (or CMS → Publish).
  *
- * Generated at 2026-09-13T12:17:37.702Z
+ * Generated at 2026-10-01T09:20:13.807Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedCaseStudiesHomeFile } from '@/lib/case-studies-home'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-09-13T12:17:37.702Z",
+  "publishedAt": "2026-10-01T09:20:13.807Z",
   "items": [
     {
       "slug": "maintenance-scheduling-ocs",

@@ -2,7 +2,7 @@
  * PUBLISHED homepage hero top bullets — imported by the public site (no Firestore on first paint).
  * Edit drafts in Admin → CMS → Top Bullets, then click Publish to regenerate this file.
  *
- * Generated at 2026-09-24T10:42:57.286Z
+ * Generated at 2026-10-01T09:20:04.438Z
  * Do not edit by hand; Publish overwrites it.
  */
 
@@ -10,7 +10,7 @@ import type { PublishedHeroTopBulletsFile } from '@/lib/hero-top-bullets'
 
 const published = {
   "version": 1,
-  "publishedAt": "2026-09-24T10:42:57.286Z",
+  "publishedAt": "2026-10-01T09:20:04.438Z",
   "content": {
     "nz": [
       {

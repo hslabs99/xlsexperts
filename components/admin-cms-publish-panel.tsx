@@ -5,6 +5,7 @@ import type { CmsRegionHealthFinding, CmsRegionHealthReport } from '@/lib/cms-re
 import { marketShortLabel } from '@/lib/market'
 
 type FilePublishId =
+  | 'region-aliases'
   | 'market-copy'
   | 'page-seo'
   | 'hero-top-bullets'
@@ -12,6 +13,7 @@ type FilePublishId =
   | 'hero-clients'
   | 'hero-projects'
   | 'case-studies-home'
+  | 'case-studies-pages'
   | 'domains'
 
 type FilePublishDef = {
@@ -26,9 +28,19 @@ type FilePublishDef = {
 type FilePublishStatus = {
   publishedAt: string | null
   updatedAt: string | null
+  pageCount?: number
 }
 
 const FILE_PUBLISHES: FilePublishDef[] = [
+  {
+    id: 'region-aliases',
+    title: 'Region aliases',
+    editIn: 'CMS → Aliases',
+    description:
+      'NZ words swapped when UK or International content is served, including published pages and live Firebase content such as blogs.',
+    file: 'data/region-aliases.generated.ts',
+    statusUrl: '/api/admin/region-aliases',
+  },
   {
     id: 'market-copy',
     title: 'Site CMS',
@@ -93,6 +105,15 @@ const FILE_PUBLISHES: FilePublishDef[] = [
     statusUrl: '/api/admin/case-studies-home',
   },
   {
+    id: 'case-studies-pages',
+    title: 'Case study pages',
+    editIn: 'Case Studies',
+    description:
+      'One static page for every published case study. Publish scans Firebase and writes the catalogue. Clicking a card opens /case-studies/[slug]. Commit the file and deploy.',
+    file: 'data/case-studies.generated.ts',
+    statusUrl: '/api/admin/case-studies-pages',
+  },
+  {
     id: 'domains',
     title: 'Domains',
     editIn: 'Marketing → Domains',
@@ -127,6 +148,7 @@ async function readStatus(url: string): Promise<FilePublishStatus> {
     ok?: boolean
     publishedAt?: string | null
     updatedAt?: string | null
+    pageCount?: number
     error?: string
   }
   if (!res.ok || !data.ok) {
@@ -135,11 +157,13 @@ async function readStatus(url: string): Promise<FilePublishStatus> {
   return {
     publishedAt: data.publishedAt ?? null,
     updatedAt: data.updatedAt ?? null,
+    ...(typeof data.pageCount === 'number' ? { pageCount: data.pageCount } : {}),
   }
 }
 
 async function publishFile(id: FilePublishId): Promise<string> {
   const routes: Record<FilePublishId, string> = {
+    'region-aliases': '/api/admin/region-aliases',
     'market-copy': '/api/admin/market-copy',
     'page-seo': '/api/admin/page-seo',
     'hero-top-bullets': '/api/admin/hero-top-bullets',
@@ -147,6 +171,7 @@ async function publishFile(id: FilePublishId): Promise<string> {
     'hero-clients': '/api/admin/hero-clients',
     'hero-projects': '/api/admin/hero-projects',
     'case-studies-home': '/api/admin/case-studies-home',
+    'case-studies-pages': '/api/admin/case-studies-pages',
     domains: '/api/admin/domain-regions',
   }
   const res = await fetch(routes[id], {
@@ -497,6 +522,9 @@ export function AdminCmsPublishPanel() {
                     Last draft: {formatWhen(status?.updatedAt ?? null)}
                     {' · '}
                     Last publish: {formatWhen(status?.publishedAt ?? null)}
+                    {typeof status?.pageCount === 'number'
+                      ? ` · ${status.pageCount} published case stud${status.pageCount === 1 ? 'y' : 'ies'} in Firebase`
+                      : ''}
                   </p>
                 </div>
                 <button
@@ -519,8 +547,8 @@ export function AdminCmsPublishPanel() {
         </h2>
         <p className="mt-1 max-w-3xl text-sm text-ink-muted">
           Discovery booking emails load images from Firebase Storage. This does
-          not affect homepage speed. Blog posts and individual case studies are
-          still published from their own tabs.
+          not affect homepage speed. Blog posts are still published from the
+          Blog tab. Case study pages are in the list above.
         </p>
 
         <div className="mt-6 space-y-3">

@@ -32,7 +32,7 @@ export const ADMIN_TAB_IDS: readonly AdminTabId[] = ADMIN_TABS.map((t) => t.id)
  * Default tabs for new non-admin (marketing) users and for legacy accounts
  * that never had `allowedTabs` stored.
  * CMS includes Site CMS, How we work, Pages CMS, Top Bullets, Home services, Client Logos,
- * Common Projects, Logo Harvest, and Publish.
+ * Common Projects, Logo Harvest, Aliases, and Publish.
  */
 export const DEFAULT_NON_ADMIN_TABS: readonly AdminTabId[] = [
   'enquiries',

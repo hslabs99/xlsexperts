@@ -6,6 +6,7 @@ import {
 } from '@/lib/crawl-docs'
 import { fetchCrawlDocs } from '@/lib/crawl-docs-db'
 import { getMarket } from '@/lib/market-server'
+import { withLegacySitemapLine } from '@/lib/sitemap-legacy'
 import { withTimeout } from '@/lib/with-timeout'
 
 export const dynamic = 'force-dynamic'
@@ -18,17 +19,22 @@ export async function GET() {
       8_000,
       'fetchCrawlDocs'
     )
-    return new NextResponse(resolveRobotsTxt(docs, market), {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-      },
-    })
+    const origin = siteOriginForMarket(market)
+    return new NextResponse(
+      withLegacySitemapLine(resolveRobotsTxt(docs, market), origin, market),
+      {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    )
   } catch {
     try {
       const market = await getMarket()
+      const origin = siteOriginForMarket(market)
       return new NextResponse(
-        defaultRobotsTxt(siteOriginForMarket(market)),
+        withLegacySitemapLine(defaultRobotsTxt(origin), origin, market),
         {
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',

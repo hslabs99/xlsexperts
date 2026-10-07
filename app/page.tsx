@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Navbar } from '@/components/navbar'
 import { Hero } from '@/components/hero'
 import { Services } from '@/components/services'
+import { IndustriesStrip } from '@/components/industries/industries-strip'
 import { HowWeWork } from '@/components/how-we-work'
 import { CaseStudiesSection } from '@/components/case-studies-section'
 import { About } from '@/components/about'
@@ -100,6 +101,7 @@ export default async function Page() {
           topBullets={topBullets}
         />
         <Services />
+        <IndustriesStrip />
         <HowWeWork />
         <CaseStudiesSection />
         <About />

@@ -853,6 +853,39 @@ export function AdminCaseStudiesPanel() {
     }
   }
 
+  async function handlePublishPages() {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/case-studies-pages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'publish' }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        pageCount?: number
+        message?: string
+        error?: string
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to publish case study pages')
+      }
+      const count = data.pageCount ?? 0
+      setMessage(
+        data.message ||
+          `Published ${count} case study page${count === 1 ? '' : 's'}. Commit data/case-studies.generated.ts and deploy.`,
+      )
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to publish case study pages',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function handlePublishHome() {
     setBusy(true)
     setError(null)
@@ -952,12 +985,23 @@ export function AdminCaseStudiesPanel() {
               solutions for page linking. <strong>Publish homepage</strong>{' '}
               writes{' '}
               <code className="text-xs">data/case-studies-home.generated.ts</code>
-              {' '}so first paint has no database read. Commit that file and
-              deploy. Visitors load more only when they click{' '}
-              <strong>Show more</strong>.
+              {' '}so first paint has no database read.{' '}
+              <strong>Publish pages</strong> writes one static page per
+              published study to{' '}
+              <code className="text-xs">data/case-studies.generated.ts</code>.
+              Commit those files and deploy. Visitors load more homepage cards
+              only when they click <strong>Show more</strong>.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void handlePublishPages()}
+              className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 bg-brand-light px-3 py-2 text-sm font-semibold text-brand-dark hover:bg-brand/15 disabled:opacity-60"
+            >
+              Publish pages
+            </button>
             <button
               type="button"
               disabled={busy}

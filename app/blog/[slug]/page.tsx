@@ -1,13 +1,23 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import type { Metadata } from 'next'
-import { getAllBlogPosts, getBlogPost } from '@/lib/blog'
+import { getAllBlogPosts, getBlogPost, getPublishedBlogRecords } from '@/lib/blog'
+import { blogsCanLinkRegions } from '@/lib/blog-shared'
+import { linkedSlugs } from '@/lib/blog-links'
+import { fetchBlogLinkGraph } from '@/lib/blog-links-db'
 import { hasBlogImageSrc } from '@/lib/blog-image-src'
 import { renderBlogInline } from '@/lib/blog-inline-markup'
 import { blogSerpForPost } from '@/lib/blog-serp-copy'
 import { getMarket, getSiteOrigin } from '@/lib/market-server'
+import {
+  contextFromHeaderBag,
+  resolveIncomingPath,
+  type IncomingDecision,
+} from '@/lib/blog-incoming'
+import { buildBlogAlternates, effectivePrimaryRegion } from '@/lib/blog-routing'
 import { absoluteOnOrigin } from '@/lib/regions'
-import { documentTitle, marketPathAlternates } from '@/lib/seo'
+import { documentTitle } from '@/lib/seo'
 import { SITE_ICONS } from '@/lib/site-icons'
 import { Navbar } from '@/components/navbar'
 import { BlogServiceLinks } from '@/components/blog-service-links'
@@ -18,9 +28,21 @@ import { ArrowLeft } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true
 
-/** Old Wix / external links often hit slugs that were never migrated. */
-function redirectUnknownBlogSlug(): never {
-  redirect('/blog')
+/** Unknown slugs are a real 404. They are never sent to the blog index. */
+async function routingDecision(path: string): Promise<IncomingDecision> {
+  try {
+    const h = await headers()
+    return await resolveIncomingPath(contextFromHeaderBag(h, path))
+  } catch (error) {
+    console.error('Blog routing fallback failed', error)
+    return { type: 'continue', missing: false }
+  }
+}
+
+async function followBlogPath(path: string): Promise<void> {
+  const decision = await routingDecision(path)
+  if (decision.type === 'redirect') permanentRedirect(decision.url)
+  if (decision.type === 'gone') notFound()
 }
 
 export async function generateMetadata({
@@ -29,8 +51,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
+  await followBlogPath(`/blog/${slug}`)
   const post = await getBlogPost(slug)
-  if (!post) redirectUnknownBlogSlug()
+  if (!post) notFound()
 
   const origin = await getSiteOrigin()
   const market = await getMarket()
@@ -49,9 +72,20 @@ export async function generateMetadata({
     description: metaDescription,
     authors: [{ name: 'XLS Experts' }],
     icons: SITE_ICONS,
-    alternates: await marketPathAlternates(`/blog/${post.slug}`, {
-      markets: post.visibleOn,
-    }),
+    alternates: (() => {
+      const languages = buildBlogAlternates(
+        `/blog/${post.slug}`,
+        post.visibleOn,
+        effectivePrimaryRegion({
+          showNz: post.visibleOn.includes('nz'),
+          showUsa: post.visibleOn.includes('intl'),
+          showUk: post.visibleOn.includes('uk'),
+          primaryRegion: post.primaryRegion,
+        })
+      )
+      const canonical = absoluteOnOrigin(origin, `/blog/${post.slug}`)
+      return languages ? { canonical, languages } : { canonical }
+    })(),
     openGraph: {
       type: 'article',
       url,
@@ -79,11 +113,21 @@ export default async function BlogPost({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
+  await followBlogPath(`/blog/${slug}`)
   const post = await getBlogPost(slug)
-  if (!post) redirectUnknownBlogSlug()
+  if (!post) notFound()
 
   const origin = await getSiteOrigin()
   const allPosts = await getAllBlogPosts()
+  const records = await getPublishedBlogRecords()
+  const currentRecord = records.find((item) => item.slug === post.slug)
+  const linkGraph = await fetchBlogLinkGraph()
+  const linked = currentRecord
+    ? linkedSlugs(linkGraph, post.slug)
+        .map((slug) => records.find((item) => item.slug === slug))
+        .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        .filter((item) => blogsCanLinkRegions(currentRecord, item))
+    : []
   const related = allPosts.filter((p) => p.slug !== post.slug).slice(0, 2)
   const imageUrl = hasBlogImageSrc(post.image)
     ? post.image.startsWith('http')
@@ -248,6 +292,31 @@ export default async function BlogPost({
               return null
             })}
           </article>
+
+          {linked.length > 0 ? (
+            <section className="mt-12 border-t border-gray-100 pt-8">
+              <h2 className="text-lg font-bold text-gray-900">
+                See other blogs of interest
+              </h2>
+              <ul className="mt-4 space-y-4">
+                {linked.map((item) => (
+                  <li key={item.slug}>
+                    <Link
+                      href={`/blog/${item.slug}`}
+                      className="font-semibold text-gray-900 underline decoration-[#1a6b3c] underline-offset-2 hover:text-[#1a6b3c]"
+                    >
+                      {item.title}
+                    </Link>
+                    {item.excerpt ? (
+                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                        {item.excerpt}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {/* CTA */}
           <div className="mt-14 border-t border-gray-100 pt-10 text-center">
