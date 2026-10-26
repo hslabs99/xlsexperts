@@ -127,6 +127,7 @@ export async function uploadEmailPdfAttachmentAdmin(
   if (!safeId) throw new Error('A valid template id is required')
 
   const safeName = sanitizeAttachmentFilename(filename)
+  const inlineName = safeName.replace(/["\\\r\n]/g, '_')
   const objectPath = `email/attachments/${safeId}/${Date.now()}-${safeName}`
   const downloadToken = randomUUID()
   const bucket = getAdminStorage().bucket()
@@ -136,7 +137,10 @@ export async function uploadEmailPdfAttachmentAdmin(
     resumable: false,
     metadata: {
       contentType: 'application/pdf',
-      cacheControl: 'private, max-age=0, no-store',
+      contentDisposition: `inline; filename="${inlineName}"`,
+      // Chrome's PDF viewer paints a blank page when the response is
+      // `no-store` or `max-age=0`. The file must be cacheable to display.
+      cacheControl: 'public, max-age=86400',
       metadata: {
         firebaseStorageDownloadTokens: downloadToken,
       },

@@ -50,11 +50,12 @@ export function SolutionGuideCapture({
       }
       setDone(true)
       if (!data.downloadUrl) return
+      // Navigate to the PDF. A `download` attribute on this cross-origin
+      // Firebase URL opens a blank tab instead of showing the file.
       const link = document.createElement('a')
       link.href = data.downloadUrl
-      link.rel = 'nofollow'
+      link.rel = 'noopener noreferrer'
       link.target = '_blank'
-      if (data.filename) link.download = data.filename
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -81,8 +82,8 @@ export function SolutionGuideCapture({
 
         {done ? (
           <p className="rounded-xl border border-[#1a6b3c]/20 bg-white px-5 py-4 text-sm leading-relaxed text-gray-700">
-            The guide is on its way to {email}. Check your inbox — and a copy
-            should also download in this browser.
+            The guide is on its way to {email}. Check your inbox — it should
+            also open in a new browser tab.
           </p>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
